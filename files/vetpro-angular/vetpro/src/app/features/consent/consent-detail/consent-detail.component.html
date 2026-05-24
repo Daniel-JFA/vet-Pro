@@ -1,0 +1,119 @@
+<div class="consent-detail-page">
+  <div class="loading-overlay" *ngIf="loading()">
+    <div class="spinner"></div>
+  </div>
+
+  <div *ngIf="!loading() && consent()" class="content-container">
+    <!-- BARRA DE ACCIONES SUPERIOR -->
+    <div class="top-actions-bar no-print">
+      <a routerLink="/consent" class="back-link">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Volver a Consentimientos
+      </a>
+
+      <div class="action-buttons">
+        <button class="btn btn-ghost" *ngIf="!consent()?.signed" (click)="shareWhatsApp()">
+          <span class="material-symbols-outlined">chat</span>
+          Enviar WhatsApp
+        </button>
+
+        <button class="btn btn-ghost" *ngIf="!consent()?.signed" (click)="copyLink()">
+          <span class="material-symbols-outlined">{{ copied() ? 'done' : 'link' }}</span>
+          {{ copied() ? '¡Copiado!' : 'Copiar Link de Firma' }}
+        </button>
+
+        <button class="btn btn-ghost" (click)="printDocument()">
+          <span class="material-symbols-outlined">print</span>
+          Imprimir / PDF
+        </button>
+      </div>
+    </div>
+
+    <!-- EL DOCUMENTO FÍSICO DEL CONSENTIMIENTO -->
+    <div class="consent-sheet" id="print-area">
+      <!-- CABECERA -->
+      <header class="sheet-header">
+        <div class="header-main">
+          <span class="status-pill" [attr.data-signed]="consent()?.signed">
+            {{ consent()?.signed ? 'FIRMADO DIGITALMENTE' : 'PENDIENTE DE FIRMA' }}
+          </span>
+          <h1>{{ consent()?.title }}</h1>
+          <p class="meta-info">
+            <span>Fecha Emisión: <strong>{{ consent()?.createdAt | date:'mediumDate' }}</strong></span>
+            <span class="divider">•</span>
+            <span>Mascota: <strong>{{ consent()?.patientName }}</strong></span>
+          </p>
+        </div>
+
+        <div class="secure-badge" *ngIf="consent()?.signed">
+          <span class="material-symbols-outlined">verified_user</span>
+          <div class="secure-text">
+            <strong>Certificado Seguro</strong>
+            <span>VetPro Document Sign</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- RESUMEN DE PARTES -->
+      <section class="sheet-parties">
+        <div class="party-block">
+          <span>Clínica Veterinaria</span>
+          <strong>VetPro SAS (NIT: 900.123.456-1)</strong>
+        </div>
+        <div class="party-block">
+          <span>Tutor Responsable</span>
+          <strong>{{ consent()?.tutorName }} (Tel: {{ consent()?.tutorPhone }})</strong>
+        </div>
+      </section>
+
+      <!-- CUERPO DEL DOCUMENTO -->
+      <main class="sheet-body">
+        <p class="pre-wrapped">{{ consent()?.content }}</p>
+      </main>
+
+      <!-- BLOQUE DE FIRMA -->
+      <footer class="sheet-footer">
+        <!-- CASO 1: YA FIRMADO -->
+        <div class="signature-block signed-block" *ngIf="consent()?.signed">
+          <div class="signature-line">
+            <!-- Firma Base64 renderizada -->
+            <img [src]="consent()?.signature || 'assets/placeholder-sig.png'" alt="Firma Tutor" class="sig-image" />
+          </div>
+          <div class="signature-details">
+            <strong>Carlos Gómez</strong>
+            <span>Cédula / Identificación del Tutor</span>
+            <span class="signed-time">Firmado digitalmente el {{ consent()?.signedAt | date:'medium' }}</span>
+            <span class="crypto-hash">Hash de integridad: SHA-256/VP-SECURE-{{ consent()?.id }}</span>
+          </div>
+        </div>
+
+        <!-- CASO 2: PENDIENTE DE FIRMA -->
+        <div class="signature-block pending-block no-print" *ngIf="!consent()?.signed">
+          <div class="pending-warning">
+            <span class="material-symbols-outlined alert-icon">draw</span>
+            <div>
+              <h4>Esperando Firma del Tutor</h4>
+              <p>El tutor debe firmar este documento desde su celular o tableta utilizando el enlace único.</p>
+            </div>
+          </div>
+
+          <div class="pending-actions">
+            <div class="sign-link-box">
+              <span class="mono">{{ getSignLink() }}</span>
+              <button class="btn btn-ghost btn-sm" (click)="copyLink()">
+                <span class="material-symbols-outlined">
+                  {{ copied() ? 'done' : 'content_copy' }}
+                </span>
+                {{ copied() ? '¡Copiado!' : 'Copiar' }}
+              </button>
+            </div>
+            <button class="btn btn-primary" (click)="shareWhatsApp()">
+              <span class="material-symbols-outlined">chat</span>
+              Enviar Link por WhatsApp
+            </button>
+          </div>
+        </div>
+      </footer>
+    </div>
+  </div>
+</div>

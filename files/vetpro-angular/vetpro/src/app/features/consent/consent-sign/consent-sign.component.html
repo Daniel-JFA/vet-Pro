@@ -1,0 +1,91 @@
+<div class="consent-sign-page">
+  <div class="loading-overlay" *ngIf="loading()">
+    <div class="spinner"></div>
+  </div>
+
+  <div *ngIf="!loading() && consent()" class="sign-container">
+    <!-- CABECERA PORTAL PÚBLICO -->
+    <header class="sign-header">
+      <div class="logo">
+        <span class="material-symbols-outlined logo-icon">draw</span>
+        <strong>VETPRO</strong>
+        <span class="portal-badge">Portal de Firmas</span>
+      </div>
+    </header>
+
+    <!-- ESTADO: PENDIENTE DE FIRMA -->
+    <div class="sign-card" *ngIf="!signedSuccess()">
+      <div class="intro-section">
+        <h1>Consentimiento Informado</h1>
+        <p class="subtitle">Por favor, lee detalladamente el documento de autorización para tu mascota <strong>{{ consent()?.patientName }}</strong> y dibuja tu firma al final para completarlo.</p>
+      </div>
+
+      <!-- VISOR CONTRATO -->
+      <div class="contract-viewer">
+        <h3>{{ consent()?.title }}</h3>
+        <div class="contract-text-body">
+          <p class="pre-wrapped">{{ consent()?.content }}</p>
+        </div>
+      </div>
+
+      <!-- LIENZO DE DIBUJO CANVAS -->
+      <div class="signature-canvas-section">
+        <div class="canvas-header">
+          <h3>Dibuja tu firma aquí</h3>
+          <p>Usa tu dedo, lápiz digital o mouse dentro del recuadro.</p>
+        </div>
+
+        <div class="canvas-container">
+          <canvas 
+            #sigCanvas 
+            (mousedown)="onMouseDown($event)"
+            (mousemove)="onMouseMove($event)"
+            (mouseup)="onMouseUp()"
+            (mouseleave)="onMouseUp()"
+            (touchstart)="onTouchStart($event)"
+            (touchmove)="onTouchMove($event)"
+            (touchend)="onTouchEnd()"
+          ></canvas>
+          <span class="canvas-helper-text">Línea de firma</span>
+        </div>
+
+        <div class="canvas-actions">
+          <button type="button" class="btn btn-ghost btn-sm" (click)="clearSignature()">
+            <span class="material-symbols-outlined">delete</span>
+            Borrar y Reintentar
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-primary" 
+            (click)="submitSignature()"
+            [disabled]="submitting()"
+          >
+            <span class="material-symbols-outlined" *ngIf="!submitting()">draw</span>
+            <span class="spinner-sm" *ngIf="submitting()"></span>
+            Enviar Firma Autorizada
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ESTADO: EXITO Y FIRMADO -->
+    <div class="sign-card success-card" *ngIf="signedSuccess()">
+      <span class="material-symbols-outlined success-icon">verified</span>
+      <h2>¡Documento Firmado con Éxito!</h2>
+      <p class="success-subtitle">El consentimiento informado para <strong>{{ consent()?.patientName }}</strong> ha sido registrado y encriptado en el historial clínico.</p>
+
+      <div class="signature-preview-box">
+        <span>Firma Registrada:</span>
+        <div class="sig-preview-img-container">
+          <img [src]="consent()?.signature" alt="Tu Firma" />
+        </div>
+        <span class="crypto-hash">Hash Seguro: SHA-256/VP-SECURE-{{ consent()?.id }}</span>
+      </div>
+
+      <div class="info-alert">
+        <span class="material-symbols-outlined">info</span>
+        <p>Ya puedes cerrar esta ventana de forma segura. La clínica veterinaria ha sido notificada automáticamente.</p>
+      </div>
+    </div>
+  </div>
+</div>

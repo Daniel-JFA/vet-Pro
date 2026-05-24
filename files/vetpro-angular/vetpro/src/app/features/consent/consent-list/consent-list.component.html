@@ -1,0 +1,158 @@
+<div class="consent-page">
+  <div class="loading-overlay" *ngIf="loading()">
+    <div class="spinner"></div>
+  </div>
+
+  <div *ngIf="!loading()" class="consent-wrapper">
+    <!-- Cabecera de Página -->
+    <header class="page-header">
+      <div>
+        <h1 class="page-title">Consentimientos y Documentos</h1>
+        <p class="page-subtitle">Genera autorizaciones y gestiona firmas digitales de los tutores.</p>
+      </div>
+      <a [routerLink]="['/consent/new']" class="btn btn-primary">
+        <span class="material-symbols-outlined">border_color</span>
+        Nuevo Consentimiento
+      </a>
+    </header>
+
+    <!-- KPIs / Tarjetas de Estadísticas -->
+    <section class="stats-grid">
+      <div class="card stat-card">
+        <div class="stat-icon" style="background-color: #ebf5ff; color: #1e88e5;">
+          <span class="material-symbols-outlined">folder_open</span>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">Documentos Generados</span>
+          <h3>{{ stats().total }}</h3>
+        </div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-icon" style="background-color: #e6fffa; color: #0d9488;">
+          <span class="material-symbols-outlined">draw</span>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">Firmados</span>
+          <h3>{{ stats().signed }}</h3>
+        </div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-icon" style="background-color: #fff5f5; color: #e53e3e;">
+          <span class="material-symbols-outlined">pending</span>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">Pendientes por Firma</span>
+          <h3>{{ stats().pending }}</h3>
+        </div>
+      </div>
+    </section>
+
+    <!-- Barra de Filtros -->
+    <section class="filters-bar">
+      <div class="search-box">
+        <span class="material-symbols-outlined">search</span>
+        <input 
+          type="text" 
+          [ngModel]="search()" 
+          (ngModelChange)="search.set($event)" 
+          placeholder="Buscar por título, mascota o tutor..." 
+        />
+      </div>
+
+      <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
+        <option value="all">Todos los estados</option>
+        <option value="signed">Firmados</option>
+        <option value="pending">Pendientes de Firma</option>
+      </select>
+
+      <div class="result-count">
+        Mostrando {{ filteredConsents().length }} consentimientos
+      </div>
+    </section>
+
+    <!-- Tabla de Documentos -->
+    <div class="table-wrapper">
+      <table class="data-table" *ngIf="filteredConsents().length > 0">
+        <thead>
+          <tr>
+            <th>Documento / Título</th>
+            <th>Paciente (Mascota)</th>
+            <th>Tutor / Responsable</th>
+            <th>Fecha Generación</th>
+            <th>Estado</th>
+            <th style="text-align: right;">Firma & Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of filteredConsents(); trackBy: trackById">
+            <td>
+              <div class="doc-title-cell">
+                <span class="material-symbols-outlined file-type-icon">description</span>
+                <strong>{{ item.title }}</strong>
+              </div>
+            </td>
+            <td>
+              <div class="patient-cell">
+                <strong>{{ item.patientName }}</strong>
+              </div>
+            </td>
+            <td>
+              <div class="tutor-cell">
+                <strong>{{ item.tutorName }}</strong>
+                <span class="phone" *ngIf="item.tutorPhone">📞 {{ item.tutorPhone }}</span>
+              </div>
+            </td>
+            <td>{{ item.createdAt | date:'mediumDate' }}</td>
+            <td>
+              <span class="status-pill" [attr.data-signed]="item.signed">
+                {{ item.signed ? 'Firmado' : 'Pendiente' }}
+              </span>
+            </td>
+            <td>
+              <div class="actions-cell">
+                <!-- Ver detalles y firma -->
+                <a [routerLink]="['/consent', item.id]" class="action-btn" title="Ver Documento">
+                  <span class="material-symbols-outlined">visibility</span>
+                </a>
+
+                <!-- Copiar enlace único de firma -->
+                <button 
+                  class="action-btn action-btn-accent" 
+                  *ngIf="!item.signed"
+                  (click)="copyLink(item.id)" 
+                  [title]="copiedId() === item.id ? '¡Enlace Copiado!' : 'Copiar Enlace de Firma'"
+                >
+                  <span class="material-symbols-outlined">
+                    {{ copiedId() === item.id ? 'done' : 'link' }}
+                  </span>
+                </button>
+
+                <!-- Compartir a WhatsApp -->
+                <button 
+                  class="action-btn action-btn-whatsapp" 
+                  *ngIf="!item.signed"
+                  (click)="shareWhatsApp(item)"
+                  title="Enviar Link por WhatsApp"
+                >
+                  <span class="material-symbols-outlined">chat</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Estado Vacío -->
+      <div class="empty-state" *ngIf="filteredConsents().length === 0">
+        <span class="material-symbols-outlined empty-icon">assignment_late</span>
+        <h3>No se encontraron consentimientos</h3>
+        <p>Genera un nuevo documento o modifica los filtros activos.</p>
+        <button class="btn btn-ghost" (click)="search.set(''); statusFilter.set('all')">
+          Limpiar Filtros
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,148 @@
+<div class="consent-form-page">
+  <div class="loading-overlay" *ngIf="loading()">
+    <div class="spinner"></div>
+  </div>
+
+  <div *ngIf="!loading()" class="form-wrapper">
+    <!-- Navegación superior -->
+    <div class="top-nav-bar">
+      <a routerLink="/consent" class="back-link">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Volver a Consentimientos
+      </a>
+    </div>
+
+    <!-- Título de Página -->
+    <header class="form-header">
+      <h1 class="page-title">Emitir Consentimiento Informado</h1>
+      <p class="page-subtitle">Genera un contrato digital y obtén la firma del tutor de manera inmediata y remota.</p>
+    </header>
+
+    <!-- DOS COLUMNAS -->
+    <div class="form-layout-grid">
+      <!-- COLUMNA IZQUIERDA: CONFIGURACIÓN -->
+      <main class="form-main">
+        <form (ngSubmit)="onSubmit()" class="consent-form">
+          <!-- CARD: DATOS Y PLANTILLA -->
+          <section class="card form-card">
+            <h3>Selección de Mascota y Documento</h3>
+            
+            <div class="form-group">
+              <label for="patient">Mascota (Paciente) *</label>
+              <select 
+                id="patient" 
+                [ngModel]="selectedPatientId()" 
+                (ngModelChange)="onPatientChange($event)" 
+                name="patientId" 
+                required
+              >
+                <option value="" disabled selected>Selecciona una mascota...</option>
+                <option *ngFor="let p of patients()" [value]="p.id">
+                  {{ p.name }} ({{ p.species === 'dog' ? 'Perro' : 'Gato' }} — {{ p.breed || 'Raza Mixta' }})
+                </option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Selecciona una Plantilla Reutilizable</label>
+              <div class="template-selector-grid">
+                <button 
+                  type="button" 
+                  class="selector-btn" 
+                  *ngFor="let t of templates"
+                  [class.active]="selectedTemplateKey() === t.key"
+                  (click)="onTemplateChange(t.key)"
+                >
+                  <span class="material-symbols-outlined">task</span>
+                  {{ t.title }}
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- CARD: TUTOR -->
+          <section class="card form-card">
+            <h3>Datos de Contacto del Tutor</h3>
+            <div class="form-row-grid">
+              <div class="form-group">
+                <label for="tut-name">Nombre Completo del Tutor *</label>
+                <input 
+                  type="text" 
+                  id="tut-name" 
+                  [ngModel]="tutorName()" 
+                  (ngModelChange)="tutorName.set($event); updateTemplateContent()" 
+                  name="tutorName"
+                  placeholder="Ej: Carlos Gómez"
+                  required
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="tut-phone">Celular para Envío WhatsApp *</label>
+                <input 
+                  type="text" 
+                  id="tut-phone" 
+                  [ngModel]="tutorPhone()" 
+                  (ngModelChange)="tutorPhone.set($event)" 
+                  name="tutorPhone"
+                  placeholder="Ej: +57 312 456 7890"
+                  required
+                />
+              </div>
+            </div>
+          </section>
+
+          <!-- ACCIONES -->
+          <div class="form-actions-row">
+            <a routerLink="/consent" class="btn btn-ghost">Cancelar</a>
+            <button 
+              type="submit" 
+              class="btn btn-primary" 
+              [disabled]="submitting() || !selectedPatientId() || !tutorName() || !tutorPhone()"
+            >
+              <span class="material-symbols-outlined" *ngIf="!submitting()">draw_collaboratively</span>
+              <span class="spinner-sm" *ngIf="submitting()"></span>
+              Generar Link de Firma
+            </button>
+          </div>
+        </form>
+      </main>
+
+      <!-- COLUMNA DERECHA: CONTRATO REAL-TIME EDITOR -->
+      <aside class="form-sidebar">
+        <div class="card sidebar-card contract-editor-card">
+          <h3>Previsualización y Edición de Contrato</h3>
+          <p class="sidebar-help">El texto se actualiza automáticamente. Puedes editarlo libremente.</p>
+
+          <div class="form-group document-title-group">
+            <label for="doc-title">Título del Documento</label>
+            <input 
+              type="text" 
+              id="doc-title" 
+              [ngModel]="documentTitle()" 
+              (ngModelChange)="documentTitle.set($event)" 
+              name="documentTitle"
+            />
+          </div>
+
+          <div class="form-group contract-body-group">
+            <label for="doc-content">Cuerpo del Consentimiento</label>
+            <textarea 
+              id="doc-content" 
+              [ngModel]="documentContent()" 
+              (ngModelChange)="documentContent.set($event)" 
+              name="documentContent"
+              rows="16"
+              class="contract-textarea"
+            ></textarea>
+          </div>
+
+          <div class="editor-footer-badge">
+            <span class="material-symbols-outlined">security</span>
+            <span>El documento firmado se encriptará con un hash de integridad.</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>

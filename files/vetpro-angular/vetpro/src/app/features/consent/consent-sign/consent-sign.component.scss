@@ -1,0 +1,375 @@
+.consent-sign-page {
+  padding: 1rem;
+  max-width: 600px;
+  margin: 0 auto;
+  min-height: 100vh;
+  position: relative;
+  font-family: 'Outfit', sans-serif;
+  color: var(--text-color, #1e293b);
+  background-color: var(--bg-color, #f8fafc);
+  box-sizing: border-box;
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  border-radius: 12px;
+
+  .spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid rgba(16, 185, 129, 0.2);
+    border-top-color: var(--primary-color, #10b981);
+    border-radius: 50%;
+    animation: spin 1s infinite linear;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.sign-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+// Portal Header
+.sign-header {
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem 0;
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--primary-color, #10b981);
+
+    .logo-icon {
+      font-size: 24px;
+    }
+
+    strong {
+      font-size: 1.25rem;
+      font-weight: 850;
+      letter-spacing: -0.03em;
+      color: #0f172a;
+    }
+
+    .portal-badge {
+      font-size: 0.7rem;
+      background: #e6fffa;
+      color: #0f766e;
+      padding: 0.15rem 0.5rem;
+      border-radius: 20px;
+      font-weight: 700;
+      border: 1px solid rgba(20, 184, 166, 0.15);
+    }
+  }
+}
+
+// Main sign card
+.sign-card {
+  background: white;
+  border-radius: 20px;
+  padding: 1.5rem;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 10px 30px -10px rgba(15, 23, 42, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+
+  .intro-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin: 0;
+      color: #0f172a;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: #64748b;
+      margin: 0;
+      line-height: 1.4;
+
+      strong {
+        color: #334155;
+      }
+    }
+  }
+}
+
+// Contract scrollable panel
+.contract-viewer {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  h3 {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #475569;
+    letter-spacing: 0.05em;
+    margin: 0;
+  }
+
+  .contract-text-body {
+    max-height: 180px;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+
+    // custom scrollbar
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    .pre-wrapped {
+      white-space: pre-wrap;
+      font-size: 0.825rem;
+      line-height: 1.55;
+      color: #475569;
+      margin: 0;
+    }
+  }
+}
+
+// Drawing canvas board block
+.signature-canvas-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+
+  .canvas-header {
+    h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin: 0 0 0.15rem;
+      color: #0f172a;
+    }
+
+    p {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin: 0;
+    }
+  }
+
+  .canvas-container {
+    height: 160px;
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    background: #fafbfd;
+    position: relative;
+    overflow: hidden;
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+    }
+
+    .canvas-helper-text {
+      position: absolute;
+      bottom: 24px;
+      left: 1.5rem;
+      right: 1.5rem;
+      border-top: 1px dashed #cbd5e1;
+      text-align: center;
+      font-size: 0.725rem;
+      color: #cbd5e1;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+  }
+
+  .canvas-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+  }
+}
+
+// Global buttons
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &.btn-primary {
+    background: linear-gradient(135deg, var(--primary-color, #10b981) 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+    flex: 1;
+    justify-content: center;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
+    }
+  }
+
+  &.btn-ghost {
+    background: white;
+    border: 1px solid #cbd5e1;
+    color: #475569;
+
+    &:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+  }
+
+  &.btn-sm {
+    padding: 0.5rem 0.875rem;
+    font-size: 0.8rem;
+  }
+}
+
+// Spinner
+.spinner-sm {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s infinite linear;
+}
+
+// Success Card layout
+.success-card {
+  align-items: center;
+  text-align: center;
+  padding: 2.5rem 2rem;
+
+  .success-icon {
+    font-size: 4rem;
+    color: var(--primary-color, #10b981);
+    margin-bottom: 0.5rem;
+    animation: scaleCheck 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes scaleCheck {
+    0% { transform: scale(0.5); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  h2 {
+    font-size: 1.45rem;
+    font-weight: 850;
+    color: #0f172a;
+    margin: 0 0 0.5rem;
+  }
+
+  .success-subtitle {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin: 0 0 1.5rem;
+    line-height: 1.5;
+  }
+
+  .signature-preview-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1rem;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+    box-sizing: border-box;
+
+    span {
+      font-size: 0.725rem;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .sig-preview-img-container {
+      width: 220px;
+      height: 80px;
+      border-bottom: 1px solid #cbd5e1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        filter: hue-rotate(150deg) brightness(0.8) contrast(1.2);
+      }
+    }
+
+    .crypto-hash {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.65rem;
+      color: #94a3b8;
+      margin-top: 0.25rem;
+    }
+  }
+
+  .info-alert {
+    background: #e6fffa;
+    border: 1px solid rgba(20, 184, 166, 0.2);
+    color: #0d9488;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    text-align: left;
+    margin-top: 0.5rem;
+
+    span {
+      font-size: 1.25rem;
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+  }
+}
