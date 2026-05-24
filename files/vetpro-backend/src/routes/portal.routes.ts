@@ -25,7 +25,7 @@ async function ensureDemoTutor(phone: string) {
         phone: '+57 1 601 2345',
         email: 'contacto@veterinariasanjose.co',
         address: 'Calle 100 #15-30',
-        city: 'Bogotá',
+        city: 'Medellín',
         plan: 'pro',
         aiMinutesUsed: 0,
         aiMinutesLimit: 120
@@ -350,7 +350,7 @@ router.post('/auth/verify', async (req, res) => {
               phone: '+57 1 601 2345',
               email: 'contacto@veterinariasanjose.co',
               address: 'Calle 100 #15-30',
-              city: 'Bogotá'
+              city: 'Medellín'
             }
           });
         }

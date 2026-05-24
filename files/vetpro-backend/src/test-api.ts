@@ -103,7 +103,7 @@ async function runTests() {
     
     const mainBranch = branches.find((b: any) => b.id === 'dev-branch');
     assert.ok(mainBranch, 'La sucursal de prueba "dev-branch" no está en el listado.');
-    assert.strictEqual(mainBranch.name, 'Sede Principal (Bogotá)', 'El nombre de la sede es incorrecto.');
+    assert.strictEqual(mainBranch.name, 'Sede Principal (Medellín)', 'El nombre de la sede es incorrecto.');
     console.log('✅ [TEST 5] Exitoso: Se devolvió la lista de sucursales demo (Hotfix Offline activo).');
   } catch (err: any) {
     console.error('❌ [TEST 5] Falló:', err.message);

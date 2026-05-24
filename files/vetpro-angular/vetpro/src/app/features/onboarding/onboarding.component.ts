@@ -39,7 +39,7 @@ import { AuthService } from '../../core/services/auth.service';
 
           <div class="form-group">
             <label>Ciudad</label>
-            <input type="text" [(ngModel)]="city" placeholder="Ej: Bogotá" />
+            <input type="text" [(ngModel)]="city" placeholder="Ej: Medellín" />
           </div>
 
           <div class="actions">
