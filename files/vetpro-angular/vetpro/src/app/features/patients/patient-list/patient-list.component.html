@@ -162,7 +162,7 @@
               <a [routerLink]="['/patients', p.id, 'edit']" class="action-btn" title="Editar Mascota">
                 <span class="material-symbols-outlined">edit</span>
               </a>
-              <a [routerLink]="['/medical-records']" class="action-btn action-btn-accent" title="Nueva Consulta">
+              <a [routerLink]="['/medical-records', 'new', p.id]" class="action-btn action-btn-accent" title="Nueva Consulta">
                 <span class="material-symbols-outlined">medical_information</span>
               </a>
             </div>

@@ -20,7 +20,7 @@
           <span class="material-symbols-outlined">edit</span>
           Editar Mascota
         </a>
-        <a routerLink="/medical-records" class="btn btn-primary">
+        <a [routerLink]="['/medical-records', 'new', p.id]" class="btn btn-primary">
           <span class="material-symbols-outlined">add</span>
           Nueva Consulta
         </a>
@@ -83,11 +83,11 @@
       <div class="card quick-actions-card">
         <h3>Acciones Clínicas</h3>
         <div class="quick-buttons">
-          <a routerLink="/medical-records" class="q-btn">
+          <a [routerLink]="['/medical-records', 'new', p.id]" class="q-btn">
             <span class="material-symbols-outlined icon-blue">medical_information</span>
             <span>Bitácora AI</span>
           </a>
-          <a routerLink="/medical-records" class="q-btn">
+          <a [routerLink]="['/medical-records', 'new', p.id]" class="q-btn">
             <span class="material-symbols-outlined icon-green">vaccines</span>
             <span>Aplicar Vacuna</span>
           </a>
@@ -276,7 +276,7 @@
           <span class="material-symbols-outlined empty-icon">sticky_note_2</span>
           <h3>Sin consultas registradas</h3>
           <p>Esta mascota no tiene registros en su historial clínico aún.</p>
-          <a routerLink="/medical-records" class="btn btn-primary">Registrar Primera Consulta</a>
+          <a [routerLink]="['/medical-records', 'new', p.id]" class="btn btn-primary">Registrar Primera Consulta</a>
         </div>
       </section>
 
