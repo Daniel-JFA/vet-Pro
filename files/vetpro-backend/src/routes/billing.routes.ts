@@ -58,6 +58,67 @@ router.get('/invoices', async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error('Error al listar facturas:', error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('⚠️ Base de datos no disponible o credenciales inválidas. Retornando Fallback Mock de Facturas.');
+      const mockInvoices = [
+        {
+          id: 'dev-invoice-1',
+          clinicId: clinicId,
+          tutorId: 'dev-tutor-1',
+          invoiceNumber: 'FAC-2026-0001',
+          issuedAt: new Date(Date.now() - 5 * 86400000),
+          dueDate: new Date(Date.now() + 10 * 86400000),
+          subtotal: 120000,
+          discount: 10000,
+          tax: 20900,
+          total: 130900,
+          amountPaid: 130900,
+          balance: 0,
+          paymentMethod: 'cash',
+          status: 'paid',
+          notes: 'Pago de consulta de control y vacuna antirrábica.',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          tutor: {
+            id: 'dev-tutor-1',
+            firstName: 'Carlos',
+            lastName: 'Gómez',
+            phone: '3124567890'
+          }
+        },
+        {
+          id: 'dev-invoice-2',
+          clinicId: clinicId,
+          tutorId: 'dev-tutor-2',
+          invoiceNumber: 'FAC-2026-0002',
+          issuedAt: new Date(Date.now() - 2 * 86400000),
+          dueDate: new Date(Date.now() + 15 * 86400000),
+          subtotal: 85000,
+          discount: 0,
+          tax: 16150,
+          total: 101150,
+          amountPaid: 50000,
+          balance: 51150,
+          paymentMethod: 'card',
+          status: 'partial',
+          notes: 'Abono parcial para exámenes de sangre.',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          tutor: {
+            id: 'dev-tutor-2',
+            firstName: 'María',
+            lastName: 'Rodríguez',
+            phone: '3157891234'
+          }
+        }
+      ];
+      return res.json({
+        data: mockInvoices,
+        total: mockInvoices.length,
+        page: 1,
+        pageSize: 20
+      });
+    }
     return res.status(500).json({ error: 'Error al obtener listado de facturas.' });
   }
 });
@@ -107,6 +168,22 @@ router.get('/summary', async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error('Error al generar resumen financiero:', error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('⚠️ Base de datos no disponible o credenciales inválidas. Retornando Fallback Mock de Resumen de Facturación.');
+      return res.json({
+        totalInvoiced: 232050,
+        totalCollected: 180900,
+        totalPending: 51150,
+        invoicesCount: 2,
+        statusBreakdown: {
+          paid: 1,
+          partial: 1,
+          issued: 0,
+          draft: 0,
+          void: 0
+        }
+      });
+    }
     return res.status(500).json({ error: 'Error al calcular resumen financiero.' });
   }
 });

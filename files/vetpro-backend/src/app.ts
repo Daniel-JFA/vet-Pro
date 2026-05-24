@@ -19,6 +19,16 @@ dotenv.config();
 
 const app = express();
 
+// Cabeceras de seguridad para endurecer la API (OWASP Best Practices)
+app.use((req, res, next) => {
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https://images.unsplash.com https://cdnjs.cloudflare.com; connect-src 'self' http://localhost:3000;");
+  next();
+});
+
 // Middlewares globales
 app.use(cors());
 app.use(express.json());

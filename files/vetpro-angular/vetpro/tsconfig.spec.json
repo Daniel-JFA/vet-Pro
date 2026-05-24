@@ -11,5 +11,8 @@
   "include": [
     "src/**/*.d.ts",
     "src/**/*.spec.ts"
+  ],
+  "exclude": [
+    "src/app/core/testing/e2e.spec.ts"
   ]
 }

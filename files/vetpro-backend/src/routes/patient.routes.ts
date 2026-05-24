@@ -65,6 +65,92 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error('Error al listar pacientes:', error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('⚠️ Base de datos no disponible o credenciales inválidas. Retornando Fallback Mock de Pacientes.');
+      const mockPatients = [
+        {
+          id: 'dev-patient-1',
+          clinicId: clinicId,
+          name: 'Toby',
+          species: 'dog',
+          breed: 'Golden Retriever',
+          sex: 'male',
+          sterilized: true,
+          weight: 32.5,
+          chipId: '985112003456789',
+          photoUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&q=80&w=150',
+          status: 'active',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          tutor: {
+            id: 'dev-tutor-1',
+            clinicId: clinicId,
+            firstName: 'Carlos',
+            lastName: 'Gómez',
+            email: 'carlos@gmail.com',
+            phone: '3124567890',
+            documentId: '1018234567',
+            address: 'Calle 100 #15-30, Bogotá'
+          }
+        },
+        {
+          id: 'dev-patient-2',
+          clinicId: clinicId,
+          name: 'Kira',
+          species: 'dog',
+          breed: 'Bulldog Francés',
+          sex: 'female',
+          sterilized: false,
+          weight: 11.8,
+          chipId: '985112003456781',
+          photoUrl: null,
+          status: 'active',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          tutor: {
+            id: 'dev-tutor-1',
+            clinicId: clinicId,
+            firstName: 'Carlos',
+            lastName: 'Gómez',
+            email: 'carlos@gmail.com',
+            phone: '3124567890',
+            documentId: '1018234567',
+            address: 'Calle 100 #15-30, Bogotá'
+          }
+        },
+        {
+          id: 'dev-patient-3',
+          clinicId: clinicId,
+          name: 'Luna',
+          species: 'cat',
+          breed: 'Siamés',
+          sex: 'female',
+          sterilized: true,
+          weight: 4.2,
+          chipId: '985112003456780',
+          photoUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=150',
+          status: 'active',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          tutor: {
+            id: 'dev-tutor-2',
+            clinicId: clinicId,
+            firstName: 'María',
+            lastName: 'Rodríguez',
+            email: 'maria@outlook.com',
+            phone: '3157891234',
+            documentId: '52345678',
+            address: 'Carrera 7 #45-12, Medellín'
+          }
+        }
+      ];
+      return res.json({
+        data: mockPatients,
+        total: mockPatients.length,
+        page: 1,
+        pageSize: 20
+      });
+    }
     return res.status(500).json({ error: 'Error al obtener expedientes de pacientes.' });
   }
 });

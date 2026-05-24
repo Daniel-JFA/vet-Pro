@@ -146,7 +146,20 @@ router.post('/login', async (req, res) => {
     });
   } catch (error) {
     console.error('Error en /auth/login:', error);
-    if (sendDemoLogin(res, email, password)) return;
+    if (isDevelopment) {
+      const demoUser = findDemoUser(email);
+      if (demoUser) {
+        if (demoUser.password === password) {
+          return res.json({
+            token: signToken(demoUser),
+            user: toUserResponse(demoUser),
+            clinic: demoClinic
+          });
+        } else {
+          return res.status(401).json({ error: 'Credenciales inválidas.' });
+        }
+      }
+    }
     return res.status(500).json({ error: 'Error interno del servidor.' });
   }
 });

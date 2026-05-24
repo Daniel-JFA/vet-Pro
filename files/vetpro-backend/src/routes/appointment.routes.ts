@@ -67,6 +67,73 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error('Error al listar citas:', error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('⚠️ Base de datos no disponible o credenciales inválidas. Retornando Fallback Mock de Citas.');
+      const mockAppointments = [
+        {
+          id: 'dev-appointment-1',
+          clinicId: clinicId,
+          patientId: 'dev-patient-1',
+          vetId: 'dev-vet',
+          branchId: 'dev-branch',
+          scheduledAt: new Date(new Date().setHours(10, 0, 0, 0)),
+          duration: 30,
+          reason: 'Consulta general de control',
+          status: 'scheduled',
+          patient: {
+            id: 'dev-patient-1',
+            clinicId: clinicId,
+            name: 'Toby',
+            species: 'dog',
+            breed: 'Golden Retriever',
+            tutor: {
+              id: 'dev-tutor-1',
+              firstName: 'Carlos',
+              lastName: 'Gómez',
+              phone: '3124567890'
+            }
+          },
+          vet: {
+            firstName: 'Laura',
+            lastName: 'Cardona'
+          }
+        },
+        {
+          id: 'dev-appointment-2',
+          clinicId: clinicId,
+          patientId: 'dev-patient-3',
+          vetId: 'dev-vet',
+          branchId: 'dev-branch',
+          scheduledAt: new Date(new Date().setHours(14, 30, 0, 0)),
+          duration: 45,
+          reason: 'Vacunación y desparasitación',
+          status: 'waiting',
+          patient: {
+            id: 'dev-patient-3',
+            clinicId: clinicId,
+            name: 'Luna',
+            species: 'cat',
+            breed: 'Siamés',
+            tutor: {
+              id: 'dev-tutor-2',
+              firstName: 'María',
+              lastName: 'Rodríguez',
+              phone: '3157891234'
+            }
+          },
+          vet: {
+            firstName: 'Laura',
+            lastName: 'Cardona'
+          }
+        }
+      ];
+      return res.json({
+        data: mockAppointments,
+        total: mockAppointments.length,
+        page: 1,
+        pageSize: 100
+      });
+    }
     return res.status(500).json({ error: 'Error al obtener agenda de citas.' });
   }
 });
@@ -101,6 +168,68 @@ router.get('/today', async (req: AuthRequest, res: Response) => {
     return res.json(appointments);
   } catch (error) {
     console.error('Error al listar citas de hoy:', error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('⚠️ Base de datos no disponible o credenciales inválidas. Retornando Fallback Mock de Citas de Hoy.');
+      const mockAppointments = [
+        {
+          id: 'dev-appointment-1',
+          clinicId: clinicId,
+          patientId: 'dev-patient-1',
+          vetId: 'dev-vet',
+          branchId: 'dev-branch',
+          scheduledAt: new Date(new Date().setHours(10, 0, 0, 0)),
+          duration: 30,
+          reason: 'Consulta general de control',
+          status: 'scheduled',
+          patient: {
+            id: 'dev-patient-1',
+            clinicId: clinicId,
+            name: 'Toby',
+            species: 'dog',
+            breed: 'Golden Retriever',
+            tutor: {
+              id: 'dev-tutor-1',
+              firstName: 'Carlos',
+              lastName: 'Gómez',
+              phone: '3124567890'
+            }
+          },
+          vet: {
+            firstName: 'Laura',
+            lastName: 'Cardona'
+          }
+        },
+        {
+          id: 'dev-appointment-2',
+          clinicId: clinicId,
+          patientId: 'dev-patient-3',
+          vetId: 'dev-vet',
+          branchId: 'dev-branch',
+          scheduledAt: new Date(new Date().setHours(14, 30, 0, 0)),
+          duration: 45,
+          reason: 'Vacunación y desparasitación',
+          status: 'waiting',
+          patient: {
+            id: 'dev-patient-3',
+            clinicId: clinicId,
+            name: 'Luna',
+            species: 'cat',
+            breed: 'Siamés',
+            tutor: {
+              id: 'dev-tutor-2',
+              firstName: 'María',
+              lastName: 'Rodríguez',
+              phone: '3157891234'
+            }
+          },
+          vet: {
+            firstName: 'Laura',
+            lastName: 'Cardona'
+          }
+        }
+      ];
+      return res.json(mockAppointments);
+    }
     return res.status(500).json({ error: 'Error al obtener citas del día.' });
   }
 });

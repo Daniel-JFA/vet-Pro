@@ -215,6 +215,35 @@ router.post('/auth/magic-link', async (req, res) => {
     });
   } catch (error) {
     console.error('Error al solicitar link mágico de tutor:', error);
+    if (isDevelopment) {
+      console.warn('⚠️ Base de datos no disponible. Generando Tutor de demostración ficticio offline.');
+      const mockTutors: Record<string, { id: string, firstName: string, lastName: string, phone: string, clinicId: string }> = {
+        '3124567890': { id: 'dev-tutor-1', firstName: 'Carlos', lastName: 'Gómez', phone: '3124567890', clinicId: 'dev-clinic' },
+        '3157891234': { id: 'dev-tutor-2', firstName: 'María', lastName: 'Rodríguez', phone: '3157891234', clinicId: 'dev-clinic' },
+        '3209876543': { id: 'dev-tutor-3', firstName: 'Diana', lastName: 'Pérez', phone: '3209876543', clinicId: 'dev-clinic' }
+      };
+      const mockTutor = mockTutors[phone];
+      if (mockTutor) {
+        const token = jwt.sign(
+          {
+            id: mockTutor.id,
+            phone: mockTutor.phone,
+            clinicId: mockTutor.clinicId,
+            role: 'tutor'
+          },
+          JWT_SECRET,
+          { expiresIn: '1h' }
+        );
+        const magicLink = `http://localhost:4200/portal/auth?token=${token}`;
+        return res.json({
+          success: true,
+          message: 'Enlace de acceso generado exitosamente.',
+          magicLink: magicLink
+        });
+      } else {
+        return res.status(404).json({ error: 'Tutor no registrado con este número telefónico.' });
+      }
+    }
     return res.status(500).json({ error: 'Error al procesar el enlace de acceso.' });
   }
 });
@@ -280,6 +309,55 @@ router.post('/auth/verify', async (req, res) => {
     });
   } catch (error) {
     console.error('Error al verificar token de tutor:', error);
+    if (isDevelopment) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET) as {
+          id: string;
+          phone: string;
+          clinicId: string;
+          role: string;
+        };
+        if (decoded.role === 'tutor') {
+          console.warn('⚠️ Base de datos no disponible. Retornando verificación de Tutor ficticia (fallback).');
+          const mockTutors: Record<string, { id: string, firstName: string, lastName: string, phone: string, email: string, address: string }> = {
+            '3124567890': { id: 'dev-tutor-1', firstName: 'Carlos', lastName: 'Gómez', phone: '3124567890', email: 'carlos@gmail.com', address: 'Calle 100 #15-30, Bogotá' },
+            '3157891234': { id: 'dev-tutor-2', firstName: 'María', lastName: 'Rodríguez', phone: '3157891234', email: 'maria@outlook.com', address: 'Carrera 7 #45-12, Medellín' },
+            '3209876543': { id: 'dev-tutor-3', firstName: 'Diana', lastName: 'Pérez', phone: '3209876543', email: 'diana@hotmail.com', address: 'Av. El Poblado #3-45, Envigado' }
+          };
+          const tutor = mockTutors[decoded.phone] || {
+            id: decoded.id,
+            firstName: 'Tutor',
+            lastName: 'Invitado',
+            phone: decoded.phone,
+            email: 'tutor@dev.co',
+            address: 'Calle Demo'
+          };
+          const sessionToken = jwt.sign(
+            {
+              id: tutor.id,
+              phone: tutor.phone,
+              clinicId: decoded.clinicId,
+              role: 'tutor'
+            },
+            JWT_SECRET,
+            { expiresIn: '7d' }
+          );
+          return res.json({
+            token: sessionToken,
+            tutor,
+            clinic: {
+              name: 'Clínica Veterinaria San José (Demo)',
+              phone: '+57 1 601 2345',
+              email: 'contacto@veterinariasanjose.co',
+              address: 'Calle 100 #15-30',
+              city: 'Bogotá'
+            }
+          });
+        }
+      } catch (jwtErr) {
+        // Fallback al 401 si realmente es un token inválido
+      }
+    }
     return res.status(401).json({ error: 'El enlace de acceso es inválido o ha expirado.' });
   }
 });
@@ -297,6 +375,19 @@ router.get('/patients', tutorAuthMiddleware as any, async (req: TutorAuthRequest
     return res.json(patients);
   } catch (error) {
     console.error('Error al obtener mascotas de tutor:', error);
+    if (isDevelopment) {
+      console.warn('⚠️ Base de datos no disponible. Retornando Fallback Mock de Pacientes del Tutor.');
+      const mockPatients: Record<string, any[]> = {
+        'dev-tutor-1': [
+          { id: 'dev-patient-1', name: 'Toby', species: 'dog', breed: 'Golden Retriever', sex: 'male', sterilized: true, weight: 32.5, chipId: '985112003456789', photoUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&q=80&w=150', status: 'active', tutorId: 'dev-tutor-1', clinicId: 'dev-clinic' },
+          { id: 'dev-patient-2', name: 'Kira', species: 'dog', breed: 'Bulldog Francés', sex: 'female', sterilized: false, weight: 11.8, chipId: '985112003456781', photoUrl: null, status: 'active', tutorId: 'dev-tutor-1', clinicId: 'dev-clinic' }
+        ],
+        'dev-tutor-2': [
+          { id: 'dev-patient-3', name: 'Luna', species: 'cat', breed: 'Siamés', sex: 'female', sterilized: true, weight: 4.2, chipId: '985112003456780', photoUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=150', status: 'active', tutorId: 'dev-tutor-2', clinicId: 'dev-clinic' }
+        ]
+      };
+      return res.json(mockPatients[tutorId || ''] || mockPatients['dev-tutor-1']);
+    }
     return res.status(500).json({ error: 'Error al obtener tus mascotas.' });
   }
 });
