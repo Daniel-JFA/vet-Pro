@@ -1,0 +1,575 @@
+.templates-page {
+  position: relative;
+  min-height: 400px;
+}
+
+// ── Overlay de Carga ──────────────────────────────
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+.spinner {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 3px solid var(--surface-border);
+  border-top-color: var(--primary-color);
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+// ── Cabecera ────────────────────────────────────
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.page-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0;
+}
+.page-subtitle {
+  font-size: 13px;
+  color: var(--text-color-secondary);
+  margin: 2px 0 0;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+// ── Botones ───────────────────────────────────
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  border: none;
+  transition: all 120ms;
+  .material-symbols-outlined {
+    font-size: 18px;
+  }
+}
+.btn-primary {
+  background: var(--primary-color);
+  color: #fff;
+  &:hover {
+    filter: brightness(1.08);
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+.btn-ghost {
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+  color: var(--text-color);
+  &:hover {
+    background: var(--surface-hover);
+  }
+}
+
+// ── Layout de Tres Columnas ─────────────────────────
+.templates-layout {
+  display: grid;
+  grid-template-columns: 3fr 5fr 4fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.card {
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+// ── COLUMNA 1: LISTADO DE PLANTILLAS ────────────────
+.templates-list-sidebar {
+  h3 {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-color-secondary);
+    margin: 0 0 16px;
+    letter-spacing: 0.05em;
+  }
+}
+
+.template-buttons-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tpl-select-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface-ground);
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 120ms;
+  text-align: left;
+  
+  .btn-main-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    
+    .channel-icon {
+      font-size: 16px;
+      color: var(--text-color-secondary);
+      flex-shrink: 0;
+    }
+  }
+  
+  .tpl-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-color-secondary);
+    opacity: 0.4;
+    flex-shrink: 0;
+    margin-left: 10px;
+    
+    &.active {
+      background: var(--green-500);
+      opacity: 1;
+    }
+  }
+  
+  &:hover {
+    background: var(--surface-hover);
+    border-color: var(--text-color-secondary);
+  }
+  
+  &.active {
+    background: var(--primary-50);
+    border-color: var(--primary-color);
+    .tpl-name {
+      color: var(--primary-700);
+    }
+    .channel-icon {
+      color: var(--primary-700);
+    }
+  }
+}
+
+// ── COLUMNA 2: EDITOR DE PLANTILLAS ─────────────────
+.editor-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--surface-border);
+  padding-bottom: 12px;
+  
+  h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-color);
+    margin: 0;
+  }
+  
+  .channel-pill {
+    font-size: 10px;
+    font-weight: 700;
+    background: #e1f5fe;
+    color: #0288d1;
+    padding: 2px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+}
+
+// Checkbox
+.field-checkbox {
+  display: flex;
+}
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding-left: 28px;
+  cursor: pointer;
+  font-size: 13px;
+  user-select: none;
+  
+  input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+  }
+  
+  .checkmark {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    height: 18px;
+    width: 18px;
+    background-color: var(--surface-ground);
+    border: 1px solid var(--surface-border);
+    border-radius: 4px;
+    transition: all 120ms;
+    
+    &:after {
+      content: "";
+      position: absolute;
+      display: none;
+      left: 5px;
+      top: 2px;
+      width: 4px;
+      height: 8px;
+      border: solid white;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+  }
+  
+  input:checked ~ .checkmark {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    &:after {
+      display: block;
+    }
+  }
+  
+  .checkbox-text {
+    font-weight: 500;
+    color: var(--text-color);
+  }
+}
+
+// Inyector de tokens
+.placeholder-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  
+  label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-color);
+  }
+  
+  .section-help {
+    font-size: 11px;
+    color: var(--text-color-secondary);
+    margin: 0;
+  }
+}
+
+.placeholders-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.placeholder-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface-ground);
+  border: 1px solid var(--surface-border);
+  padding: 4px 8px;
+  border-radius: 15px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: all 100ms;
+  
+  .icon-add {
+    font-size: 14px;
+    color: var(--text-color-secondary);
+  }
+  
+  &:hover {
+    border-color: var(--primary-color);
+    background: var(--primary-50);
+    color: var(--primary-700);
+    .icon-add {
+      color: var(--primary-700);
+    }
+  }
+}
+
+// Textarea
+.textarea-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  
+  label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-color);
+  }
+  
+  textarea {
+    border: 1px solid var(--surface-border);
+    border-radius: 7px;
+    background: var(--surface-ground);
+    color: var(--text-color);
+    font-size: 13px;
+    padding: 12px;
+    outline: none;
+    resize: vertical;
+    line-height: 1.4;
+    transition: border-color 150ms;
+    
+    &:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px var(--primary-50);
+    }
+  }
+}
+
+.textarea-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-color-secondary);
+  
+  .warning-text {
+    color: var(--yellow-700);
+    font-weight: 500;
+  }
+}
+
+// ── COLUMNA 3: SIMULADOR WHATSAPP ──────────────────
+.simulator-sidebar {
+  display: flex;
+  justify-content: center;
+}
+
+.phone-mockup {
+  width: 270px;
+  height: 480px;
+  border: 10px solid #2d2d2d;
+  border-radius: 26px;
+  background: #efeae2; // Color de fondo típico de chat de whatsapp
+  box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+// Altavoz del teléfono en la parte superior
+.phone-speaker {
+  width: 60px;
+  height: 12px;
+  background: #2d2d2d;
+  border-radius: 0 0 10px 10px;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 12;
+}
+
+.phone-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+// Cabecera WhatsApp
+.wa-header {
+  background: #075e54; // Color verde de cabecera de whatsapp
+  color: #fff;
+  padding: 16px 8px 8px 8px; // Más espacio arriba para pasar el notch
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  
+  .wa-back { font-size: 16px; }
+  .wa-icon { font-size: 16px; color: rgba(255,255,255,0.85); }
+  
+  .wa-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #128c7e;
+    color: #fff;
+    font-size: 10px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  
+  .wa-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  
+  .wa-contact-name {
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .wa-status {
+    font-size: 8px;
+    color: rgba(255,255,255,0.7);
+    margin-top: 1px;
+  }
+}
+
+// Pantalla de Chat
+.wa-chat-area {
+  flex: 1;
+  background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); // Patrón oficial WhatsApp
+  background-color: #efeae2;
+  padding: 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+// Burbuja verde de WhatsApp
+.wa-bubble {
+  max-width: 90%;
+  background: #dcf8c6; // Burbuja recibida oficial verde claro
+  border: 1px solid #c7ebaf;
+  border-radius: 8px;
+  padding: 8px 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  position: relative;
+  align-self: flex-start;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -5px;
+    width: 0;
+    height: 0;
+    border: 5px solid transparent;
+    border-right-color: #dcf8c6;
+    border-top-color: #dcf8c6;
+  }
+}
+
+.wa-message-text {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: #262626;
+  white-space: pre-wrap; // Permite saltos de línea del textarea
+}
+
+.wa-timestamp {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  font-size: 8px;
+  color: #7b7b7b;
+  margin-top: 4px;
+  text-align: right;
+  
+  .wa-checks {
+    color: #4fc3f7; // Checks azules de leído
+    font-weight: bold;
+  }
+}
+
+// Entrada Falsa WhatsApp
+.wa-footer-input {
+  background: #f0f0f0;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  
+  .wa-input-icon {
+    font-size: 16px;
+    color: #7f7f7f;
+  }
+  
+  .wa-mic-icon {
+    font-size: 16px;
+    color: #fff;
+    background: #075e54;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .wa-input-placeholder {
+    flex: 1;
+    background: #fff;
+    border-radius: 12px;
+    padding: 4px 8px;
+    font-size: 11px;
+    color: #a0a0a0;
+  }
+}
+
+// ── Responsive ──────────────────────────────────
+@media (max-width: 992px) {
+  .templates-layout {
+    grid-template-columns: 1fr;
+  }
+  .wa-chat-area {
+    min-height: 350px;
+  }
+  .phone-mockup {
+    width: 100%;
+    max-width: 320px;
+    height: 480px;
+  }
+}

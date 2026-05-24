@@ -1,0 +1,373 @@
+<div class="detail-page">
+  <div class="loading-overlay" *ngIf="loading()">
+    <div class="spinner"></div>
+  </div>
+
+  <div *ngIf="!loading() && patient() as p" class="detail-grid">
+    <!-- Cabecera de Ficha -->
+    <header class="detail-header">
+      <div class="header-left">
+        <a routerLink="/patients" class="btn-back">
+          <span class="material-symbols-outlined">arrow_back</span>
+        </a>
+        <div>
+          <h1 class="page-title">Ficha del Paciente</h1>
+          <p class="page-subtitle">Expediente Clínico Digital • {{ p.name }}</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a [routerLink]="['/patients', p.id, 'edit']" class="btn btn-ghost">
+          <span class="material-symbols-outlined">edit</span>
+          Editar Mascota
+        </a>
+        <a routerLink="/medical-records" class="btn btn-primary">
+          <span class="material-symbols-outlined">add</span>
+          Nueva Consulta
+        </a>
+      </div>
+    </header>
+
+    <!-- Barra Lateral Izquierda (Perfil) -->
+    <aside class="sidebar-column">
+      <div class="card profile-card">
+        <!-- Foto de Perfil -->
+        <div class="profile-avatar" *ngIf="p.photoUrl">
+          <img [src]="p.photoUrl" [alt]="p.name" />
+        </div>
+        <div class="profile-avatar-placeholder" [attr.data-species]="p.species" *ngIf="!p.photoUrl">
+          <span class="material-symbols-outlined">
+            {{ p.species === 'dog' ? 'sound_detection_dog_barking' : (p.species === 'cat' ? 'cat' : 'pets') }}
+          </span>
+        </div>
+
+        <h2 class="profile-name">
+          {{ p.name }}
+          <span class="gender-icon" [class.male]="p.sex === 'male'" [class.female]="p.sex === 'female'">
+            {{ p.sex === 'male' ? '♂' : '♀' }}
+          </span>
+        </h2>
+        
+        <span class="status-badge" [attr.data-status]="p.status">
+          {{ statusLabel(p.status) }}
+        </span>
+
+        <div class="profile-details-list">
+          <div class="detail-item">
+            <span class="label">ID Sistema</span>
+            <span class="value mono">{{ p.id }}</span>
+          </div>
+          <div class="detail-item" *ngIf="p.chipId">
+            <span class="label">RFID Microchip</span>
+            <span class="value mono chip">{{ p.chipId }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Especie</span>
+            <span class="value">{{ speciesLabel(p.species) }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Raza</span>
+            <span class="value">{{ p.breed || 'Sin definir' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Edad Calculada</span>
+            <span class="value">{{ calculatedAge() }}</span>
+          </div>
+          <div class="detail-item" *ngIf="p.weight">
+            <span class="label">Último Peso</span>
+            <span class="value">{{ p.weight }} kg</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Accesos Rápidos -->
+      <div class="card quick-actions-card">
+        <h3>Acciones Clínicas</h3>
+        <div class="quick-buttons">
+          <a routerLink="/medical-records" class="q-btn">
+            <span class="material-symbols-outlined icon-blue">medical_information</span>
+            <span>Bitácora AI</span>
+          </a>
+          <a routerLink="/medical-records" class="q-btn">
+            <span class="material-symbols-outlined icon-green">vaccines</span>
+            <span>Aplicar Vacuna</span>
+          </a>
+          <a routerLink="/billing" class="q-btn">
+            <span class="material-symbols-outlined icon-amber">receipt</span>
+            <span>Generar Cobro</span>
+          </a>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Contenido Principal Derecho (Tabs) -->
+    <main class="content-column">
+      <!-- Pestañas de Navegación -->
+      <nav class="detail-tabs">
+        <button 
+          class="tab-btn" 
+          [class.active]="activeTab() === 'general'" 
+          (click)="activeTab.set('general')"
+        >
+          <span class="material-symbols-outlined">person</span>
+          Información General
+        </button>
+        <button 
+          class="tab-btn" 
+          [class.active]="activeTab() === 'history'" 
+          (click)="activeTab.set('history')"
+        >
+          <span class="material-symbols-outlined">notes</span>
+          Historia Clínica
+        </button>
+        <button 
+          class="tab-btn" 
+          [class.active]="activeTab() === 'vaccines'" 
+          (click)="activeTab.set('vaccines')"
+        >
+          <span class="material-symbols-outlined">vaccines</span>
+          Vacunas
+        </button>
+        <button 
+          class="tab-btn" 
+          [class.active]="activeTab() === 'documents'" 
+          (click)="activeTab.set('documents')"
+        >
+          <span class="material-symbols-outlined">folder_open</span>
+          Documentos
+        </button>
+      </nav>
+
+      <!-- SECCIÓN 1: INFORMACIÓN GENERAL -->
+      <section class="tab-content" *ngIf="activeTab() === 'general'">
+        <!-- Alertas Médicas (Alergias) -->
+        <div class="card alert-card" *ngIf="p.allergies">
+          <div class="alert-header">
+            <span class="material-symbols-outlined alert-icon">warning</span>
+            <h4>Alertas Médicas y Alergias</h4>
+          </div>
+          <p>{{ p.allergies }}</p>
+        </div>
+
+        <div class="info-grid">
+          <!-- Card: Físico y Estado -->
+          <div class="card info-card">
+            <h3>Estado y Aspectos Físicos</h3>
+            <div class="grid-details">
+              <div class="grid-item">
+                <span class="g-label">Esterilizado</span>
+                <span class="g-value">{{ p.sterilized ? 'Sí' : 'No' }}</span>
+              </div>
+              <div class="grid-item">
+                <span class="g-label">Fecha de Nacimiento</span>
+                <span class="g-value">{{ p.birthDate ? (p.birthDate | date:'longDate') : '--' }}</span>
+              </div>
+              <div class="grid-item grid-item-full" *ngIf="p.notes">
+                <span class="g-label">Notas Adicionales del Paciente</span>
+                <span class="g-value notes-text">{{ p.notes }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card: Datos del Tutor -->
+          <div class="card info-card" *ngIf="p.tutor">
+            <h3>Datos del Tutor</h3>
+            <div class="tutor-header">
+              <div class="tutor-avatar">
+                {{ p.tutor.firstName[0] }}{{ p.tutor.lastName[0] }}
+              </div>
+              <div>
+                <div class="tutor-name-full">{{ p.tutor.firstName }} {{ p.tutor.lastName }}</div>
+                <div class="tutor-doc-id">CC / NIT: {{ p.tutor.documentId || '--' }}</div>
+              </div>
+            </div>
+            
+            <div class="grid-details tutor-details">
+              <div class="grid-item">
+                <span class="g-label">Teléfono</span>
+                <span class="g-value call-phone">
+                  <span class="material-symbols-outlined">call</span>
+                  {{ p.tutor.phone }}
+                </span>
+              </div>
+              <div class="grid-item" *ngIf="p.tutor.email">
+                <span class="g-label">Correo electrónico</span>
+                <span class="g-value">{{ p.tutor.email }}</span>
+              </div>
+              <div class="grid-item grid-item-full" *ngIf="p.tutor.address">
+                <span class="g-label">Dirección de Residencia</span>
+                <span class="g-value">{{ p.tutor.address }}</span>
+              </div>
+            </div>
+
+            <!-- Botón de chat rápido -->
+            <a 
+              [href]="'https://wa.me/' + p.tutor.phone" 
+              target="_blank" 
+              class="btn btn-ghost btn-whatsapp"
+            >
+              <span class="material-symbols-outlined">chat</span>
+              Enviar Mensaje por WhatsApp
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECCIÓN 2: HISTORIA CLÍNICA (TIMELINE) -->
+      <section class="tab-content timeline-section" *ngIf="activeTab() === 'history'">
+        <div class="timeline" *ngIf="historyRecords().length > 0">
+          <div class="timeline-item" *ngFor="let rec of historyRecords()">
+            <!-- Indicador de tipo en timeline -->
+            <div class="timeline-badge" [attr.data-type]="rec.type">
+              <span class="material-symbols-outlined">
+                {{ rec.type === 'surgery' ? 'handyman' : (rec.type === 'vaccine' ? 'vaccines' : 'description') }}
+              </span>
+            </div>
+            
+            <!-- Contenedor del registro -->
+            <div class="card timeline-card">
+              <header class="card-header">
+                <div class="header-main">
+                  <span class="type-pill" [attr.data-type]="rec.type">
+                    {{ recordTypeLabel(rec.type) }}
+                  </span>
+                  <a [routerLink]="['/medical-records', rec.id]" style="text-decoration: none; color: inherit;">
+                    <h4 style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
+                      {{ rec.title }}
+                      <span class="material-symbols-outlined" style="font-size: 16px; color: var(--primary-color);">open_in_new</span>
+                    </h4>
+                  </a>
+                </div>
+                <span class="date-stamp">{{ rec.createdAt | date:'mediumDate' }}</span>
+              </header>
+
+              <div class="vet-author">
+                <span class="material-symbols-outlined">clinical_notes</span>
+                <span>Registrado por: <strong>{{ rec.vetId }}</strong></span>
+                <span class="ai-pill" *ngIf="rec.aiGenerated" title="Transcrito por voz con IA Whisper + Claude">
+                  Generado con IA 🤖
+                </span>
+              </div>
+
+              <div class="clinical-details">
+                <div class="clinical-block" *ngIf="rec.anamnesis">
+                  <h5>Anamnesis / Motivo de consulta</h5>
+                  <p>{{ rec.anamnesis }}</p>
+                </div>
+                <div class="clinical-block" *ngIf="rec.physicalExam">
+                  <h5>Examen Físico</h5>
+                  <p>{{ rec.physicalExam }}</p>
+                </div>
+                <div class="clinical-block-grid">
+                  <div class="clinical-block highlight" *ngIf="rec.diagnosis">
+                    <h5>Diagnóstico Clínico</h5>
+                    <p>{{ rec.diagnosis }}</p>
+                  </div>
+                  <div class="clinical-block highlight-primary" *ngIf="rec.treatment">
+                    <h5>Plan de Tratamiento / Receta</h5>
+                    <p>{{ rec.treatment }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="empty-state" *ngIf="historyRecords().length === 0">
+          <span class="material-symbols-outlined empty-icon">sticky_note_2</span>
+          <h3>Sin consultas registradas</h3>
+          <p>Esta mascota no tiene registros en su historial clínico aún.</p>
+          <a routerLink="/medical-records" class="btn btn-primary">Registrar Primera Consulta</a>
+        </div>
+      </section>
+
+      <!-- SECCIÓN 3: VACUNAS (CARTILLA DIGITAL) -->
+      <section class="tab-content" *ngIf="activeTab() === 'vaccines'">
+        <div class="vaccines-wrapper" *ngIf="vaccines().length > 0">
+          <!-- Alerta de próximas vacunas -->
+          <div class="card next-vaccine-alert">
+            <span class="material-symbols-outlined">notifications_active</span>
+            <div>
+              <h5>Cartilla de Vacunación al Día</h5>
+              <p>Revisa la programación de refuerzos para asegurar la inmunidad de la mascota.</p>
+            </div>
+          </div>
+
+          <div class="card table-card">
+            <table class="clinical-table">
+              <thead>
+                <tr>
+                  <th>Vacuna / Antígeno</th>
+                  <th>Laboratorio / Lote</th>
+                  <th>Fecha Aplicación</th>
+                  <th>Próximo Refuerzo</th>
+                  <th>Responsable</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let v of vaccines()">
+                  <td>
+                    <div class="vaccine-name-cell">
+                      <span class="material-symbols-outlined vaccine-icon">vaccines</span>
+                      <strong>{{ v.name }}</strong>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="vaccine-brand">{{ v.brand || 'No indicado' }}</div>
+                    <div class="vaccine-batch mono">Lote: {{ v.batch || '--' }}</div>
+                  </td>
+                  <td>{{ v.appliedAt | date:'mediumDate' }}</td>
+                  <td>
+                    <span class="due-date" [class.overdue]="false">
+                      {{ v.nextDueAt ? (v.nextDueAt | date:'mediumDate') : 'Sin refuerzo' }}
+                    </span>
+                  </td>
+                  <td>{{ v.vetId }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="empty-state" *ngIf="vaccines().length === 0">
+          <span class="material-symbols-outlined empty-icon">vaccines</span>
+          <h3>Sin vacunas aplicadas</h3>
+          <p>No se han registrado aplicaciones de antígenos en el sistema.</p>
+          <button class="btn btn-primary">Registrar Aplicación</button>
+        </div>
+      </section>
+
+      <!-- SECCIÓN 4: DOCUMENTOS Y ARCHIVOS -->
+      <section class="tab-content" *ngIf="activeTab() === 'documents'">
+        <div class="attachments-grid" *ngIf="attachments().length > 0">
+          <div class="card attachment-card" *ngFor="let att of attachments()">
+            <div class="file-icon-box" [attr.data-type]="att.type">
+              <span class="material-symbols-outlined">
+                {{ att.type === 'pdf' ? 'picture_as_pdf' : 'image' }}
+              </span>
+            </div>
+            <div class="attachment-info">
+              <h4 class="file-name">{{ att.name }}</h4>
+              <div class="file-meta">
+                <span>{{ formatBytes(att.size) }}</span>
+                <span>•</span>
+                <span>{{ att.uploadedAt | date:'shortDate' }}</span>
+              </div>
+            </div>
+            <div class="attachment-actions">
+              <a [href]="att.url" target="_blank" class="btn btn-ghost btn-download">
+                <span class="material-symbols-outlined">download</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="empty-state" *ngIf="attachments().length === 0">
+          <span class="material-symbols-outlined empty-icon">folder_off</span>
+          <h3>Sin documentos adjuntos</h3>
+          <p>No hay radiografías, exámenes de laboratorio o ecografías en el expediente.</p>
+          <button class="btn btn-primary">Subir Documento</button>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>

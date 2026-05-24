@@ -1,0 +1,112 @@
+<div class="movements-page">
+  <div class="page-header">
+    <div>
+      <a routerLink="/inventory" class="back-link"><span class="material-symbols-outlined">arrow_back</span></a>
+      <h1 class="page-title">Movimientos de inventario</h1>
+      <p class="page-subtitle">Entradas, salidas, ajustes y devoluciones</p>
+    </div>
+    <button class="btn btn-primary" (click)="showForm.update(v => !v)">
+      <span class="material-symbols-outlined">{{ showForm() ? 'close' : 'add' }}</span>
+      {{ showForm() ? 'Cancelar' : 'Registrar movimiento' }}
+    </button>
+  </div>
+
+  <!-- Inline form -->
+  <div class="inline-form-card" *ngIf="showForm()">
+    <h3 class="form-title">Nuevo movimiento</h3>
+    <form [formGroup]="form" (ngSubmit)="submit()" class="movement-form-grid">
+      <div class="field">
+        <label>Tipo <span class="req">*</span></label>
+        <div class="type-selector">
+          <button type="button" *ngFor="let t of movementTypes"
+            class="type-btn" [class.active]="form.value.type === t.value"
+            [attr.data-color]="t.color"
+            (click)="form.patchValue({type: t.value})">
+            <span class="material-symbols-outlined">{{ t.icon }}</span>
+            {{ t.label }}
+          </button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Producto <span class="req">*</span></label>
+        <select formControlName="productId">
+          <option value="">Selecciona un producto</option>
+          <option *ngFor="let p of products()" [value]="p.id">{{ p.name }} (Stock: {{ p.currentStock }})</option>
+        </select>
+      </div>
+      <div class="form-row-3">
+        <div class="field">
+          <label>Cantidad <span class="req">*</span></label>
+          <input type="number" formControlName="quantity" min="1" />
+        </div>
+        <div class="field">
+          <label>Costo unitario</label>
+          <input type="number" formControlName="unitCost" min="0" />
+        </div>
+        <div class="field">
+          <label>Lote</label>
+          <input type="text" formControlName="batchNumber" placeholder="Nº lote" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Motivo / Observaciones</label>
+        <input type="text" formControlName="reason" placeholder="Ej: Compra proveedor, Consulta #1234, Inventario físico…" />
+      </div>
+      <div class="form-footer-inline">
+        <button type="submit" class="btn btn-primary" [disabled]="saving()">
+          {{ saving() ? 'Guardando…' : 'Registrar' }}
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Movements list -->
+  <div class="table-wrapper">
+    <div class="loading-overlay" *ngIf="loading()"><div class="spinner"></div></div>
+    <table class="data-table" *ngIf="!loading()">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Producto</th>
+          <th>Tipo</th>
+          <th>Cantidad</th>
+          <th>Stock antes → después</th>
+          <th>Lote</th>
+          <th>Motivo</th>
+          <th>Usuario</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let m of movements()">
+          <td class="text-secondary mono-sm">{{ m.performedAt | date:'dd/MM/yy HH:mm' }}</td>
+          <td class="font-medium">{{ productName(m.productId) }}</td>
+          <td>
+            <span class="type-badge" [attr.data-type]="m.type">
+              <span class="material-symbols-outlined">{{ typeInfo(m.type).icon }}</span>
+              {{ typeInfo(m.type).label }}
+            </span>
+          </td>
+          <td>
+            <span class="qty-cell" [class.qty-pos]="['in','return'].includes(m.type)" [class.qty-neg]="['out','loss'].includes(m.type)">
+              {{ sign(m.type) }}{{ m.quantity }}
+            </span>
+          </td>
+          <td class="stock-change">
+            <span class="stock-before">{{ m.quantityBefore }}</span>
+            <span class="material-symbols-outlined arrow-icon">arrow_forward</span>
+            <span class="stock-after" [class.after-down]="m.quantityAfter < m.quantityBefore" [class.after-up]="m.quantityAfter > m.quantityBefore">{{ m.quantityAfter }}</span>
+          </td>
+          <td class="text-secondary mono-sm">{{ m.batchNumber ?? '—' }}</td>
+          <td class="text-secondary">{{ m.reason ?? '—' }}</td>
+          <td class="text-secondary">{{ m.performedBy }}</td>
+        </tr>
+        <tr *ngIf="movements().length === 0">
+          <td colspan="8" class="empty-state">
+            <span class="material-symbols-outlined">swap_vert</span>
+            <p>No hay movimientos registrados</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

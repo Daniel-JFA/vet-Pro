@@ -1,0 +1,469 @@
+.form-page {
+  position: relative;
+  min-height: 400px;
+}
+
+// ── Overlay de Carga ──────────────────────────────
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+.spinner {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 3px solid var(--surface-border);
+  border-top-color: var(--primary-color);
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+// ── Layout Principal del Formulario ──────────────────
+.form-grid {
+  display: grid;
+  grid-template-columns: 7fr 3fr;
+  gap: 20px;
+  align-items: start;
+}
+
+// ── Cabecera ────────────────────────────────────
+.form-header {
+  grid-column: span 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--surface-border);
+  padding-bottom: 16px;
+  margin-bottom: 10px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.btn-back {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--surface-border);
+  background: var(--surface-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-color);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 120ms;
+  &:hover {
+    background: var(--surface-hover);
+    border-color: var(--text-color-secondary);
+  }
+  .material-symbols-outlined {
+    font-size: 20px;
+  }
+}
+
+.page-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0;
+}
+.page-subtitle {
+  font-size: 13px;
+  color: var(--text-color-secondary);
+  margin: 2px 0 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+// ── Botones ───────────────────────────────────
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  border: none;
+  transition: all 120ms;
+  .material-symbols-outlined {
+    font-size: 18px;
+  }
+}
+.btn-primary {
+  background: var(--primary-color);
+  color: #fff;
+  &:hover {
+    filter: brightness(1.08);
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+.btn-ghost {
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+  color: var(--text-color);
+  &:hover {
+    background: var(--surface-hover);
+  }
+}
+
+// ── Contenedores (Cards) ──────────────────────────
+.card {
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--surface-border);
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+  
+  .section-icon {
+    color: var(--primary-color);
+    font-size: 20px;
+  }
+  
+  h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-color);
+    margin: 0;
+  }
+}
+
+// ── Estructura de Campos ─────────────────────────
+.fields-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+  
+  &.fields-row-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  &.fields-row-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  
+  label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-color);
+  }
+  
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="date"],
+  select,
+  textarea {
+    height: 38px;
+    border: 1px solid var(--surface-border);
+    border-radius: 7px;
+    background: var(--surface-ground);
+    color: var(--text-color);
+    font-size: 13px;
+    padding: 0 12px;
+    outline: none;
+    transition: border-color 150ms;
+    
+    &:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px var(--primary-50);
+    }
+  }
+  
+  textarea {
+    height: auto;
+    padding: 10px 12px;
+    resize: vertical;
+  }
+  
+  &.error {
+    input, select, textarea {
+      border-color: var(--red-500);
+      &:focus {
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+      }
+    }
+  }
+  
+  .error-msg {
+    font-size: 11px;
+    color: var(--red-500);
+    margin-top: 2px;
+  }
+}
+
+// ── Checkbox Moderno ──────────────────────────────
+.field-checkbox {
+  justify-content: center;
+  padding-top: 20px;
+}
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding-left: 28px;
+  cursor: pointer;
+  font-size: 13px;
+  user-select: none;
+  
+  input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+  }
+  
+  .checkmark {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    height: 18px;
+    width: 18px;
+    background-color: var(--surface-ground);
+    border: 1px solid var(--surface-border);
+    border-radius: 4px;
+    transition: all 120ms;
+    
+    &:after {
+      content: "";
+      position: absolute;
+      display: none;
+      left: 5px;
+      top: 2px;
+      width: 4px;
+      height: 8px;
+      border: solid white;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+  }
+  
+  input:checked ~ .checkmark {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    &:after {
+      display: block;
+    }
+  }
+  
+  .checkbox-text {
+    font-weight: 500;
+    color: var(--text-color);
+  }
+}
+
+// ── Selectores de Radio (Sexo) ──────────────────────
+.radio-group {
+  display: flex;
+  gap: 12px;
+  height: 38px;
+  align-items: center;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  
+  input {
+    accent-color: var(--primary-color);
+    width: 16px;
+    height: 16px;
+  }
+}
+
+// ── Sección de Fotos Lateral ──────────────────────────
+.photo-uploader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.photo-preview {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid var(--primary-color);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+  
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .btn-remove-photo {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.6);
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 120ms;
+    &:hover {
+      background: rgba(0,0,0,0.8);
+    }
+    .material-symbols-outlined {
+      font-size: 14px;
+    }
+  }
+}
+
+.photo-placeholder {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: var(--surface-ground);
+  border: 3px dashed var(--surface-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-color-secondary);
+  
+  .material-symbols-outlined {
+    font-size: 32px;
+  }
+  p {
+    margin: 4px 0 0;
+    font-size: 11px;
+    font-weight: 500;
+  }
+}
+
+.btn-photo-upload {
+  width: 100%;
+  justify-content: center;
+}
+
+// ── Pestañas de Tutor (Lateral) ──────────────────────
+.tutor-mode-tabs {
+  display: flex;
+  background: var(--surface-ground);
+  border: 1px solid var(--surface-border);
+  padding: 4px;
+  border-radius: 8px;
+  margin-bottom: 18px;
+}
+
+.tab-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-color-secondary);
+  cursor: pointer;
+  transition: all 120ms;
+  
+  &.active {
+    background: var(--surface-card);
+    color: var(--primary-color);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  }
+}
+
+.selected-tutor-preview {
+  margin-top: 14px;
+}
+
+.tutor-preview-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-color-secondary);
+  margin: 0 0 6px;
+  letter-spacing: 0.05em;
+}
+
+.tutor-info-box {
+  background: var(--surface-ground);
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-color);
+  
+  .material-symbols-outlined {
+    font-size: 16px;
+    color: var(--text-color-secondary);
+  }
+}
+
+// ── Responsive ──────────────────────────────────
+@media (max-width: 992px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .form-header {
+    grid-column: span 1;
+  }
+  .fields-row.fields-row-3 {
+    grid-template-columns: 1fr;
+  }
+  .fields-row.fields-row-2 {
+    grid-template-columns: 1fr;
+  }
+  .field-checkbox {
+    padding-top: 0;
+  }
+}

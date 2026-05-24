@@ -1,0 +1,184 @@
+.inventory-page { display: flex; flex-direction: column; gap: 20px; }
+
+// ── Header ────────────────────────────────────
+.page-header { display: flex; align-items: flex-start; justify-content: space-between; }
+.page-title { font-size: 22px; font-weight: 600; color: var(--text-color); margin: 0; }
+.page-subtitle { font-size: 13px; color: var(--text-color-secondary); margin: 2px 0 0; }
+.header-actions { display: flex; align-items: center; gap: 8px; }
+
+// ── Buttons ───────────────────────────────────
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;
+  cursor: pointer; text-decoration: none; border: none; transition: background 120ms;
+  .material-symbols-outlined { font-size: 18px; }
+}
+.btn-primary { background: var(--primary-color); color: #fff; &:hover { filter: brightness(1.08); } }
+.btn-ghost { background: var(--surface-card); border: 1px solid var(--surface-border); color: var(--text-color); &:hover { background: var(--surface-hover); } }
+
+.alert-count {
+  background: var(--red-500); color: #fff;
+  font-size: 10px; font-weight: 700;
+  padding: 1px 5px; border-radius: 10px; margin-left: 2px;
+}
+
+// ── Stats row ─────────────────────────────────
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+
+.stat-card {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--surface-card); border: 1px solid var(--surface-border);
+  border-radius: 10px; padding: 16px;
+  &.clickable { cursor: pointer; &:hover { border-color: var(--primary-color); box-shadow: 0 0 0 3px var(--primary-50); } }
+}
+
+.stat-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  .material-symbols-outlined { font-size: 20px; }
+  &.icon-blue  { background: var(--blue-50);   color: var(--blue-600); }
+  &.icon-amber { background: var(--yellow-50); color: var(--yellow-700); }
+  &.icon-red   { background: var(--red-50);    color: var(--red-600); }
+  &.icon-orange{ background: var(--orange-50); color: var(--orange-600); }
+}
+
+.stat-value { font-size: 22px; font-weight: 600; line-height: 1; }
+.stat-label { font-size: 12px; color: var(--text-color-secondary); margin-top: 3px; }
+.text-amber { color: var(--yellow-700); }
+.text-red   { color: var(--red-600); }
+.text-orange{ color: var(--orange-600); }
+
+// ── Filters ───────────────────────────────────
+.filters-bar {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface-card); border: 1px solid var(--surface-border);
+  border-radius: 10px; padding: 12px 16px;
+}
+
+.search-box {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface-ground); border: 1px solid var(--surface-border);
+  border-radius: 7px; padding: 0 12px; height: 36px; flex: 1; max-width: 320px;
+  .material-symbols-outlined { font-size: 17px; color: var(--text-color-secondary); }
+  input { border: none; background: none; outline: none; font-size: 13px; color: var(--text-color); width: 100%; }
+}
+
+select {
+  height: 36px; border: 1px solid var(--surface-border); border-radius: 7px;
+  background: var(--surface-ground); color: var(--text-color); font-size: 13px;
+  padding: 0 10px; outline: none; cursor: pointer;
+  &:focus { border-color: var(--primary-color); }
+}
+
+.stock-filters { display: flex; gap: 4px; }
+
+.filter-chip {
+  padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  border: 1px solid var(--surface-border); background: transparent;
+  color: var(--text-color-secondary); cursor: pointer; transition: all 120ms;
+  &.active, &:hover { border-color: var(--primary-color); background: var(--primary-50); color: var(--primary-700); }
+  &.chip-ok.active   { border-color: var(--green-400);  background: var(--green-50);  color: var(--green-700); }
+  &.chip-low.active  { border-color: var(--yellow-400); background: var(--yellow-50); color: var(--yellow-700); }
+  &.chip-out.active  { border-color: var(--red-400);    background: var(--red-50);    color: var(--red-700); }
+}
+
+.result-count { margin-left: auto; font-size: 12px; color: var(--text-color-secondary); white-space: nowrap; }
+
+// ── Table ─────────────────────────────────────
+.table-wrapper {
+  background: var(--surface-card); border: 1px solid var(--surface-border);
+  border-radius: 10px; overflow: hidden; position: relative;
+}
+
+.loading-overlay {
+  position: absolute; inset: 0; background: rgba(255,255,255,.7);
+  display: flex; align-items: center; justify-content: center; z-index: 10;
+}
+.spinner {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 3px solid var(--surface-border); border-top-color: var(--primary-color);
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.data-table { width: 100%; border-collapse: collapse; }
+
+thead tr {
+  background: var(--surface-ground);
+  th { padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600;
+       text-transform: uppercase; letter-spacing: .06em; color: var(--text-color-secondary);
+       border-bottom: 1px solid var(--surface-border); white-space: nowrap; }
+}
+
+tbody tr {
+  border-bottom: 1px solid var(--surface-border); transition: background 100ms;
+  &:last-child { border-bottom: none; }
+  &:hover { background: var(--surface-hover); }
+  &.row-critical { background: var(--red-50); &:hover { background: #fde8e8; } }
+  td { padding: 11px 14px; font-size: 13px; vertical-align: middle; }
+}
+
+// ── Product cell ──────────────────────────────
+.product-cell { display: flex; align-items: center; gap: 10px; }
+
+.product-icon {
+  width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--blue-50); color: var(--blue-600);
+  .material-symbols-outlined { font-size: 18px; }
+  &[data-cat="vaccine"]  { background: var(--green-50); color: var(--green-700); }
+  &[data-cat="food"]     { background: var(--orange-50); color: var(--orange-600); }
+  &[data-cat="consumable"] { background: var(--purple-50); color: var(--purple-600); }
+}
+
+.product-name { font-weight: 500; display: flex; align-items: center; gap: 6px; }
+.product-brand { font-size: 11px; color: var(--text-color-secondary); margin-top: 1px; }
+.controlled-badge { font-size: 10px; background: var(--orange-100); color: var(--orange-800); padding: 1px 5px; border-radius: 4px; }
+.mono { font-family: 'Courier New', monospace; font-size: 12px; color: var(--text-color-secondary); }
+
+// ── Stock cell ────────────────────────────────
+.stock-cell { display: flex; flex-direction: column; gap: 4px; }
+.stock-number { font-weight: 600; font-size: 14px;
+  &.stock-out { color: var(--red-600); }
+  &.stock-low { color: var(--yellow-700); }
+}
+.stock-bar { height: 4px; background: var(--surface-border); border-radius: 2px; width: 60px; overflow: hidden; }
+.stock-fill { height: 100%; border-radius: 2px; transition: width .3s; max-width: 100%;
+  &.fill-ok  { background: var(--green-500); }
+  &.fill-low { background: var(--yellow-500); }
+  &.fill-out { background: var(--red-500); width: 0 !important; }
+}
+
+.cat-chip { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: var(--surface-ground); color: var(--text-color-secondary); border: 1px solid var(--surface-border); white-space: nowrap; }
+
+.expiry-warn { color: var(--orange-700); font-weight: 500; }
+.expiry-icon { margin-left: 3px; }
+
+// ── Status badge ──────────────────────────────
+.status-badge { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 10px; white-space: nowrap;
+  &.status-ok  { background: var(--green-50);  color: var(--green-700);  }
+  &.status-low { background: var(--yellow-50); color: var(--yellow-800); }
+  &.status-out { background: var(--red-50);    color: var(--red-700);    }
+}
+
+// ── Row actions ───────────────────────────────
+.row-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 120ms; }
+tr:hover .row-actions { opacity: 1; }
+
+.action-btn {
+  width: 30px; height: 30px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-color-secondary); background: none; border: none; cursor: pointer;
+  text-decoration: none; transition: background 100ms;
+  .material-symbols-outlined { font-size: 17px; }
+  &:hover { background: var(--surface-border); color: var(--text-color); }
+}
+
+// ── Empty state ───────────────────────────────
+.empty-state { text-align: center; padding: 48px 20px; color: var(--text-color-secondary);
+  .material-symbols-outlined { font-size: 40px; opacity: .4; display: block; margin-bottom: 8px; }
+  p { font-size: 14px; margin: 0; }
+}
+
+.text-secondary { color: var(--text-color-secondary); }
+.font-medium { font-weight: 500; }

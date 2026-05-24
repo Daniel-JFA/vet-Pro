@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+.npm-cache/
+.npm/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Angular and Node build outputs
+dist/
+.angular/
+.vite/
+
+# System and IDEs
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+
+# Large PDF files in the root folder
+Portafolio Demo Doru.pdf
+Portafolio precios Clinica COL 2026 (1).pdf
+Portafolio precios Vet COL 2026 (3).pdf

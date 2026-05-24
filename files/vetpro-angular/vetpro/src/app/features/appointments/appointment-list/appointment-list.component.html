@@ -1,0 +1,258 @@
+<div class="board-page">
+  <div class="loading-overlay" *ngIf="loading()">
+    <div class="spinner"></div>
+  </div>
+
+  <div *ngIf="!loading()" class="board-wrapper">
+    <!-- Cabecera de Página -->
+    <header class="page-header">
+      <div>
+        <h1 class="page-title">Sala de Espera Digital</h1>
+        <p class="page-subtitle">Gestiona el flujo de ingreso de pacientes en tiempo real.</p>
+      </div>
+      <div class="header-actions">
+        <a routerLink="/appointments/calendar" class="btn btn-ghost">
+          <span class="material-symbols-outlined">calendar_month</span>
+          Ver Calendario Semanal
+        </a>
+        <a routerLink="/appointments/new" class="btn btn-primary">
+          <span class="material-symbols-outlined">add</span>
+          Agendar Cita
+        </a>
+      </div>
+    </header>
+
+    <!-- Tarjetas de Estadísticas Rápidas -->
+    <section class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon icon-blue">
+          <span class="material-symbols-outlined">assignment</span>
+        </div>
+        <div>
+          <div class="stat-value">{{ stats().total }}</div>
+          <div class="stat-label">Citas del Día</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon icon-orange">
+          <span class="material-symbols-outlined">hourglass_empty</span>
+        </div>
+        <div>
+          <div class="stat-value">{{ stats().waiting }}</div>
+          <div class="stat-label">En Sala de Espera</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon icon-emerald">
+          <span class="material-symbols-outlined">stethoscope</span>
+        </div>
+        <div>
+          <div class="stat-value">{{ stats().active }}</div>
+          <div class="stat-label">En Consulta Activa</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon icon-gray">
+          <span class="material-symbols-outlined">task_alt</span>
+        </div>
+        <div>
+          <div class="stat-value">{{ stats().done }}</div>
+          <div class="stat-label">Atendidos Hoy</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tablero Kanban de Sala de Espera -->
+    <section class="kanban-board">
+      <!-- Columna 1: PROGRAMADAS -->
+      <div class="kanban-column column-scheduled">
+        <header class="column-header">
+          <h3>
+            <span class="dot dot-blue"></span>
+            Programadas
+          </h3>
+          <span class="column-count">{{ scheduledAppointments().length }}</span>
+        </header>
+
+        <div class="cards-container">
+          <div class="empty-column-placeholder" *ngIf="scheduledAppointments().length === 0">
+            <span class="material-symbols-outlined">event_busy</span>
+            <p>No hay citas programadas pendientes</p>
+          </div>
+
+          <div 
+            class="kanban-card" 
+            *ngFor="let app of scheduledAppointments(); trackBy: trackById"
+          >
+            <header class="card-header">
+              <span class="card-time">{{ app.scheduledAt | date:'shortTime' }}</span>
+              <span class="card-service">{{ app.serviceType }}</span>
+            </header>
+            
+            <div class="card-body">
+              <div class="patient-title">
+                <span class="material-symbols-outlined pet-icon">pets</span>
+                <strong>{{ app.patient?.name }}</strong>
+                <span class="breed-text">({{ app.patient?.breed || app.patient?.species }})</span>
+              </div>
+              <div class="tutor-sub">👤 Tutor: {{ app.patient?.tutor?.firstName }} {{ app.patient?.tutor?.lastName }}</div>
+              <div class="vet-sub">🩺 Asignado: {{ app.vetId === 'v1' ? 'Dr. Andrés' : 'Dra. Laura' }}</div>
+              <p class="reason-text" *ngIf="app.reason">"{{ app.reason }}"</p>
+            </div>
+
+            <footer class="card-actions">
+              <button 
+                class="btn-action btn-action-success" 
+                (click)="changeStatus(app, 'waiting')"
+              >
+                <span class="material-symbols-outlined">login</span>
+                Registrar Llegada
+              </button>
+              <button class="btn-cancel" (click)="changeStatus(app, 'cancelled')" title="Cancelar Cita">
+                <span class="material-symbols-outlined">cancel</span>
+              </button>
+            </footer>
+          </div>
+        </div>
+      </div>
+
+      <!-- Columna 2: EN SALA DE ESPERA -->
+      <div class="kanban-column column-waiting">
+        <header class="column-header">
+          <h3>
+            <span class="dot dot-orange"></span>
+            En Espera (En Sala)
+          </h3>
+          <span class="column-count">{{ waitingAppointments().length }}</span>
+        </header>
+
+        <div class="cards-container">
+          <div class="empty-column-placeholder" *ngIf="waitingAppointments().length === 0">
+            <span class="material-symbols-outlined">weekend</span>
+            <p>Sala de espera vacía</p>
+          </div>
+
+          <div 
+            class="kanban-card" 
+            *ngFor="let app of waitingAppointments(); trackBy: trackById"
+          >
+            <header class="card-header">
+              <span class="card-time">{{ app.scheduledAt | date:'shortTime' }}</span>
+              <span class="card-service">{{ app.serviceType }}</span>
+            </header>
+            
+            <div class="card-body">
+              <div class="patient-title">
+                <span class="material-symbols-outlined pet-icon color-orange">pets</span>
+                <strong>{{ app.patient?.name }}</strong>
+                <span class="breed-text">({{ app.patient?.breed || app.patient?.species }})</span>
+              </div>
+              <div class="tutor-sub">👤 Tutor: {{ app.patient?.tutor?.firstName }} {{ app.patient?.tutor?.lastName }}</div>
+              <div class="vet-sub">🩺 Asignado: {{ app.vetId === 'v1' ? 'Dr. Andrés' : 'Dra. Laura' }}</div>
+              <p class="reason-text" *ngIf="app.reason">"{{ app.reason }}"</p>
+            </div>
+
+            <footer class="card-actions">
+              <button 
+                class="btn-action btn-action-primary" 
+                (click)="changeStatus(app, 'in-progress')"
+              >
+                <span class="material-symbols-outlined">stethoscope</span>
+                Ingresar a Consulta
+              </button>
+              <button class="btn-cancel" (click)="changeStatus(app, 'cancelled')" title="Cancelar Cita">
+                <span class="material-symbols-outlined">cancel</span>
+              </button>
+            </footer>
+          </div>
+        </div>
+      </div>
+
+      <!-- Columna 3: EN CONSULTA -->
+      <div class="kanban-column column-active">
+        <header class="column-header">
+          <h3>
+            <span class="dot dot-emerald"></span>
+            En Consulta Activa
+          </h3>
+          <span class="column-count">{{ inProgressAppointments().length }}</span>
+        </header>
+
+        <div class="cards-container">
+          <div class="empty-column-placeholder" *ngIf="inProgressAppointments().length === 0">
+            <span class="material-symbols-outlined">medical_information</span>
+            <p>No hay consultas en curso ahora</p>
+          </div>
+
+          <div 
+            class="kanban-card" 
+            *ngFor="let app of inProgressAppointments(); trackBy: trackById"
+          >
+            <header class="card-header">
+              <span class="card-time">{{ app.scheduledAt | date:'shortTime' }}</span>
+              <span class="card-service">{{ app.serviceType }}</span>
+            </header>
+            
+            <div class="card-body">
+              <div class="patient-title">
+                <span class="material-symbols-outlined pet-icon color-emerald">pets</span>
+                <strong>{{ app.patient?.name }}</strong>
+                <span class="breed-text">({{ app.patient?.breed || app.patient?.species }})</span>
+              </div>
+              <div class="tutor-sub">👤 Tutor: {{ app.patient?.tutor?.firstName }} {{ app.patient?.tutor?.lastName }}</div>
+              <div class="vet-sub">🩺 Atendido por: {{ app.vetId === 'v1' ? 'Dr. Andrés' : 'Dra. Laura' }}</div>
+              <p class="reason-text" *ngIf="app.reason">"{{ app.reason }}"</p>
+            </div>
+
+            <footer class="card-actions">
+              <button 
+                class="btn-action btn-action-gray" 
+                (click)="changeStatus(app, 'done')"
+              >
+                <span class="material-symbols-outlined">task_alt</span>
+                Finalizar Consulta
+              </button>
+            </footer>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Historial de Citas Cerradas / Canceladas hoy -->
+    <section class="finished-section" *ngIf="finishedAppointments().length > 0">
+      <div class="card finished-card">
+        <h3>Historial de Citas Finalizadas / Canceladas Hoy</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Hora</th>
+              <th>Mascota</th>
+              <th>Servicio</th>
+              <th>Profesional</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let app of finishedAppointments(); trackBy: trackById">
+              <td>{{ app.scheduledAt | date:'shortTime' }}</td>
+              <td><strong>{{ app.patient?.name }}</strong></td>
+              <td>{{ app.serviceType }}</td>
+              <td>{{ app.vetId === 'v1' ? 'Dr. Andrés Espinoza' : 'Dra. Laura Cardona' }}</td>
+              <td>
+                <span 
+                  class="status-micro-badge" 
+                  [attr.data-status]="app.status"
+                >
+                  {{ app.status === 'done' ? 'Atendida' : 'Cancelada' }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>

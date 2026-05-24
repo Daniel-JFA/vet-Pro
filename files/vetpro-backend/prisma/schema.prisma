@@ -1,0 +1,629 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// VetPro SaaS — Prisma Schema (PostgreSQL)
+// ─────────────────────────────────────────────────────────────────────────────
+// Este archivo define la estructura de datos relacional para el backend de VetPro,
+// aplicando un esquema Multi-Inquilino (clinicId) y Multi-Sucursal (branchId)
+// consistente en todas las tablas desde el inicio del proyecto.
+// ─────────────────────────────────────────────────────────────────────────────
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ─────────────────────────────────────────────
+// 💎 MODELOS CORE DE LA CLÍNICA (SaaS)
+// ─────────────────────────────────────────────
+
+enum PlanType {
+  starter
+  clinic
+  pro
+  enterprise
+}
+
+model Clinic {
+  id             String   @id @default(uuid())
+  name           String
+  logoUrl        String?
+  nit            String? // NIT en Colombia (Número de Identificación Tributaria)
+  phone          String
+  email          String   @unique
+  address        String
+  city           String
+  plan           PlanType @default(starter)
+  aiMinutesUsed  Float    @default(0)
+  aiMinutesLimit Float    @default(60) // Límite en minutos según plan
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relaciones
+  branches              Branch[]
+  users                 User[]
+  tutors                Tutor[]
+  patients              Patient[]
+  medicalRecords        MedicalRecord[]
+  products              Product[]
+  inventoryMovements    InventoryMovement[]
+  suppliers             Supplier[]
+  purchaseOrders        PurchaseOrder[]
+  invoices              Invoice[]
+  notificationTemplates NotificationTemplate[]
+  notificationLogs      NotificationLog[]
+  Appointment           Appointment[]
+
+  @@map("clinics")
+}
+
+model Branch {
+  id        String   @id @default(uuid())
+  clinicId  String
+  clinic    Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  name      String
+  address   String
+  phone     String
+  email     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  users              User[]
+  appointments       Appointment[]
+  inventoryMovements InventoryMovement[]
+
+  @@index([clinicId])
+  @@map("branches")
+}
+
+// ─────────────────────────────────────────────
+// 👤 AUTENTICACIÓN & USUARIOS (STAFF VET)
+// ─────────────────────────────────────────────
+
+enum UserRole {
+  admin
+  vet
+  assistant
+  receptionist
+}
+
+model User {
+  id           String   @id @default(uuid())
+  clinicId     String
+  clinic       Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  branchId     String? // Opcional si el administrador opera a nivel global
+  branch       Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  firstName    String
+  lastName     String
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(vet)
+  avatarUrl    String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relaciones
+  appointments    Appointment[]   @relation("VetAppointments")
+  medicalRecords  MedicalRecord[]
+  vaccinesApplied Vaccine[]
+  prescriptions   Prescription[]
+
+  @@index([clinicId])
+  @@index([branchId])
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// 🐾 PACIENTES & TUTORES
+// ─────────────────────────────────────────────
+
+model Tutor {
+  id         String   @id @default(uuid())
+  clinicId   String
+  clinic     Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  firstName  String
+  lastName   String
+  email      String?
+  phone      String
+  documentId String? // CC o NIT en Colombia
+  address    String?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relaciones
+  patients Patient[]
+  invoices Invoice[]
+
+  @@index([clinicId])
+  @@index([phone])
+  @@map("tutors")
+}
+
+enum PatientSpecies {
+  dog
+  cat
+  rabbit
+  bird
+  reptile
+  other
+}
+
+enum PatientSex {
+  male
+  female
+}
+
+enum PatientStatus {
+  active
+  inactive
+  deceased
+}
+
+model Patient {
+  id         String         @id @default(uuid())
+  clinicId   String
+  clinic     Clinic         @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tutorId    String
+  tutor      Tutor          @relation(fields: [tutorId], references: [id], onDelete: Restrict)
+  name       String
+  species    PatientSpecies
+  breed      String?
+  birthDate  DateTime?
+  sex        PatientSex
+  sterilized Boolean        @default(false)
+  weight     Float? // Último peso registrado en kg
+  chipId     String?
+  photoUrl   String?
+  allergies  String?
+  notes      String?
+  status     PatientStatus  @default(active)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  // Relaciones
+  appointments   Appointment[]
+  medicalRecords MedicalRecord[]
+  vaccines       Vaccine[]
+  prescriptions  Prescription[]
+
+  @@index([clinicId])
+  @@index([tutorId])
+  @@index([chipId])
+  @@map("patients")
+}
+
+// ─────────────────────────────────────────────
+// 📅 CITAS & SALA DE ESPERA DIGITAL
+// ─────────────────────────────────────────────
+
+enum AppointmentStatus {
+  scheduled
+  waiting
+  in_progress
+  done
+  cancelled
+  no_show
+}
+
+model Appointment {
+  id              String            @id @default(uuid())
+  clinicId        String
+  clinic          Clinic            @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  branchId        String
+  branch          Branch            @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  patientId       String
+  patient         Patient           @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  vetId           String
+  vet             User              @relation("VetAppointments", fields: [vetId], references: [id], onDelete: Restrict)
+  serviceType     String // Consulta General, Control, Cirugía, Vacunación, etc.
+  scheduledAt     DateTime
+  durationMinutes Int               @default(30)
+  status          AppointmentStatus @default(scheduled)
+  reason          String?
+  notes           String?
+  amountCharged   Float?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // Relaciones
+  medicalRecords MedicalRecord[]
+  invoices       Invoice[]
+
+  @@index([clinicId])
+  @@index([branchId])
+  @@index([vetId])
+  @@index([scheduledAt])
+  @@map("appointments")
+}
+
+// ─────────────────────────────────────────────
+// 📝 HISTORIAL CLÍNICO & BITÁCORA IA
+// ─────────────────────────────────────────────
+
+enum RecordType {
+  consultation
+  surgery
+  vaccine
+  deworming
+  lab
+  imaging
+  other
+}
+
+model MedicalRecord {
+  id                     String       @id @default(uuid())
+  clinicId               String
+  clinic                 Clinic       @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  patientId              String
+  patient                Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  appointmentId          String?
+  appointment            Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  vetId                  String
+  vet                    User         @relation(fields: [vetId], references: [id], onDelete: Restrict)
+  type                   RecordType   @default(consultation)
+  title                  String // Diagnóstico general o motivo
+  anamnesis              String?      @db.Text
+  physicalExam           String?      @db.Text
+  diagnosis              String?      @db.Text
+  treatment              String?      @db.Text
+  observations           String?      @db.Text
+  aiGenerated            Boolean      @default(false) // Indica si se generó por voz (Whisper + Claude)
+  aiTranscriptionMinutes Float? // Minutos de grabación consumidos
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+
+  // Relaciones
+  attachments   Attachment[]
+  prescriptions Prescription[]
+
+  @@index([clinicId])
+  @@index([patientId])
+  @@index([vetId])
+  @@map("medical_records")
+}
+
+enum AttachmentType {
+  image
+  pdf
+  lab
+  imaging
+  other
+}
+
+model Attachment {
+  id         String         @id @default(uuid())
+  recordId   String
+  record     MedicalRecord  @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  name       String
+  type       AttachmentType
+  url        String
+  size       Int // Tamaño del archivo en bytes
+  uploadedAt DateTime       @default(now())
+
+  @@index([recordId])
+  @@map("attachments")
+}
+
+model Vaccine {
+  id        String    @id @default(uuid())
+  patientId String
+  patient   Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  name      String
+  brand     String?
+  batch     String?
+  appliedAt DateTime
+  nextDueAt DateTime?
+  vetId     String
+  vet       User      @relation(fields: [vetId], references: [id], onDelete: Restrict)
+  notes     String?
+
+  @@index([patientId])
+  @@map("vaccines")
+}
+
+model Prescription {
+  id           String             @id @default(uuid())
+  recordId     String
+  record       MedicalRecord      @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  patientId    String
+  patient      Patient            @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  vetId        String
+  vet          User               @relation(fields: [vetId], references: [id], onDelete: Restrict)
+  instructions String?            @db.Text
+  signedAt     DateTime?
+  sentToTutor  Boolean            @default(false)
+  items        PrescriptionItem[]
+
+  @@index([recordId])
+  @@index([patientId])
+  @@map("prescriptions")
+}
+
+model PrescriptionItem {
+  id             String       @id @default(uuid())
+  prescriptionId String
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  drugName       String
+  presentation   String // e.g., Suspensión oral, Tabletas
+  dose           String // e.g., 1 ml por cada 5 kg
+  frequency      String // e.g., Cada 12 horas
+  durationDays   Int
+  quantity       Int // Cantidad total a dispensar
+
+  @@index([prescriptionId])
+  @@map("prescription_items")
+}
+
+// ─────────────────────────────────────────────
+// 📦 INVENTARIO (MEDICAMENTOS & VACUNAS)
+// ─────────────────────────────────────────────
+
+enum ProductCategory {
+  medication
+  vaccine
+  surgical_supply
+  consumable
+  food
+  accessory
+  lab_reagent
+  other
+}
+
+model Product {
+  id                   String          @id @default(uuid())
+  clinicId             String
+  clinic               Clinic          @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  sku                  String // Código único interno (Stock Keeping Unit)
+  name                 String
+  category             ProductCategory @default(medication)
+  brand                String?
+  unit                 String // e.g., ml, Tableta, Caja, Unidad
+  description          String?
+  barcode              String?
+  requiresPrescription Boolean         @default(false)
+  controlled           Boolean         @default(false) // Fármacos bajo control del ICA/FNE en Colombia
+  minStock             Float           @default(0) // Umbral de alerta
+  currentStock         Float           @default(0)
+  costPrice            Float
+  salePrice            Float
+  taxRate              Float           @default(0.19) // e.g., 0.19 (19% IVA Colombia)
+  expiresAt            DateTime?
+  supplierId           String?
+  supplier             Supplier?       @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  active               Boolean         @default(true)
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  // Relaciones
+  movements  InventoryMovement[]
+  orderItems PurchaseOrderItem[]
+
+  @@unique([clinicId, sku])
+  @@index([clinicId])
+  @@index([supplierId])
+  @@map("products")
+}
+
+enum MovementType {
+  in
+  out
+  adjustment
+  return
+  loss
+}
+
+model InventoryMovement {
+  id             String       @id @default(uuid())
+  clinicId       String
+  clinic         Clinic       @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  branchId       String // Sucursal física donde ocurrió el movimiento
+  branch         Branch       @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  productId      String
+  product        Product      @relation(fields: [productId], references: [id], onDelete: Restrict)
+  type           MovementType
+  quantity       Float
+  quantityBefore Float
+  quantityAfter  Float
+  unitCost       Float?
+  reason         String? // e.g., Venta en consulta, Ajuste anual, Pérdida por daño
+  referenceId    String? // ID de factura, orden de compra o cita médica
+  referenceType  String? // e.g., invoice, appointment, purchase, adjustment
+  performedBy    String // ID del usuario de VetPro que ejecutó el movimiento
+  performedAt    DateTime     @default(now())
+  batchNumber    String?
+  expiryDate     DateTime?
+
+  @@index([clinicId])
+  @@index([branchId])
+  @@index([productId])
+  @@map("inventory_movements")
+}
+
+model Supplier {
+  id          String  @id @default(uuid())
+  clinicId    String
+  clinic      Clinic  @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  name        String
+  nit         String? // Identificación fiscal en Colombia
+  contactName String?
+  email       String?
+  phone       String?
+  address     String?
+  notes       String?
+  active      Boolean @default(true)
+
+  // Relaciones
+  products       Product[]
+  purchaseOrders PurchaseOrder[]
+
+  @@index([clinicId])
+  @@map("suppliers")
+}
+
+enum PurchaseOrderStatus {
+  draft
+  sent
+  partial
+  received
+  cancelled
+}
+
+model PurchaseOrder {
+  id         String              @id @default(uuid())
+  clinicId   String
+  clinic     Clinic              @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  supplierId String
+  supplier   Supplier            @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  status     PurchaseOrderStatus @default(draft)
+  total      Float               @default(0)
+  orderedAt  DateTime            @default(now())
+  expectedAt DateTime?
+  receivedAt DateTime?
+  notes      String?
+
+  // Relaciones
+  items PurchaseOrderItem[]
+
+  @@index([clinicId])
+  @@index([supplierId])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id               String        @id @default(uuid())
+  purchaseOrderId  String
+  purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  productId        String
+  product          Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantityOrdered  Float
+  quantityReceived Float         @default(0)
+  unitCost         Float
+  total            Float
+
+  @@index([purchaseOrderId])
+  @@index([productId])
+  @@map("purchase_order_items")
+}
+
+// ─────────────────────────────────────────────
+// 💰 FACTURACIÓN BÁSICA (DIAN POSPUESTO)
+// ─────────────────────────────────────────────
+
+enum InvoiceStatus {
+  draft
+  issued
+  paid
+  partial
+  void
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  clinicId      String
+  clinic        Clinic        @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  invoiceNumber String // Consecutivo interno de facturación
+  tutorId       String
+  tutor         Tutor         @relation(fields: [tutorId], references: [id], onDelete: Restrict)
+  appointmentId String?
+  appointment   Appointment?  @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  status        InvoiceStatus @default(draft)
+  subtotal      Float
+  taxTotal      Float         @default(0) // Total IVA recaudado
+  total         Float
+  amountPaid    Float         @default(0)
+  balance       Float // Saldo pendiente
+  issuedAt      DateTime      @default(now())
+  dueAt         DateTime?
+  paidAt        DateTime?
+  notes         String?
+  electronicId  String? // Reservado para CUFE de la DIAN en la fase final del proyecto
+
+  // Relaciones
+  items InvoiceItem[]
+
+  @@unique([clinicId, invoiceNumber])
+  @@index([clinicId])
+  @@index([tutorId])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String  @id @default(uuid())
+  invoiceId   String
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  productId   String? // Opcional si se factura un servicio manual no registrado
+  quantity    Float
+  unitPrice   Float
+  taxRate     Float   @default(0)
+  discount    Float   @default(0)
+  total       Float
+
+  @@index([invoiceId])
+  @@map("invoice_items")
+}
+
+// ─────────────────────────────────────────────
+// 💬 PLANTILLAS Y LOGS DE RECORDATORIOS
+// ─────────────────────────────────────────────
+
+enum NotificationTrigger {
+  appointment_reminder_24h
+  appointment_reminder_2h
+  vaccine_due
+  birthday
+  lab_ready
+  custom
+}
+
+enum NotificationChannel {
+  whatsapp
+  email
+  push
+}
+
+model NotificationTemplate {
+  id       String              @id @default(uuid())
+  clinicId String
+  clinic   Clinic              @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  name     String
+  trigger  NotificationTrigger
+  channel  NotificationChannel @default(whatsapp)
+  subject  String?
+  body     String              @db.Text
+  active   Boolean             @default(true)
+
+  @@index([clinicId])
+  @@map("notification_templates")
+}
+
+enum DeliveryStatus {
+  sent
+  delivered
+  failed
+  pending
+}
+
+model NotificationLog {
+  id             String              @id @default(uuid())
+  clinicId       String
+  clinic         Clinic              @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  templateId     String?
+  recipientPhone String?
+  recipientEmail String?
+  channel        NotificationChannel
+  status         DeliveryStatus      @default(pending)
+  patientId      String?
+  appointmentId  String?
+  sentAt         DateTime            @default(now())
+  error          String?
+
+  @@index([clinicId])
+  @@map("notification_logs")
+}

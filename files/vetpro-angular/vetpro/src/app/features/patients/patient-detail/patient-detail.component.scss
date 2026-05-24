@@ -1,0 +1,910 @@
+.detail-page {
+  position: relative;
+  min-height: 400px;
+}
+
+// ── Overlay de Carga ──────────────────────────────
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+.spinner {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 3px solid var(--surface-border);
+  border-top-color: var(--primary-color);
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+// ── Grid Layout de la Ficha ───────────────────────
+.detail-grid {
+  display: grid;
+  grid-template-columns: 3fr 7fr;
+  gap: 20px;
+  align-items: start;
+}
+
+// ── Cabecera ────────────────────────────────────
+.detail-header {
+  grid-column: span 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--surface-border);
+  padding-bottom: 16px;
+  margin-bottom: 10px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.btn-back {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--surface-border);
+  background: var(--surface-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-color);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 120ms;
+  &:hover {
+    background: var(--surface-hover);
+    border-color: var(--text-color-secondary);
+  }
+  .material-symbols-outlined {
+    font-size: 20px;
+  }
+}
+
+.page-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0;
+}
+.page-subtitle {
+  font-size: 13px;
+  color: var(--text-color-secondary);
+  margin: 2px 0 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+// ── Botones ───────────────────────────────────
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  border: none;
+  transition: all 120ms;
+  .material-symbols-outlined {
+    font-size: 18px;
+  }
+}
+.btn-primary {
+  background: var(--primary-color);
+  color: #fff;
+  &:hover {
+    filter: brightness(1.08);
+  }
+}
+.btn-ghost {
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+  color: var(--text-color);
+  &:hover {
+    background: var(--surface-hover);
+  }
+}
+
+// ── Tarjeta Común ────────────────────────────────
+.card {
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+// ── BARRA LATERAL (IZQUIERDA) ──────────────────────
+.sidebar-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.profile-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 30px 20px;
+}
+
+.profile-avatar {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid var(--primary-color);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  margin-bottom: 16px;
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.profile-avatar-placeholder {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: var(--surface-ground);
+  border: 3px dashed var(--surface-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  .material-symbols-outlined {
+    font-size: 40px;
+  }
+  &[data-species="dog"] { color: var(--blue-600); background: var(--blue-50); }
+  &[data-species="cat"] { color: var(--purple-600); background: var(--purple-50); }
+}
+
+.profile-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gender-icon {
+  font-size: 13px;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  &.male { background: var(--blue-50); color: var(--blue-600); }
+  &.female { background: var(--red-50); color: var(--red-500); }
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  margin-bottom: 24px;
+  
+  &[data-status="active"] {
+    background: var(--green-50);
+    border-color: var(--green-400);
+    color: var(--green-700);
+  }
+  &[data-status="inactive"] {
+    background: var(--surface-ground);
+    border-color: var(--surface-border);
+    color: var(--text-color-secondary);
+  }
+  &[data-status="deceased"] {
+    background: var(--red-50);
+    border-color: var(--red-400);
+    color: var(--red-600);
+  }
+}
+
+.profile-details-list {
+  width: 100%;
+  border-top: 1px solid var(--surface-border);
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  
+  .label {
+    color: var(--text-color-secondary);
+  }
+  .value {
+    font-weight: 500;
+    color: var(--text-color);
+    
+    &.mono {
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+    }
+    &.chip {
+      background: var(--surface-ground);
+      border: 1px solid var(--surface-border);
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+  }
+}
+
+.quick-actions-card {
+  padding: 20px;
+  h3 {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-color-secondary);
+    margin: 0 0 12px;
+    letter-spacing: 0.05em;
+  }
+}
+
+.quick-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.q-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface-ground);
+  border: 1px solid var(--surface-border);
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-color);
+  text-decoration: none;
+  transition: all 120ms;
+  
+  .material-symbols-outlined {
+    font-size: 18px;
+    &.icon-blue  { color: var(--blue-600); }
+    &.icon-green { color: var(--green-600); }
+    &.icon-amber { color: var(--yellow-700); }
+  }
+  
+  &:hover {
+    background: var(--surface-hover);
+    border-color: var(--primary-color);
+  }
+}
+
+// ── COLUMNA DE CONTENIDO (DERECHA) ──────────────────
+.content-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+// ── Pestañas de Navegación ─────────────────────────
+.detail-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--surface-border);
+  gap: 6px;
+}
+
+.tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  padding: 12px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-color-secondary);
+  cursor: pointer;
+  position: relative;
+  transition: all 120ms;
+  
+  .material-symbols-outlined {
+    font-size: 18px;
+  }
+  
+  &:hover {
+    color: var(--text-color);
+  }
+  
+  &.active {
+    color: var(--primary-color);
+    font-weight: 600;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--primary-color);
+    }
+  }
+}
+
+// ── TAB CONTENT: GENERAL ─────────────────────────
+.tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+// Card de Alertas Médicas (Alergias)
+.alert-card {
+  border: 1px solid var(--yellow-400);
+  background: var(--yellow-50);
+  padding: 16px 20px;
+  h4 {
+    margin: 0;
+    color: var(--yellow-700);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  p {
+    margin: 6px 0 0;
+    font-size: 13px;
+    color: var(--yellow-700);
+    font-weight: 500;
+  }
+  .alert-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    .alert-icon {
+      font-size: 18px;
+      color: var(--yellow-700);
+    }
+  }
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.info-card {
+  h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-color);
+    border-bottom: 1px solid var(--surface-border);
+    padding-bottom: 8px;
+    margin: 0 0 16px;
+  }
+}
+
+.grid-details {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.grid-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  
+  &.grid-item-full {
+    grid-column: span 2;
+  }
+}
+
+.g-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-color-secondary);
+  letter-spacing: 0.03em;
+}
+.g-value {
+  font-size: 13px;
+  color: var(--text-color);
+  font-weight: 500;
+  
+  &.notes-text {
+    line-height: 1.4;
+    font-weight: 400;
+    color: var(--text-color-secondary);
+    background: var(--surface-ground);
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid var(--surface-border);
+  }
+  
+  &.call-phone {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--primary-color);
+    .material-symbols-outlined {
+      font-size: 14px;
+    }
+  }
+}
+
+.tutor-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.tutor-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: #fff;
+  font-weight: bold;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tutor-name-full {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-color);
+}
+.tutor-doc-id {
+  font-size: 11px;
+  color: var(--text-color-secondary);
+  margin-top: 2px;
+}
+
+.btn-whatsapp {
+  width: 100%;
+  justify-content: center;
+  margin-top: 16px;
+  border-color: var(--green-400);
+  background: var(--green-50);
+  color: var(--green-700);
+  &:hover {
+    background: var(--green-100);
+  }
+}
+
+// ── TAB CONTENT: HISTORIAL (TIMELINE) ────────────────
+.timeline {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding-left: 24px;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    left: 8px;
+    width: 2px;
+    background: var(--surface-border);
+  }
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 24px;
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.timeline-badge {
+  position: absolute;
+  left: -24px;
+  top: 12px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--surface-ground);
+  border: 2px solid var(--surface-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  
+  .material-symbols-outlined {
+    font-size: 9px;
+    display: none; // Ocultamos icono por defecto
+  }
+  
+  &[data-type="surgery"] { border-color: var(--orange-400); background: var(--orange-500); }
+  &[data-type="vaccine"] { border-color: var(--green-400); background: var(--green-500); }
+  &[data-type="consultation"] { border-color: var(--primary-color); background: var(--primary-color); }
+}
+
+.timeline-card {
+  margin-bottom: 0;
+  padding: 20px;
+}
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  
+  .header-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  h4 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-color);
+  }
+}
+
+.type-pill {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 4px;
+  &[data-type="surgery"] { background: var(--orange-50); color: var(--orange-600); }
+  &[data-type="vaccine"] { background: var(--green-50); color: var(--green-600); }
+  &[data-type="consultation"] { background: var(--blue-50); color: var(--blue-600); }
+}
+
+.date-stamp {
+  font-size: 11px;
+  color: var(--text-color-secondary);
+}
+
+.vet-author {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-color-secondary);
+  border-bottom: 1px solid var(--surface-border);
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+  
+  .material-symbols-outlined {
+    font-size: 15px;
+  }
+  
+  .ai-pill {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 600;
+    background: #eef2ff;
+    color: #4f46e5;
+    padding: 1px 6px;
+    border-radius: 4px;
+    border: 1px solid #c7d2fe;
+  }
+}
+
+.clinical-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.clinical-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  
+  h5 {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-color-secondary);
+    margin: 0;
+    letter-spacing: 0.03em;
+  }
+  
+  p {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.4;
+    color: var(--text-color);
+  }
+  
+  &.highlight {
+    background: var(--red-50);
+    border: 1px solid var(--red-100);
+    padding: 10px 12px;
+    border-radius: 6px;
+    p {
+      color: var(--red-700);
+      font-weight: 600;
+    }
+  }
+  
+  &.highlight-primary {
+    background: var(--primary-50);
+    border: 1px solid var(--primary-100);
+    padding: 10px 12px;
+    border-radius: 6px;
+    p {
+      color: var(--primary-700);
+      font-weight: 600;
+      white-space: pre-line; // Muestra saltos de línea para recetas
+    }
+  }
+}
+
+.clinical-block-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 4px;
+}
+
+// ── TAB CONTENT: VACUNAS (CARTILLA) ──────────────────
+.next-vaccine-alert {
+  background: var(--primary-50);
+  border: 1px solid var(--primary-100);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  
+  .material-symbols-outlined {
+    font-size: 24px;
+    color: var(--primary-700);
+  }
+  
+  h5 {
+    margin: 0;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--primary-700);
+  }
+  
+  p {
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: var(--primary-600);
+  }
+}
+
+.table-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.clinical-table {
+  width: 100%;
+  border-collapse: collapse;
+  
+  thead tr {
+    background: var(--surface-ground);
+    th {
+      padding: 10px 16px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-color-secondary);
+      border-bottom: 1px solid var(--surface-border);
+    }
+  }
+  
+  tbody tr {
+    border-bottom: 1px solid var(--surface-border);
+    &:last-child {
+      border-bottom: none;
+    }
+    td {
+      padding: 12px 16px;
+      font-size: 12.5px;
+      vertical-align: middle;
+    }
+  }
+}
+
+.vaccine-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  .vaccine-icon {
+    font-size: 16px;
+    color: var(--primary-color);
+  }
+}
+
+.vaccine-brand {
+  font-weight: 500;
+}
+.vaccine-batch {
+  font-size: 10.5px;
+  color: var(--text-color-secondary);
+  margin-top: 1px;
+}
+
+.due-date {
+  font-weight: 600;
+  &.overdue {
+    color: var(--red-600);
+  }
+}
+
+// ── TAB CONTENT: DOCUMENTOS ───────────────────────
+.attachments-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.attachment-card {
+  margin-bottom: 0;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.file-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: var(--surface-ground);
+  border: 1px solid var(--surface-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  .material-symbols-outlined {
+    font-size: 20px;
+  }
+  
+  &[data-type="pdf"] {
+    background: var(--red-50);
+    color: var(--red-500);
+  }
+  &[data-type="image"] {
+    background: var(--blue-50);
+    color: var(--blue-600);
+  }
+}
+
+.attachment-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-meta {
+  display: flex;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-color-secondary);
+  margin-top: 3px;
+}
+
+.btn-download {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  padding: 0;
+  justify-content: center;
+  .material-symbols-outlined {
+    font-size: 16px;
+  }
+}
+
+// ── Estado de Vacío ──────────────────────────────
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 50px 30px;
+  text-align: center;
+  
+  .empty-icon {
+    font-size: 40px;
+    color: var(--text-color-secondary);
+    margin-bottom: 12px;
+  }
+  
+  h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  
+  p {
+    margin: 4px 0 16px;
+    font-size: 12.5px;
+    color: var(--text-color-secondary);
+    max-width: 280px;
+  }
+}
+
+// ── RESPONSIVE ──────────────────────────────────
+@media (max-width: 992px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+  .detail-header {
+    grid-column: span 1;
+  }
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+  .clinical-block-grid {
+    grid-template-columns: 1fr;
+  }
+  .attachments-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .detail-tabs {
+    flex-wrap: wrap;
+    gap: 2px;
+  }
+  .tab-btn {
+    padding: 10px 12px;
+    font-size: 12px;
+    flex: 1;
+    justify-content: center;
+  }
+  .detail-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  .header-actions {
+    .btn {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+}

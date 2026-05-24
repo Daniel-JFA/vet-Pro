@@ -1,0 +1,143 @@
+<div class="templates-page">
+  <div class="loading-overlay" *ngIf="loading()">
+    <div class="spinner"></div>
+  </div>
+
+  <div *ngIf="!loading()" class="templates-wrapper">
+    <!-- Cabecera de Página -->
+    <header class="page-header">
+      <div>
+        <h1 class="page-title">Plantillas de Notificación</h1>
+        <p class="page-subtitle">Personaliza los mensajes automáticos que se envían a los tutores.</p>
+      </div>
+      <div class="header-actions">
+        <button 
+          type="button" 
+          class="btn btn-primary" 
+          (click)="save()" 
+          [disabled]="submitting() || !selectedTemplate()"
+        >
+          <span class="material-symbols-outlined" *ngIf="!submitting()">save</span>
+          {{ submitting() ? 'Guardando...' : 'Guardar Cambios' }}
+        </button>
+      </div>
+    </header>
+
+    <div class="templates-layout">
+      <!-- Columna 1: Listado de Plantillas (Izquierda) -->
+      <aside class="templates-list-sidebar">
+        <div class="card sidebar-card">
+          <h3>Mensajería Activa</h3>
+          <div class="template-buttons-list">
+            <button 
+              *ngFor="let t of templates()" 
+              type="button" 
+              class="tpl-select-btn"
+              [class.active]="t.id === selectedTemplateId()"
+              (click)="selectTemplate(t.id)"
+            >
+              <div class="btn-main-info">
+                <span class="material-symbols-outlined channel-icon">chat</span>
+                <span class="tpl-name">{{ t.name }}</span>
+              </div>
+              <span class="status-dot" [class.active]="t.active" [title]="t.active ? 'Activa' : 'Desactivada'"></span>
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Columna 2: Editor de Mensaje (Centro) -->
+      <main class="editor-main-area" *ngIf="selectedTemplate() as t">
+        <div class="card editor-card">
+          <div class="editor-header">
+            <h2>{{ t.name }}</h2>
+            <span class="channel-pill">WhatsApp Business</span>
+          </div>
+
+          <!-- Switch de Activo -->
+          <div class="field field-checkbox">
+            <label class="checkbox-container">
+              <input type="checkbox" [checked]="t.active" (change)="toggleActive()" />
+              <span class="checkmark"></span>
+              <span class="checkbox-text">Activar envíos automáticos para este evento</span>
+            </label>
+          </div>
+
+          <!-- Inyector de Marcadores -->
+          <div class="placeholder-section">
+            <label>Marcadores de Posición:</label>
+            <p class="section-help">Haz clic en un marcador para inyectarlo en la posición actual del cursor.</p>
+            <div class="placeholders-row">
+              <button 
+                type="button" 
+                class="placeholder-pill" 
+                *ngFor="let p of placeholders"
+                (click)="injectPlaceholder(p.token)"
+              >
+                <span class="material-symbols-outlined icon-add">add_circle</span>
+                {{ p.label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Textarea de Cuerpo -->
+          <div class="field textarea-field">
+            <label for="template-body-textarea">Cuerpo del Mensaje (WhatsApp Template)</label>
+            <textarea 
+              id="template-body-textarea"
+              [ngModel]="editableBody()" 
+              (ngModelChange)="editableBody.set($event)"
+              rows="6"
+              placeholder="Escribe el cuerpo del mensaje..."
+            ></textarea>
+            <div class="textarea-footer">
+              <span class="char-count">{{ editableBody().length }} caracteres</span>
+              <span class="warning-text" *ngIf="editableBody().length > 320">Sugerido: Mantener bajo los 320 caracteres para lectura rápida.</span>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- Columna 3: Simulador Móvil WhatsApp (Derecha) -->
+      <aside class="simulator-sidebar">
+        <!-- Contenedor del Móvil Mock -->
+        <div class="phone-mockup">
+          <div class="phone-speaker"></div>
+          <div class="phone-screen">
+            <!-- Cabecera de WhatsApp -->
+            <header class="wa-header">
+              <span class="material-symbols-outlined wa-back">arrow_back</span>
+              <div class="wa-avatar">VP</div>
+              <div class="wa-info">
+                <span class="wa-contact-name">VetPro Clínica</span>
+                <span class="wa-status">en línea</span>
+              </div>
+              <span class="material-symbols-outlined wa-icon">videocam</span>
+              <span class="material-symbols-outlined wa-icon">call</span>
+            </header>
+
+            <!-- Pantalla de Chat -->
+            <div class="wa-chat-area">
+              <!-- Burbuja de WhatsApp -->
+              <div class="wa-bubble wa-bubble-received">
+                <p class="wa-message-text">{{ previewReplacedBody() }}</p>
+                <span class="wa-timestamp">
+                  09:42 AM 
+                  <span class="wa-checks">✓✓</span>
+                </span>
+              </div>
+            </div>
+
+            <!-- Entrada de Chat Falsa -->
+            <footer class="wa-footer-input">
+              <span class="material-symbols-outlined wa-input-icon">mood</span>
+              <div class="wa-input-placeholder">Mensaje</div>
+              <span class="material-symbols-outlined wa-input-icon">attach_file</span>
+              <span class="material-symbols-outlined wa-mic-icon">mic</span>
+            </footer>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>

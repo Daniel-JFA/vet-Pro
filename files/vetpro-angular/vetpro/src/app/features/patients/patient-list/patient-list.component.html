@@ -1,0 +1,184 @@
+<div class="patients-page">
+  <!-- Cabecera de Página -->
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">Pacientes</h1>
+      <p class="page-subtitle">Gestiona el historial clínico y los datos de las mascotas de la clínica.</p>
+    </div>
+    <div class="header-actions">
+      <a routerLink="new" class="btn btn-primary">
+        <span class="material-symbols-outlined">add</span>
+        Agregar Paciente
+      </a>
+    </div>
+  </header>
+
+  <!-- Tarjetas Estadísticas -->
+  <section class="stats-row" *ngIf="!loading()">
+    <div class="stat-card">
+      <div class="stat-icon icon-emerald">
+        <span class="material-symbols-outlined">pets</span>
+      </div>
+      <div>
+        <div class="stat-value">{{ stats().total }}</div>
+        <div class="stat-label">Total Pacientes</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon icon-blue">
+        <span class="material-symbols-outlined">sound_detection_dog_barking</span>
+      </div>
+      <div>
+        <div class="stat-value">{{ stats().dogs }}</div>
+        <div class="stat-label">Perros Registrados</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon icon-purple">
+        <span class="material-symbols-outlined">cat</span>
+      </div>
+      <div>
+        <div class="stat-value">{{ stats().cats }}</div>
+        <div class="stat-label">Gatos Registrados</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon icon-amber">
+        <span class="material-symbols-outlined">check_circle</span>
+      </div>
+      <div>
+        <div class="stat-value">{{ stats().active }}</div>
+        <div class="stat-label">Pacientes Activos</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Barra de Filtros -->
+  <section class="filters-bar">
+    <div class="search-box">
+      <span class="material-symbols-outlined">search</span>
+      <input 
+        type="text" 
+        [ngModel]="search()" 
+        (ngModelChange)="search.set($event)" 
+        placeholder="Buscar mascota, tutor, teléfono o chip..." 
+      />
+    </div>
+
+    <select [ngModel]="speciesFilter()" (ngModelChange)="speciesFilter.set($event)">
+      <option *ngFor="let opt of speciesOptions" [value]="opt.value">{{ opt.label }}</option>
+    </select>
+
+    <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
+      <option *ngFor="let opt of statusOptions" [value]="opt.value">{{ opt.label }}</option>
+    </select>
+
+    <div class="result-count" *ngIf="!loading()">
+      Mostrando {{ filtered().length }} de {{ total() }} pacientes
+    </div>
+  </section>
+
+  <!-- Tabla de Datos / Lista -->
+  <div class="table-wrapper">
+    <div class="loading-overlay" *ngIf="loading()">
+      <div class="spinner"></div>
+    </div>
+
+    <table class="data-table" *ngIf="!loading() && filtered().length > 0">
+      <thead>
+        <tr>
+          <th>Mascota</th>
+          <th>Especie / Raza</th>
+          <th>Tutor</th>
+          <th>Peso (kg)</th>
+          <th>Chip</th>
+          <th>Estado</th>
+          <th style="text-align: right;">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of filtered(); trackBy: trackById">
+          <td>
+            <div class="patient-cell">
+              <!-- Foto de Mascota -->
+              <div class="patient-avatar" *ngIf="p.photoUrl">
+                <img [src]="p.photoUrl" [alt]="p.name" />
+              </div>
+              <!-- Avatar por Defecto si no tiene Foto -->
+              <div class="patient-avatar-placeholder" [attr.data-species]="p.species" *ngIf="!p.photoUrl">
+                <span class="material-symbols-outlined">
+                  {{ p.species === 'dog' ? 'sound_detection_dog_barking' : (p.species === 'cat' ? 'cat' : 'pets') }}
+                </span>
+              </div>
+              <div class="patient-info">
+                <div class="patient-name">
+                  <a [routerLink]="['/patients', p.id]">{{ p.name }}</a>
+                  <span class="gender-icon" [class.male]="p.sex === 'male'" [class.female]="p.sex === 'female'">
+                    {{ p.sex === 'male' ? '♂' : '♀' }}
+                  </span>
+                </div>
+                <div class="patient-age">
+                  ID: <span class="mono">{{ p.id }}</span>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="species-badge" [attr.data-species]="p.species">
+              {{ speciesLabel(p.species) }}
+            </div>
+            <div class="breed-text">{{ p.breed || 'Sin raza definida' }}</div>
+          </td>
+          <td>
+            <div class="tutor-name" *ngIf="p.tutor">
+              {{ p.tutor.firstName }} {{ p.tutor.lastName }}
+            </div>
+            <div class="tutor-phone" *ngIf="p.tutor">
+              <span class="material-symbols-outlined phone-icon">call</span>
+              {{ p.tutor.phone }}
+            </div>
+          </td>
+          <td>
+            <div class="weight-value" *ngIf="p.weight">{{ p.weight }} kg</div>
+            <div class="weight-empty" *ngIf="!p.weight">--</div>
+          </td>
+          <td>
+            <span class="chip-mono mono" *ngIf="p.chipId">{{ p.chipId }}</span>
+            <span class="chip-empty" *ngIf="!p.chipId">Sin chip</span>
+          </td>
+          <td>
+            <span class="status-badge" [attr.data-status]="p.status">
+              {{ statusLabel(p.status) }}
+            </span>
+          </td>
+          <td>
+            <div class="actions-cell">
+              <a [routerLink]="['/patients', p.id]" class="action-btn" title="Ver Ficha">
+                <span class="material-symbols-outlined">visibility</span>
+              </a>
+              <a [routerLink]="['/patients', p.id, 'edit']" class="action-btn" title="Editar Mascota">
+                <span class="material-symbols-outlined">edit</span>
+              </a>
+              <a [routerLink]="['/medical-records']" class="action-btn action-btn-accent" title="Nueva Consulta">
+                <span class="material-symbols-outlined">medical_information</span>
+              </a>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Estado de Vacío -->
+    <div class="empty-state" *ngIf="!loading() && filtered().length === 0">
+      <span class="material-symbols-outlined empty-icon">search_off</span>
+      <h3>No se encontraron pacientes</h3>
+      <p>Prueba a cambiar los filtros o realiza una nueva búsqueda.</p>
+      <button class="btn btn-ghost" (click)="search.set(''); speciesFilter.set(''); statusFilter.set('all')">
+        Limpiar Filtros
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,187 @@
+<div class="form-page">
+  <div class="loading-overlay" *ngIf="loading()">
+    <div class="spinner"></div>
+  </div>
+
+  <form *ngIf="!loading()" [formGroup]="form" (ngSubmit)="submit()" class="form-grid">
+    <!-- Cabecera del Formulario -->
+    <header class="form-header">
+      <div class="header-left">
+        <a routerLink="/appointments/calendar" class="btn-back">
+          <span class="material-symbols-outlined">arrow_back</span>
+        </a>
+        <div>
+          <h1 class="page-title">{{ isEditMode() ? 'Editar Cita' : 'Agendar Cita' }}</h1>
+          <p class="page-subtitle">
+            {{ isEditMode() ? 'Modifica los datos de la cita médica programada.' : 'Registra y asigna un espacio en la agenda de la clínica.' }}
+          </p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a routerLink="/appointments/calendar" class="btn btn-ghost">Cancelar</a>
+        <button type="submit" class="btn btn-primary" [disabled]="submitting()">
+          <span class="material-symbols-outlined" *ngIf="!submitting()">save</span>
+          {{ submitting() ? 'Guardando...' : 'Programar Cita' }}
+        </button>
+      </div>
+    </header>
+
+    <!-- Columna Principal -->
+    <div class="main-column">
+      <div class="card form-section">
+        <div class="section-title">
+          <span class="material-symbols-outlined section-icon">calendar_month</span>
+          <h2>Detalles de la Programación</h2>
+        </div>
+
+        <div class="fields-row fields-row-2">
+          <!-- Paciente -->
+          <div class="field" [class.error]="form.get('patientId')?.invalid && form.get('patientId')?.touched">
+            <label>Paciente (Mascota) *</label>
+            <select formControlName="patientId">
+              <option value="" disabled selected>-- Elegir Paciente --</option>
+              <option *ngFor="let p of patients()" [value]="p.id">
+                🐾 {{ p.name }} ({{ p.breed || p.species }})
+              </option>
+            </select>
+            <span class="error-msg" *ngIf="form.get('patientId')?.invalid && form.get('patientId')?.touched">
+              Debe seleccionar un paciente para agendar la cita.
+            </span>
+          </div>
+
+          <!-- Veterinario -->
+          <div class="field" [class.error]="form.get('vetId')?.invalid && form.get('vetId')?.touched">
+            <label>Médico Veterinario *</label>
+            <select formControlName="vetId">
+              <option value="" disabled selected>-- Elegir Profesional --</option>
+              <option *ngFor="let v of vets()" [value]="v.id">
+                Dr(a). {{ v.firstName }} {{ v.lastName }}
+              </option>
+            </select>
+            <span class="error-msg" *ngIf="form.get('vetId')?.invalid && form.get('vetId')?.touched">
+              Debe asignar un veterinario a la cita.
+            </span>
+          </div>
+        </div>
+
+        <div class="fields-row fields-row-3">
+          <!-- Tipo de Servicio -->
+          <div class="field">
+            <label>Tipo de Consulta / Servicio *</label>
+            <select formControlName="serviceType">
+              <option *ngFor="let s of services" [value]="s">{{ s }}</option>
+            </select>
+          </div>
+
+          <!-- Fecha -->
+          <div class="field" [class.error]="form.get('date')?.invalid && form.get('date')?.touched">
+            <label>Fecha de la Cita *</label>
+            <input type="date" formControlName="date" />
+            <span class="error-msg" *ngIf="form.get('date')?.invalid && form.get('date')?.touched">
+              La fecha es requerida.
+            </span>
+          </div>
+
+          <!-- Hora -->
+          <div class="field">
+            <label>Hora de la Cita *</label>
+            <select formControlName="time">
+              <option *ngFor="let t of times" [value]="t">{{ t }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="fields-row fields-row-3">
+          <!-- Duración -->
+          <div class="field" [class.error]="form.get('durationMinutes')?.invalid && form.get('durationMinutes')?.touched">
+            <label>Duración Estimada (minutos) *</label>
+            <input type="number" formControlName="durationMinutes" placeholder="Ej. 30" />
+            <span class="error-msg" *ngIf="form.get('durationMinutes')?.invalid && form.get('durationMinutes')?.touched">
+              La duración debe ser mayor a 5 min.
+            </span>
+          </div>
+        </div>
+
+        <div class="fields-row">
+          <!-- Motivo de Consulta -->
+          <div class="field">
+            <label>Motivo de Consulta</label>
+            <textarea 
+              formControlName="reason" 
+              rows="3" 
+              placeholder="Indica brevemente el malestar de la mascota o el motivo del control..."
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="fields-row">
+          <!-- Notas Internas -->
+          <div class="field">
+            <label>Notas Administrativas / Internas</label>
+            <textarea 
+              formControlName="notes" 
+              rows="2" 
+              placeholder="Indicaciones para recepción o avisos internos..."
+            ></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Columna Lateral -->
+    <div class="side-column">
+      <!-- Card: Previsualización de Paciente -->
+      <div class="card patient-preview-card" *ngIf="form.get('patientId')?.value">
+        <div class="section-title">
+          <span class="material-symbols-outlined section-icon">info</span>
+          <h2>Mascota Seleccionada</h2>
+        </div>
+
+        <div *ngFor="let p of patients()">
+          <ng-container *ngIf="p.id === form.get('patientId')?.value">
+            <div class="patient-preview-box">
+              <div class="preview-avatar-placeholder" [attr.data-species]="p.species">
+                <span class="material-symbols-outlined">
+                  {{ p.species === 'dog' ? 'sound_detection_dog_barking' : (p.species === 'cat' ? 'cat' : 'pets') }}
+                </span>
+              </div>
+              <div class="preview-details">
+                <h4 class="preview-name">{{ p.name }}</h4>
+                <p class="preview-breed">{{ p.breed || 'Sin raza definida' }}</p>
+                
+                <!-- Tutor asociado -->
+                <div class="tutor-preview-subcard" *ngIf="p.tutor">
+                  <p class="subcard-label">Tutor Responsable</p>
+                  <p class="tutor-name-text">{{ p.tutor.firstName }} {{ p.tutor.lastName }}</p>
+                  <p class="tutor-phone-text">📞 {{ p.tutor.phone }}</p>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+
+      <!-- Consejos Agenda -->
+      <div class="card guidelines-card">
+        <div class="section-title">
+          <span class="material-symbols-outlined section-icon">assignment_turned_in</span>
+          <h2>Guía de Agenda</h2>
+        </div>
+        <ul class="guideline-list">
+          <li>
+            <span class="material-symbols-outlined check-icon">check_circle</span>
+            <span>Comprueba que el veterinario no tenga otra cita agendada en el mismo bloque horario.</span>
+          </li>
+          <li>
+            <span class="material-symbols-outlined check-icon">check_circle</span>
+            <span>Al guardar, el sistema enviará automáticamente la **confirmación de cita** por WhatsApp al tutor si el servicio está configurado.</span>
+          </li>
+          <li>
+            <span class="material-symbols-outlined check-icon">check_circle</span>
+            <span>Indica con exactitud la duración si el paciente asiste por cirugía para reservar el quirófano.</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </form>
+</div>

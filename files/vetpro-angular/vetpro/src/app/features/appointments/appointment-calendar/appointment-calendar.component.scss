@@ -1,0 +1,398 @@
+.calendar-page {
+  position: relative;
+  min-height: 400px;
+}
+
+// ── Overlay de Carga ──────────────────────────────
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+.spinner {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 3px solid var(--surface-border);
+  border-top-color: var(--primary-color);
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+// ── Cabecera ────────────────────────────────────
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.page-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0;
+}
+.page-subtitle {
+  font-size: 13px;
+  color: var(--text-color-secondary);
+  margin: 2px 0 0;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+// ── Botones ───────────────────────────────────
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  border: none;
+  transition: all 120ms;
+  .material-symbols-outlined {
+    font-size: 18px;
+  }
+}
+.btn-primary {
+  background: var(--primary-color);
+  color: #fff;
+  &:hover {
+    filter: brightness(1.08);
+  }
+}
+.btn-ghost {
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+  color: var(--text-color);
+  &:hover {
+    background: var(--surface-hover);
+  }
+}
+
+// ── Controles del Calendario ──────────────────────────
+.calendar-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  gap: 16px;
+}
+
+.date-navigator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nav-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  padding: 0;
+  justify-content: center;
+}
+.nav-btn-today {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 6px;
+}
+
+.current-date-range {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-left: 10px;
+}
+
+.vet-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  
+  label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-color-secondary);
+  }
+  
+  select {
+    height: 32px;
+    border: 1px solid var(--surface-border);
+    border-radius: 6px;
+    background: var(--surface-ground);
+    color: var(--text-color);
+    font-size: 13px;
+    padding: 0 10px;
+    outline: none;
+    cursor: pointer;
+    &:focus {
+      border-color: var(--primary-color);
+    }
+  }
+}
+
+// ── Contenedor Grilla ─────────────────────────────
+.grid-container {
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+  overflow-x: auto;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: 80px repeat(6, minmax(130px, 1fr));
+  min-width: 860px;
+}
+
+// Cabeceras de la grilla
+.grid-header-cell {
+  background: var(--surface-ground);
+  border-bottom: 1px solid var(--surface-border);
+  border-right: 1px solid var(--surface-border);
+  padding: 10px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-color-secondary);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  height: 45px;
+  
+  &:last-child {
+    border-right: none;
+  }
+}
+
+.corner-cell {
+  color: var(--text-color-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.day-header {
+  .day-name {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-color-secondary);
+  }
+  .day-number {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-color);
+  }
+}
+
+// Celdas de hora lateral
+.grid-time-cell {
+  border-bottom: 1px solid var(--surface-border);
+  border-right: 1px solid var(--surface-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-color-secondary);
+  background: var(--surface-ground);
+  height: 85px;
+}
+
+// Celda de ranura
+.grid-slot-cell {
+  position: relative;
+  border-bottom: 1px solid var(--surface-border);
+  border-right: 1px solid var(--surface-border);
+  height: 85px;
+  padding: 4px;
+  display: flex;
+  align-items: stretch;
+  
+  &:last-child {
+    border-right: none;
+  }
+}
+
+// ── Tarjetas de Cita Estilizadas ────────────────────
+.appointment-card {
+  width: 100%;
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+  transition: all 120ms;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+  }
+  
+  .card-status-bar {
+    width: 4px;
+    flex-shrink: 0;
+  }
+  
+  .card-content {
+    flex: 1;
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 0;
+  }
+  
+  .pet-name {
+    font-weight: 600;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    a {
+      color: var(--text-color);
+      text-decoration: none;
+      &:hover {
+        color: var(--primary-color);
+      }
+    }
+  }
+  
+  .service-pill {
+    display: inline-block;
+    align-self: start;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-top: 2px;
+  }
+  
+  .card-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 9.5px;
+    color: var(--text-color-secondary);
+    margin-top: 4px;
+    span {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+  
+  .status-micro-badge {
+    display: none; // Ocultamos el estado escrito para ahorrar espacio vertical en calendar
+  }
+  
+  // Colores dinámicos por estado
+  &[data-status="scheduled"] {
+    border-color: var(--blue-100);
+    .card-status-bar { background: var(--blue-500); }
+    .service-pill { background: var(--blue-50); color: var(--blue-700); }
+  }
+  &[data-status="waiting"] {
+    border-color: var(--orange-100);
+    .card-status-bar { background: var(--orange-500); }
+    .service-pill { background: var(--orange-50); color: var(--orange-700); }
+  }
+  &[data-status="in-progress"] {
+    border-color: var(--primary-100);
+    .card-status-bar { background: var(--primary-color); }
+    .service-pill { background: var(--primary-50); color: var(--primary-700); }
+  }
+  &[data-status="done"] {
+    border-color: var(--surface-border);
+    .card-status-bar { background: var(--text-color-secondary); }
+    .service-pill { background: var(--surface-ground); color: var(--text-color-secondary); }
+  }
+  &[data-status="cancelled"] {
+    border-color: var(--red-100);
+    .card-status-bar { background: var(--red-500); }
+    .service-pill { background: var(--red-50); color: var(--red-700); }
+    opacity: 0.7;
+  }
+}
+
+// ── Botón de Slot Vacío Hover ────────────────────────
+.empty-slot-btn {
+  width: 100%;
+  border-radius: 6px;
+  border: 1px dashed var(--surface-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--text-color-secondary);
+  text-decoration: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 120ms;
+  opacity: 0; // Oculto por defecto
+  
+  .add-icon {
+    font-size: 16px;
+  }
+  .add-text {
+    font-size: 10px;
+    font-weight: 500;
+  }
+  
+  &:hover {
+    border-color: var(--primary-color);
+    background: var(--primary-50);
+    color: var(--primary-700);
+  }
+}
+
+// Mostrar el botón vacío en hover sobre la celda
+.grid-slot-cell:hover {
+  .empty-slot-btn {
+    opacity: 1;
+  }
+}
+
+// ── Responsive ──────────────────────────────────
+@media (max-width: 768px) {
+  .calendar-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .date-navigator {
+    justify-content: center;
+  }
+  .vet-selector {
+    justify-content: center;
+  }
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  .header-actions {
+    .btn {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+}

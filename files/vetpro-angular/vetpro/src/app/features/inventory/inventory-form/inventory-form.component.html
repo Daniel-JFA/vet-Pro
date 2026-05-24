@@ -1,0 +1,165 @@
+<div class="form-page">
+  <div class="form-header">
+    <a routerLink="/inventory" class="back-link">
+      <span class="material-symbols-outlined">arrow_back</span>
+    </a>
+    <div>
+      <h1 class="page-title">{{ isEdit() ? 'Editar producto' : 'Nuevo producto' }}</h1>
+      <p class="page-subtitle">{{ isEdit() ? 'Actualiza la información del producto' : 'Agrega un nuevo producto al inventario' }}</p>
+    </div>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" class="form-layout">
+    <!-- Tabs -->
+    <div class="tab-bar">
+      <button type="button" class="tab" [class.active]="activeTab()==='basic'"   (click)="activeTab.set('basic')">
+        <span class="material-symbols-outlined">info</span> Información básica
+      </button>
+      <button type="button" class="tab" [class.active]="activeTab()==='pricing'" (click)="activeTab.set('pricing')">
+        <span class="material-symbols-outlined">payments</span> Precios
+      </button>
+      <button type="button" class="tab" [class.active]="activeTab()==='stock'"   (click)="activeTab.set('stock')">
+        <span class="material-symbols-outlined">inventory_2</span> Stock
+      </button>
+    </div>
+
+    <!-- BASIC TAB -->
+    <div class="tab-panel" *ngIf="activeTab()==='basic'">
+      <div class="form-grid">
+        <div class="field">
+          <label>Nombre del producto <span class="req">*</span></label>
+          <input formControlName="name" placeholder="Ej: Amoxicilina 500mg" [class.invalid]="err('name')" />
+          <span class="field-error" *ngIf="err('name')">El nombre es requerido</span>
+        </div>
+        <div class="field">
+          <label>SKU <span class="req">*</span></label>
+          <input formControlName="sku" placeholder="MED-001" [class.invalid]="err('sku')" />
+          <span class="field-error" *ngIf="err('sku')">SKU requerido (mín. 3 caracteres)</span>
+        </div>
+        <div class="field">
+          <label>Marca / Laboratorio</label>
+          <input formControlName="brand" placeholder="Pfizer, Bayer, MSD…" />
+        </div>
+        <div class="field">
+          <label>Código de barras</label>
+          <input formControlName="barcode" placeholder="EAN-13 o interno" />
+        </div>
+        <div class="field field-full">
+          <label>Categoría <span class="req">*</span></label>
+          <div class="category-grid">
+            <button type="button" *ngFor="let c of categories"
+              class="cat-btn" [class.active]="form.value.category === c.value"
+              (click)="form.patchValue({category: c.value})">
+              <span class="material-symbols-outlined">{{ c.icon }}</span>
+              {{ c.label }}
+            </button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Unidad de medida <span class="req">*</span></label>
+          <select formControlName="unit">
+            <option *ngFor="let u of units" [value]="u">{{ u }}</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Proveedor</label>
+          <select formControlName="supplierId">
+            <option value="">Sin proveedor</option>
+            <option *ngFor="let s of suppliers()" [value]="s.id">{{ s.name }}</option>
+          </select>
+        </div>
+        <div class="field field-full">
+          <label>Descripción / Notas</label>
+          <textarea formControlName="description" rows="2" placeholder="Composición, indicaciones, observaciones…"></textarea>
+        </div>
+        <div class="field">
+          <div class="toggle-field">
+            <div>
+              <div class="toggle-label">Requiere prescripción</div>
+              <div class="toggle-hint">Medicamento de control veterinario</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" formControlName="requiresPrescription" />
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </label>
+          </div>
+        </div>
+        <div class="field">
+          <div class="toggle-field">
+            <div>
+              <div class="toggle-label">Control especial</div>
+              <div class="toggle-hint">Narcóticos o psicotrópicos</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" formControlName="controlled" />
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRICING TAB -->
+    <div class="tab-panel" *ngIf="activeTab()==='pricing'">
+      <div class="form-grid">
+        <div class="field">
+          <label>Precio de costo (COP) <span class="req">*</span></label>
+          <div class="input-prefix">
+            <span>$</span>
+            <input type="number" formControlName="costPrice" min="0" [class.invalid]="err('costPrice')" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Precio de venta (COP) <span class="req">*</span></label>
+          <div class="input-prefix">
+            <span>$</span>
+            <input type="number" formControlName="salePrice" min="0" [class.invalid]="err('salePrice')" />
+          </div>
+        </div>
+        <div class="field">
+          <label>IVA</label>
+          <select formControlName="taxRate">
+            <option [value]="0">0% — Excluido</option>
+            <option [value]="0.05">5%</option>
+            <option [value]="0.19">19%</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="margin-card" [class.margin-good]="margin >= 30" [class.margin-warn]="margin > 0 && margin < 30" [class.margin-bad]="margin <= 0">
+            <div class="margin-label">Margen de ganancia</div>
+            <div class="margin-value">{{ margin }}%</div>
+            <div class="margin-hint">{{ margin >= 40 ? 'Excelente' : margin >= 25 ? 'Bueno' : margin >= 10 ? 'Bajo' : 'Revisar' }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STOCK TAB -->
+    <div class="tab-panel" *ngIf="activeTab()==='stock'">
+      <div class="form-grid">
+        <div class="field">
+          <label>Stock actual <span class="req">*</span></label>
+          <input type="number" formControlName="currentStock" min="0" [class.invalid]="err('currentStock')" />
+        </div>
+        <div class="field">
+          <label>Stock mínimo <span class="req">*</span></label>
+          <input type="number" formControlName="minStock" min="0" />
+          <span class="field-hint">Alerta de reposición</span>
+        </div>
+        <div class="field">
+          <label>Fecha de vencimiento</label>
+          <input type="date" formControlName="expiresAt" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="form-footer">
+      <a routerLink="/inventory" class="btn btn-ghost">Cancelar</a>
+      <button type="submit" class="btn btn-primary" [disabled]="saving()">
+        <span class="material-symbols-outlined" *ngIf="saving()">hourglass_empty</span>
+        {{ saving() ? 'Guardando…' : (isEdit() ? 'Guardar cambios' : 'Crear producto') }}
+      </button>
+    </div>
+  </form>
+</div>

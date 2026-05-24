@@ -1,0 +1,177 @@
+<div class="inventory-page">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1 class="page-title">Inventario</h1>
+      <p class="page-subtitle">Medicamentos, vacunas e insumos de la clínica</p>
+    </div>
+    <div class="header-actions">
+      <a routerLink="/inventory/movements" class="btn btn-ghost">
+        <span class="material-symbols-outlined">swap_vert</span> Movimientos
+      </a>
+      <a routerLink="/inventory/alerts" class="btn btn-ghost">
+        <span class="material-symbols-outlined">warning</span>
+        Alertas
+        <span class="alert-count" *ngIf="stats().lowStock + stats().outOfStock > 0">
+          {{ stats().lowStock + stats().outOfStock }}
+        </span>
+      </a>
+      <a routerLink="/inventory/new" class="btn btn-primary">
+        <span class="material-symbols-outlined">add</span> Nuevo producto
+      </a>
+    </div>
+  </div>
+
+  <!-- Stats cards -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon icon-blue"><span class="material-symbols-outlined">inventory_2</span></div>
+      <div class="stat-body">
+        <div class="stat-value">{{ stats().total }}</div>
+        <div class="stat-label">Productos activos</div>
+      </div>
+    </div>
+    <div class="stat-card clickable" (click)="stockFilter.set('low')">
+      <div class="stat-icon icon-amber"><span class="material-symbols-outlined">warning</span></div>
+      <div class="stat-body">
+        <div class="stat-value text-amber">{{ stats().lowStock }}</div>
+        <div class="stat-label">Stock bajo</div>
+      </div>
+    </div>
+    <div class="stat-card clickable" (click)="stockFilter.set('out')">
+      <div class="stat-icon icon-red"><span class="material-symbols-outlined">remove_shopping_cart</span></div>
+      <div class="stat-body">
+        <div class="stat-value text-red">{{ stats().outOfStock }}</div>
+        <div class="stat-label">Sin stock</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon icon-orange"><span class="material-symbols-outlined">schedule</span></div>
+      <div class="stat-body">
+        <div class="stat-value text-orange">{{ stats().expiringSoon }}</div>
+        <div class="stat-label">Vencen en 30 días</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters bar -->
+  <div class="filters-bar">
+    <div class="search-box">
+      <span class="material-symbols-outlined">search</span>
+      <input
+        type="text"
+        placeholder="Buscar por nombre, SKU o marca…"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+      />
+    </div>
+
+    <select [ngModel]="categoryFilter()" (ngModelChange)="categoryFilter.set($event)">
+      <option *ngFor="let c of categories" [value]="c.value">{{ c.label }}</option>
+    </select>
+
+    <div class="stock-filters">
+      <button class="filter-chip" [class.active]="stockFilter()==='all'"    (click)="stockFilter.set('all')">Todos</button>
+      <button class="filter-chip chip-ok"  [class.active]="stockFilter()==='ok'"     (click)="stockFilter.set('ok')">OK</button>
+      <button class="filter-chip chip-low" [class.active]="stockFilter()==='low'"    (click)="stockFilter.set('low')">Bajo</button>
+      <button class="filter-chip chip-out" [class.active]="stockFilter()==='out'"    (click)="stockFilter.set('out')">Sin stock</button>
+    </div>
+
+    <span class="result-count">{{ filtered().length }} productos</span>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrapper">
+    <div class="loading-overlay" *ngIf="loading()">
+      <div class="spinner"></div>
+    </div>
+
+    <table class="data-table" *ngIf="!loading()">
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th>SKU</th>
+          <th>Categoría</th>
+          <th>Stock actual</th>
+          <th>Mín.</th>
+          <th>Costo</th>
+          <th>Precio venta</th>
+          <th>Vencimiento</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of filtered(); trackBy: trackById" [class.row-critical]="stockStatus(p)==='out'">
+          <td>
+            <div class="product-cell">
+              <div class="product-icon" [attr.data-cat]="p.category">
+                <span class="material-symbols-outlined">{{ p.category === 'vaccine' ? 'vaccines' : p.category === 'food' ? 'restaurant' : 'medication' }}</span>
+              </div>
+              <div>
+                <div class="product-name">
+                  {{ p.name }}
+                  <span class="controlled-badge" *ngIf="p.controlled" title="Control especial">⚠ Control</span>
+                </div>
+                <div class="product-brand">{{ p.brand ?? '—' }} · {{ p.unit }}</div>
+              </div>
+            </div>
+          </td>
+          <td class="mono">{{ p.sku }}</td>
+          <td><span class="cat-chip">{{ categoryLabel(p.category) }}</span></td>
+          <td>
+            <div class="stock-cell">
+              <span class="stock-number" [class.stock-out]="stockStatus(p)==='out'" [class.stock-low]="stockStatus(p)==='low'">
+                {{ p.currentStock }}
+              </span>
+              <div class="stock-bar">
+                <div class="stock-fill"
+                  [style.width.%]="p.minStock > 0 ? (p.currentStock / (p.minStock * 3)) * 100 : 100"
+                  [class.fill-out]="stockStatus(p)==='out'"
+                  [class.fill-low]="stockStatus(p)==='low'"
+                  [class.fill-ok]="stockStatus(p)==='ok'">
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="text-secondary">{{ p.minStock }}</td>
+          <td>{{ p.costPrice | currencyCop }}</td>
+          <td class="font-medium">{{ p.salePrice | currencyCop }}</td>
+          <td>
+            <span *ngIf="p.expiresAt" [class.expiry-warn]="isExpiringSoon(p)" [class.text-secondary]="!isExpiringSoon(p)">
+              {{ p.expiresAt | date:'dd/MM/yy' }}
+              <span *ngIf="isExpiringSoon(p)" class="expiry-icon">⚠</span>
+            </span>
+            <span *ngIf="!p.expiresAt" class="text-secondary">—</span>
+          </td>
+          <td>
+            <span class="status-badge"
+              [class.status-out]="stockStatus(p)==='out'"
+              [class.status-low]="stockStatus(p)==='low'"
+              [class.status-ok]="stockStatus(p)==='ok'">
+              {{ stockStatus(p) === 'out' ? 'Sin stock' : stockStatus(p) === 'low' ? 'Stock bajo' : 'OK' }}
+            </span>
+          </td>
+          <td>
+            <div class="row-actions">
+              <a [routerLink]="['/inventory', p.id, 'edit']" class="action-btn" title="Editar">
+                <span class="material-symbols-outlined">edit</span>
+              </a>
+              <button class="action-btn" title="Registrar movimiento">
+                <span class="material-symbols-outlined">swap_vert</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+
+        <tr *ngIf="filtered().length === 0">
+          <td colspan="10" class="empty-state">
+            <span class="material-symbols-outlined">inventory_2</span>
+            <p>No se encontraron productos</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

@@ -1,0 +1,119 @@
+<div class="calendar-page">
+  <div class="loading-overlay" *ngIf="loading()">
+    <div class="spinner"></div>
+  </div>
+
+  <div *ngIf="!loading()" class="calendar-wrapper">
+    <!-- Cabecera de Página -->
+    <header class="page-header">
+      <div>
+        <h1 class="page-title">Agenda Médica</h1>
+        <p class="page-subtitle">Visualiza y programa las citas de la sucursal.</p>
+      </div>
+      <div class="header-actions">
+        <a routerLink="/appointments" class="btn btn-ghost">
+          <span class="material-symbols-outlined">table_chart</span>
+          Sala de Espera Board
+        </a>
+        <a routerLink="/appointments/new" class="btn btn-primary">
+          <span class="material-symbols-outlined">add</span>
+          Agendar Cita
+        </a>
+      </div>
+    </header>
+
+    <!-- Controles de la Agenda -->
+    <section class="calendar-controls">
+      <!-- Navegación de Fecha -->
+      <div class="date-navigator">
+        <button class="btn btn-ghost nav-btn" (click)="previousWeek()" title="Semana anterior">
+          <span class="material-symbols-outlined">chevron_left</span>
+        </button>
+        <button class="btn btn-ghost nav-btn-today" (click)="today()">Hoy</button>
+        <button class="btn btn-ghost nav-btn" (click)="nextWeek()" title="Semana siguiente">
+          <span class="material-symbols-outlined">chevron_right</span>
+        </button>
+        <span class="current-date-range">
+          Semana del {{ weekDays()[0].date | date:'mediumDate' }} al {{ weekDays()[5].date | date:'mediumDate' }}
+        </span>
+      </div>
+
+      <!-- Selector de Veterinario -->
+      <div class="vet-selector">
+        <label>Filtrar por Médico:</label>
+        <select [ngModel]="selectedVet()" (ngModelChange)="selectedVet.set($event)">
+          <option value="all">Todos los profesionales</option>
+          <option *ngFor="let v of vets()" [value]="v.id">Dr(a). {{ v.firstName }} {{ v.lastName }}</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Grilla del Calendario -->
+    <section class="grid-container">
+      <div class="calendar-grid">
+        <!-- Celda Vacía en la esquina superior izquierda -->
+        <div class="grid-header-cell corner-cell">Hora</div>
+
+        <!-- Cabeceras de Día -->
+        <div *ngFor="let day of weekDays()" class="grid-header-cell day-header">
+          <span class="day-name">{{ day.label }}</span>
+          <span class="day-number">{{ day.number }}</span>
+        </div>
+
+        <!-- Filas de Horas -->
+        <ng-container *ngFor="let hour of hours">
+          <!-- Etiqueta de la Hora -->
+          <div class="grid-time-cell">{{ hour }}</div>
+
+          <!-- Celdas de Citas por Día -->
+          <div *ngFor="let day of weekDays()" class="grid-slot-cell">
+            
+            <!-- CASO A: Slot Ocupado (Cita Programada) -->
+            <div 
+              *ngIf="getAppointmentForSlot(day.date, hour) as app" 
+              class="appointment-card" 
+              [attr.data-status]="app.status"
+            >
+              <div class="card-status-bar"></div>
+              <div class="card-content">
+                <div class="pet-name">
+                  <a [routerLink]="['/patients', app.patientId]">{{ app.patient?.name }}</a>
+                  <span class="species-icon-sm" [attr.data-species]="app.patient?.species">
+                    {{ app.patient?.species === 'dog' ? '🐾' : (app.patient?.species === 'cat' ? '🐱' : '🐰') }}
+                  </span>
+                </div>
+                <div class="service-pill" [attr.data-status]="app.status">
+                  {{ app.serviceType }}
+                </div>
+                <div class="card-meta">
+                  <span class="tutor" *ngIf="app.patient?.tutor">
+                    👤 {{ app.patient?.tutor?.firstName }}
+                  </span>
+                  <span class="vet">
+                    🩺 {{ app.vetId === 'v1' ? 'Dr. Andrés' : 'Dra. Laura' }}
+                  </span>
+                </div>
+                <!-- Mini Badge de Estado -->
+                <div class="status-micro-badge" [attr.data-status]="app.status">
+                  {{ statusLabel(app.status) }}
+                </div>
+              </div>
+            </div>
+
+            <!-- CASO B: Slot Vacío (Disponible para agendar) -->
+            <a 
+              *ngIf="!getAppointmentForSlot(day.date, hour)" 
+              [routerLink]="['/appointments/new']" 
+              [queryParams]="{ date: (day.date | date:'yyyy-MM-dd'), time: hour }"
+              class="empty-slot-btn"
+            >
+              <span class="material-symbols-outlined add-icon">add</span>
+              <span class="add-text">Agendar</span>
+            </a>
+
+          </div>
+        </ng-container>
+      </div>
+    </section>
+  </div>
+</div>
