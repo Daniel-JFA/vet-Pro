@@ -306,13 +306,13 @@ vetpro/
 | Sprint | Módulo | Semanas | Estado |
 |--------|--------|---------|--------|
 | 0 | Setup & Arquitectura (Multi-sucursal base) | 1–2 | ✅ Entregado |
-| 1 | Pacientes & Tutores | 3–4 | 🔲 Pendiente |
-| 2 | Agenda & Notificaciones | 5–6 | 🔲 Pendiente |
-| 3 | Historia Clínica & Bitácora IA | 7–8 | 🔲 Pendiente |
+| 1 | Pacientes & Tutores | 3–4 | ✅ Entregado |
+| 2 | Agenda & Notificaciones | 5–6 | ✅ Entregado |
+| 3 | Historia Clínica & Bitácora IA | 7–8 | ✅ Entregado |
 | 4 | Inventario | 9–10 | ✅ Entregado |
-| 5 | Facturación básica (DIAN pospuesto) | 11–12 | 🔲 Pendiente |
-| 6 | Firma digital & Docs | 13–14 | 🔲 Pendiente |
-| 7 | Reportes & Analytics | 15–16 | 🔲 Pendiente |
+| 5 | Facturación básica (DIAN pospuesto) | 11–12 | ✅ Entregado |
+| 6 | Firma digital & Docs | 13–14 | ✅ Entregado |
+| 7 | Reportes & Analytics | 15–16 | ✅ Entregado |
 | 8 | Portal del tutor | 17–18 | 🔲 Pendiente |
 | 9 | Multi-sucursal & Roles | 19–20 | 🔲 Pendiente |
 | 10 | QA, Facturación DIAN & Go-Live | 21–22 | 🔲 Pendiente |
