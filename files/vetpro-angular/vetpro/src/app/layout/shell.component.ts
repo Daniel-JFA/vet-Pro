@@ -1,6 +1,7 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { AuthService } from '../core/services/auth.service';
 
 interface NavItem {
@@ -13,7 +14,7 @@ interface NavItem {
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule, FormsModule],
   template: `
     <div class="shell">
       <!-- Sidebar -->
@@ -35,26 +36,22 @@ interface NavItem {
 
         <div class="nav-section">
           <span class="nav-label">Principal</span>
-          <a *ngFor="let item of mainNav" class="nav-link" [routerLink]="item.path" routerLinkActive="active">
+          <a *ngFor="let item of mainNav()" class="nav-link" [routerLink]="item.path" routerLinkActive="active">
             <span class="material-symbols-outlined nav-icon">{{ item.icon }}</span>
             <span class="nav-text">{{ item.label }}</span>
             <span class="nav-badge" *ngIf="item.badge">{{ item.badge }}</span>
           </a>
         </div>
 
-        <div class="nav-section">
+        <div class="nav-section" *ngIf="managementNav().length > 0">
           <span class="nav-label">Gestión</span>
-          <a *ngFor="let item of managementNav" class="nav-link" [routerLink]="item.path" routerLinkActive="active">
+          <a *ngFor="let item of managementNav()" class="nav-link" [routerLink]="item.path" routerLinkActive="active">
             <span class="material-symbols-outlined nav-icon">{{ item.icon }}</span>
             <span class="nav-text">{{ item.label }}</span>
           </a>
         </div>
 
         <div class="nav-section mt-auto">
-          <a class="nav-link" routerLink="/settings" routerLinkActive="active">
-            <span class="material-symbols-outlined nav-icon">settings</span>
-            <span class="nav-text">Configuración</span>
-          </a>
           <button class="nav-link logout-btn" (click)="auth.logout()">
             <span class="material-symbols-outlined nav-icon">logout</span>
             <span class="nav-text">Cerrar sesión</span>
@@ -69,14 +66,33 @@ interface NavItem {
             <span class="material-symbols-outlined">search</span>
             <input type="text" placeholder="Buscar paciente, tutor, cita… (Cmd+K)" />
           </div>
+          
           <div class="topbar-actions">
+            <!-- Selector de Sucursales / Sedes Dinámico -->
+            <div class="topbar-branch" *ngIf="auth.clinicBranches().length > 0">
+              <span class="material-symbols-outlined branch-icon">location_on</span>
+              <!-- Dropdown editable para Administradores -->
+              <select 
+                *ngIf="auth.currentUser?.role === 'admin'; else fixedBranch"
+                [ngModel]="auth.activeBranchId()"
+                (ngModelChange)="onBranchChange($event)"
+                class="branch-select"
+              >
+                <option *ngFor="let b of auth.clinicBranches()" [value]="b.id">{{ b.name }}</option>
+              </select>
+              <!-- Nombre fijo para Staff sin permisos admin -->
+              <ng-template #fixedBranch>
+                <span class="branch-name">{{ getActiveBranchName() }}</span>
+              </ng-template>
+            </div>
+
             <button class="icon-btn" aria-label="Notificaciones">
               <span class="material-symbols-outlined">notifications</span>
               <span class="notif-dot"></span>
             </button>
             <div class="user-chip" *ngIf="auth.currentUser as user">
               <div class="user-avatar">{{ user.firstName[0] }}{{ user.lastName[0] }}</div>
-              <span class="user-name">{{ user.firstName }}</span>
+              <span class="user-name">{{ user.firstName }} ({{ getRoleLabel(user.role) }})</span>
             </div>
           </div>
         </header>
@@ -93,18 +109,70 @@ export class ShellComponent {
   auth = inject(AuthService);
   sidebarCollapsed = signal(false);
 
-  mainNav: NavItem[] = [
-    { label: 'Inicio',        icon: 'home',           path: '/dashboard' },
-    { label: 'Pacientes',     icon: 'pets',           path: '/patients' },
-    { label: 'Citas',         icon: 'calendar_month', path: '/appointments', badge: 3 },
-    { label: 'Historia clínica', icon: 'description', path: '/medical-records' },
-  ];
+  // Filtrado reactivo de links principales de navegación según el Rol
+  mainNav = computed(() => {
+    const role = this.auth.currentUser?.role;
+    const baseNav: NavItem[] = [
+      { label: 'Inicio',        icon: 'home',           path: '/dashboard' },
+      { label: 'Pacientes',     icon: 'pets',           path: '/patients' },
+      { label: 'Citas',         icon: 'calendar_month', path: '/appointments', badge: 3 }
+    ];
 
-  managementNav: NavItem[] = [
-    { label: 'Inventario',      icon: 'inventory_2',     path: '/inventory' },
-    { label: 'Facturación',     icon: 'receipt_long',    path: '/billing' },
-    { label: 'Consentimientos', icon: 'draw',            path: '/consent' },
-    { label: 'Notificaciones',  icon: 'campaign',        path: '/notifications' },
-    { label: 'Reportes',        icon: 'bar_chart',       path: '/reports' },
-  ];
+    // Solo roles clínicos ven la opción detallada de historia clínica
+    if (role === 'admin' || role === 'vet' || role === 'assistant') {
+      baseNav.push({ label: 'Historia clínica', icon: 'description', path: '/medical-records' });
+    }
+
+    return baseNav;
+  });
+
+  // Filtrado reactivo de links de gestión según el Rol
+  managementNav = computed(() => {
+    const role = this.auth.currentUser?.role;
+    const items: NavItem[] = [];
+
+    if (role === 'admin') {
+      items.push(
+        { label: 'Inventario',      icon: 'inventory_2',     path: '/inventory' },
+        { label: 'Facturación',     icon: 'receipt_long',    path: '/billing' },
+        { label: 'Consentimientos', icon: 'draw',            path: '/consent' },
+        { label: 'Notificaciones',  icon: 'campaign',        path: '/notifications' },
+        { label: 'Reportes',        icon: 'bar_chart',       path: '/reports' }
+      );
+    } else if (role === 'vet') {
+      items.push({ label: 'Consentimientos', icon: 'draw', path: '/consent' });
+    } else if (role === 'receptionist') {
+      items.push(
+        { label: 'Facturación',     icon: 'receipt_long',    path: '/billing' },
+        { label: 'Notificaciones',  icon: 'campaign',        path: '/notifications' }
+      );
+    }
+
+    return items;
+  });
+
+  // Evento de cambio de sucursal en el topbar
+  onBranchChange(branchId: string) {
+    this.auth.changeActiveBranch(branchId);
+    // Recarga de ventana rápida y limpia para forzar la actualización de todas las vistas activas
+    window.location.reload();
+  }
+
+  // Obtener nombre de sucursal activa
+  getActiveBranchName(): string {
+    const activeId = this.auth.activeBranchId();
+    const branch = this.auth.clinicBranches().find(b => b.id === activeId);
+    return branch ? branch.name : 'Sede única';
+  }
+
+  // Etiqueta legible de roles en español
+  getRoleLabel(role: string): string {
+    switch (role) {
+      case 'admin': return 'Admin';
+      case 'vet': return 'Médico Vet';
+      case 'assistant': return 'Asistente';
+      case 'receptionist': return 'Recepción';
+      default: return role;
+    }
+  }
 }

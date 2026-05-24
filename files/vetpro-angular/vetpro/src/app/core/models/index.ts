@@ -20,6 +20,7 @@ export interface Clinic {
 export interface User {
   id: string;
   clinicId: string;
+  branchId?: string | null;
   firstName: string;
   lastName: string;
   email: string;

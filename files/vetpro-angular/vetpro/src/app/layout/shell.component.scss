@@ -216,3 +216,39 @@
 .user-name { font-size: 13px; font-weight: 500; }
 
 .page-content { flex: 1; overflow-y: auto; padding: 24px; }
+
+// ── Topbar Branch Selector ──
+.topbar-branch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-ground);
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+  padding: 0 10px;
+  height: 36px;
+  box-sizing: border-box;
+
+  .branch-icon {
+    font-size: 18px;
+    color: var(--primary-color);
+  }
+
+  .branch-select {
+    border: none;
+    background: none;
+    outline: none;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-color);
+    cursor: pointer;
+    padding-right: 4px;
+    color-scheme: dark;
+  }
+
+  .branch-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-color);
+  }
+}

@@ -1,10 +1,12 @@
 import { Router, Response } from 'express';
 import { prisma } from '../config/database.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
+import { roleMiddleware } from '../middleware/role.js';
 
 const router = Router();
 
 router.use(authMiddleware as any);
+router.use(roleMiddleware(['admin']) as any);
 
 // GET /api/v1/reports/dashboard — Métricas de Negocio & Datasets de Gráficas
 router.get('/dashboard', async (req: AuthRequest, res: Response) => {

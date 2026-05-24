@@ -1,10 +1,12 @@
 import { Router, Response } from 'express';
 import { prisma } from '../config/database.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
+import { roleMiddleware } from '../middleware/role.js';
 
 const router = Router();
 
 router.use(authMiddleware as any);
+router.use(roleMiddleware(['admin', 'receptionist']) as any);
 
 // GET /billing/invoices (Listado paginado de facturas con filtros)
 router.get('/invoices', async (req: AuthRequest, res: Response) => {

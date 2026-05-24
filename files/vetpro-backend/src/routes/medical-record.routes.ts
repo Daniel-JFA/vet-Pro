@@ -1,10 +1,12 @@
 import { Router, Response } from 'express';
 import { prisma } from '../config/database.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
+import { roleMiddleware } from '../middleware/role.js';
 
 const router = Router();
 
 router.use(authMiddleware as any);
+router.use(roleMiddleware(['admin', 'vet', 'assistant']) as any);
 
 // POST /api/v1/medical-records/transcribe (Simular transcripción de voz con Whisper + Claude)
 router.post('/transcribe', async (req: AuthRequest, res: Response) => {
