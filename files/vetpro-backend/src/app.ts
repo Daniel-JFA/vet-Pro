@@ -9,6 +9,7 @@ import { APPOINTMENT_ROUTES } from './routes/appointment.routes.js';
 import { MEDICAL_RECORD_ROUTES } from './routes/medical-record.routes.js';
 import { BILLING_ROUTES } from './routes/billing.routes.js';
 import { CONSENT_ROUTES } from './routes/consent.routes.js';
+import { REPORT_ROUTES } from './routes/report.routes.js';
 import { errorHandler } from './middleware/error.js';
 
 dotenv.config();
@@ -36,6 +37,7 @@ app.use('/api/v1/appointments', APPOINTMENT_ROUTES);
 app.use('/api/v1/medical-records', MEDICAL_RECORD_ROUTES);
 app.use('/api/v1/billing', BILLING_ROUTES);
 app.use('/api/v1/consent-forms', CONSENT_ROUTES);
+app.use('/api/v1/reports', REPORT_ROUTES);
 
 // Manejador global de excepciones
 app.use(errorHandler);

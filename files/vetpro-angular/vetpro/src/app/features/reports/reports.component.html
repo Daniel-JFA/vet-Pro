@@ -1,0 +1,224 @@
+<div class="reports-container">
+  <!-- Cabecera Ejecutiva -->
+  <header class="reports-header animate-fade-in">
+    <div class="header-text">
+      <h1>Reportes y Analíticas</h1>
+      <p>Supervisa el rendimiento financiero, la recurrencia de pacientes y la rotación de stock de tu clínica.</p>
+    </div>
+    
+    <div class="header-actions">
+      <!-- Filtro de Periodos -->
+      <div class="period-selector">
+        <button 
+          *ngFor="let p of periods" 
+          type="button" 
+          class="period-btn" 
+          [class.active]="selectedPeriod() === p.id"
+          (click)="changePeriod(p.id)"
+        >
+          {{ p.label }}
+        </button>
+      </div>
+
+      <!-- Exportador -->
+      <button 
+        type="button" 
+        class="export-btn" 
+        [disabled]="exporting()" 
+        (click)="exportReport()"
+      >
+        <span *ngIf="!exporting()" class="material-symbols-outlined">download</span>
+        <span *ngIf="exporting()" class="spinner animate-spin"></span>
+        {{ exporting() ? 'Generando Reporte...' : 'Exportar Excel' }}
+      </button>
+    </div>
+  </header>
+
+  <!-- Estado de Carga -->
+  <div *ngIf="loading()" class="reports-loading">
+    <div class="loading-spinner"></div>
+    <p>Consolidando estadísticas ejecutivas...</p>
+  </div>
+
+  <div *ngIf="!loading()" class="reports-content animate-fade-in">
+    <!-- Grid de Métricas Clave (KPIs) -->
+    <div class="kpi-grid">
+      <!-- Tarjeta 1: Facturación -->
+      <div class="kpi-card glass-effect card-revenue">
+        <div class="card-glow"></div>
+        <div class="card-header">
+          <span class="material-symbols-outlined icon-wrapper">payments</span>
+          <span class="growth-badge" [class.positive]="kpis().revenue.growth >= 0" [class.negative]="kpis().revenue.growth < 0">
+            {{ kpis().revenue.growth >= 0 ? '+' : '' }}{{ kpis().revenue.growth }}% MoM
+          </span>
+        </div>
+        <div class="card-body">
+          <h3>Ingresos Mensuales</h3>
+          <h2 class="metric-value">{{ kpis().revenue.current | currencyCop }}</h2>
+          <p class="metric-subtext">vs. mes anterior: {{ kpis().revenue.previous | currencyCop }}</p>
+        </div>
+      </div>
+
+      <!-- Tarjeta 2: Consultas -->
+      <div class="kpi-card glass-effect card-consultations">
+        <div class="card-glow"></div>
+        <div class="card-header">
+          <span class="material-symbols-outlined icon-wrapper">stethoscope</span>
+          <span class="growth-badge" [class.positive]="kpis().consultations.growth >= 0" [class.negative]="kpis().consultations.growth < 0">
+            {{ kpis().consultations.growth >= 0 ? '+' : '' }}{{ kpis().consultations.growth }}% MoM
+          </span>
+        </div>
+        <div class="card-body">
+          <h3>Consultas Médicas</h3>
+          <h2 class="metric-value">{{ kpis().consultations.current }}</h2>
+          <p class="metric-subtext">vs. mes anterior: {{ kpis().consultations.previous }} atenciones</p>
+        </div>
+      </div>
+
+      <!-- Tarjeta 3: Mascotas Nuevas -->
+      <div class="kpi-card glass-effect card-patients">
+        <div class="card-glow"></div>
+        <div class="card-header">
+          <span class="material-symbols-outlined icon-wrapper">pets</span>
+          <span class="growth-badge" [class.positive]="kpis().newPatients.growth >= 0" [class.negative]="kpis().newPatients.growth < 0">
+            {{ kpis().newPatients.growth >= 0 ? '+' : '' }}{{ kpis().newPatients.growth }}% MoM
+          </span>
+        </div>
+        <div class="card-body">
+          <h3>Mascotas Nuevas</h3>
+          <h2 class="metric-value">{{ kpis().newPatients.current }}</h2>
+          <p class="metric-subtext">vs. mes anterior: {{ kpis().newPatients.previous }} registros</p>
+        </div>
+      </div>
+
+      <!-- Tarjeta 4: Tasa de Retención -->
+      <div class="kpi-card glass-effect card-retention">
+        <div class="card-glow"></div>
+        <div class="card-header">
+          <span class="material-symbols-outlined icon-wrapper">cached</span>
+          <span class="growth-badge positive">
+            +{{ kpis().retentionRate.growth }}% MoM
+          </span>
+        </div>
+        <div class="card-body">
+          <h3>Tasa de Retención</h3>
+          <h2 class="metric-value">{{ kpis().retentionRate.current }}%</h2>
+          <p class="metric-subtext">Pacientes recurrentes en 90 días (Saludable)</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grid de Gráficas de Visualización -->
+    <div class="charts-grid">
+      <!-- Gráfica 1: Ingresos Históricos (Lineal) -->
+      <div class="chart-card glass-effect">
+        <div class="chart-header">
+          <h3>Tendencia de Ingresos (Últimos 6 meses)</h3>
+          <p>Facturación consolidada mensual en COP</p>
+        </div>
+        <div class="chart-body">
+          <canvas baseChart
+            [data]="revenueChartData"
+            [options]="lineChartOptions"
+            [type]="'line'">
+          </canvas>
+        </div>
+      </div>
+
+      <!-- Gráfica 2: Servicios Rentables (Dona) -->
+      <div class="chart-card glass-effect">
+        <div class="chart-header">
+          <h3>Servicios más Rentables</h3>
+          <p>Distribución porcentual de facturación</p>
+        </div>
+        <div class="chart-body doughnut-chart-container">
+          <canvas baseChart
+            [data]="rentabilityChartData"
+            [options]="doughnutChartOptions"
+            [type]="'doughnut'">
+          </canvas>
+        </div>
+      </div>
+
+      <!-- Gráfica 3: Citas por Estado (Barra) -->
+      <div class="chart-card glass-effect">
+        <div class="chart-header">
+          <h3>Efectividad de Agenda y Citas</h3>
+          <p>Citas programadas por estado en el periodo</p>
+        </div>
+        <div class="chart-body">
+          <canvas baseChart
+            [data]="appointmentChartData"
+            [options]="barChartOptions"
+            [type]="'bar'">
+          </canvas>
+        </div>
+      </div>
+
+      <!-- Gráfica 4: Especies de Pacientes (Tarta) -->
+      <div class="chart-card glass-effect">
+        <div class="chart-header">
+          <h3>Población Veterinaria por Especie</h3>
+          <p>Distribución de mascotas activas</p>
+        </div>
+        <div class="chart-body pie-chart-container">
+          <canvas baseChart
+            [data]="speciesChartData"
+            [options]="pieChartOptions"
+            [type]="'pie'">
+          </canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sección de Alertas e Inventario -->
+    <div class="inventory-rotation-section glass-effect">
+      <div class="section-header">
+        <div class="header-info">
+          <h3>Análisis de Rotación de Inventario</h3>
+          <p>Insumos críticos y vacunas con mayor rotación que requieren reposición inmediata.</p>
+        </div>
+        <span class="alert-indicator text-warning animate-pulse">
+          <span class="material-symbols-outlined">warning</span> Requiere Atención
+        </span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="rotation-table">
+          <thead>
+            <tr>
+              <th>SKU</th>
+              <th>Producto/Insumo</th>
+              <th>Categoría</th>
+              <th>Ventas del Periodo</th>
+              <th>Stock Actual</th>
+              <th>Stock Mínimo</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of inventoryRotation()">
+              <td class="sku-cell"><code>{{ item.sku }}</code></td>
+              <td class="name-cell"><strong>{{ item.name }}</strong></td>
+              <td>
+                <span class="category-badge">{{ item.category }}</span>
+              </td>
+              <td class="sales-cell">{{ item.salesCount }} u.</td>
+              <td>
+                <span class="stock-text" [class.text-danger]="item.stock <= item.stock / 2" [class.text-warning]="item.stock <= item.minStock && item.stock > item.stock / 2">
+                  {{ item.stock }} unidades
+                </span>
+              </td>
+              <td>{{ item.minStock }} u.</td>
+              <td>
+                <span class="status-pill" [class.pill-danger]="item.stock <= item.stock / 2" [class.pill-warning]="item.stock <= item.minStock && item.stock > item.stock / 2" [class.pill-success]="item.stock > item.minStock">
+                  {{ item.stock <= item.stock / 2 ? 'Crítico (Agotado)' : (item.stock <= item.minStock ? 'Por Debajo de Mínimo' : 'Stock Saludable') }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
