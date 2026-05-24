@@ -314,7 +314,7 @@ vetpro/
 | 6 | Firma digital & Docs | 13–14 | ✅ Entregado |
 | 7 | Reportes & Analytics | 15–16 | ✅ Entregado |
 | 8 | Portal del tutor | 17–18 | ✅ Entregado |
-| 9 | Multi-sucursal & Roles | 19–20 | 🔲 Pendiente |
+| 9 | Multi-sucursal & Roles | 19–20 | ✅ Entregado |
 | 10 | QA, Facturación DIAN & Go-Live | 21–22 | 🔲 Pendiente |
 
 **Total estimado:** 22 semanas (~5.5 meses)  
