@@ -16,6 +16,10 @@ export const routes: Routes = [
     loadChildren: () => import('./features/portal/portal.routes').then(m => m.PORTAL_ROUTES)
   },
   {
+    path: 'onboarding',
+    loadComponent: () => import('./features/onboarding/onboarding.component').then(m => m.OnboardingComponent)
+  },
+  {
     path: '',
     canActivate: [authGuard],
     loadComponent: () => import('./layout/shell.component').then(m => m.ShellComponent),

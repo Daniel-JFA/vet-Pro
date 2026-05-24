@@ -315,7 +315,7 @@ vetpro/
 | 7 | Reportes & Analytics | 15–16 | ✅ Entregado |
 | 8 | Portal del tutor | 17–18 | ✅ Entregado |
 | 9 | Multi-sucursal & Roles | 19–20 | ✅ Entregado |
-| 10 | QA, Facturación DIAN & Go-Live | 21–22 | 🔲 Pendiente |
+| 10 | QA, Facturación DIAN & Go-Live | 21–22 | ✅ Entregado |
 
 **Total estimado:** 22 semanas (~5.5 meses)  
 **MVP mínimo (sprints 0–4):** 10 semanas para salir al mercado con la propuesta de valor principal
