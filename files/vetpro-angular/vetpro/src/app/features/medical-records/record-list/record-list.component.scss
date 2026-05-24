@@ -1,0 +1,338 @@
+.records-page {
+  position: relative;
+  min-height: 400px;
+}
+
+// ── Overlay de Carga ──────────────────────────────
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+.spinner {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 3px solid var(--surface-border);
+  border-top-color: var(--primary-color);
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+// ── Cabecera ────────────────────────────────────
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.page-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0;
+}
+.page-subtitle {
+  font-size: 13px;
+  color: var(--text-color-secondary);
+  margin: 2px 0 0;
+}
+
+// ── Botones ───────────────────────────────────
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  border: none;
+  transition: all 120ms;
+  .material-symbols-outlined {
+    font-size: 18px;
+  }
+}
+.btn-ghost {
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+  color: var(--text-color);
+  &:hover {
+    background: var(--surface-hover);
+  }
+}
+
+// ── Barra de Filtros ──────────────────────────────
+.filters-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-ground);
+  border: 1px solid var(--surface-border);
+  border-radius: 7px;
+  padding: 0 12px;
+  height: 36px;
+  flex: 1;
+  max-width: 380px;
+  .material-symbols-outlined {
+    font-size: 17px;
+    color: var(--text-color-secondary);
+  }
+  input {
+    border: none;
+    background: none;
+    outline: none;
+    font-size: 13px;
+    color: var(--text-color);
+    width: 100%;
+  }
+}
+
+select {
+  height: 36px;
+  border: 1px solid var(--surface-border);
+  border-radius: 7px;
+  background: var(--surface-ground);
+  color: var(--text-color);
+  font-size: 13px;
+  padding: 0 10px;
+  outline: none;
+  cursor: pointer;
+  &:focus {
+    border-color: var(--primary-color);
+  }
+}
+
+.result-count {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-color-secondary);
+  white-space: nowrap;
+}
+
+// ── Tabla de Datos ──────────────────────────────
+.table-wrapper {
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  min-height: 200px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead tr {
+  background: var(--surface-ground);
+  th {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--text-color-secondary);
+    border-bottom: 1px solid var(--surface-border);
+    white-space: nowrap;
+  }
+}
+
+tbody tr {
+  border-bottom: 1px solid var(--surface-border);
+  transition: background 100ms;
+  &:last-child {
+    border-bottom: none;
+  }
+  &:hover {
+    background: var(--surface-hover);
+  }
+  td {
+    padding: 12px 14px;
+    font-size: 13px;
+    vertical-align: middle;
+  }
+}
+
+// Celda Paciente
+.patient-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  
+  .pet-icon {
+    font-size: 16px;
+    padding: 4px;
+    border-radius: 6px;
+    
+    &[data-species="dog"] { background: var(--blue-50); color: var(--blue-600); }
+    &[data-species="cat"] { background: var(--purple-50); color: var(--purple-600); }
+  }
+}
+
+.species-text {
+  font-weight: 500;
+}
+.breed-text {
+  font-size: 11px;
+  color: var(--text-color-secondary);
+  margin-top: 1px;
+}
+
+.title-text {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.type-pill {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-top: 3px;
+  
+  &[data-type="surgery"] { background: var(--orange-50); color: var(--orange-600); }
+  &[data-type="vaccine"] { background: var(--green-50); color: var(--green-600); }
+  &[data-type="consultation"] { background: var(--blue-50); color: var(--blue-600); }
+}
+
+.diagnosis-text {
+  font-weight: 500;
+  color: var(--text-color);
+  max-width: 250px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Origen Badges
+.ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  background: #eef2ff;
+  color: #4f46e5;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid #c7d2fe;
+}
+
+.manual-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 500;
+  background: var(--surface-ground);
+  color: var(--text-color-secondary);
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid var(--surface-border);
+}
+
+// Celdas de Acciones
+.actions-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.action-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-color-secondary);
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 100ms;
+  
+  .material-symbols-outlined {
+    font-size: 17px;
+  }
+  
+  &:hover {
+    background: var(--surface-hover);
+    color: var(--text-color);
+  }
+  
+  &.action-btn-accent {
+    color: var(--primary-color);
+    &:hover {
+      background: var(--primary-50);
+      color: var(--primary-700);
+    }
+  }
+}
+
+// Estado de Vacío
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 50px 30px;
+  text-align: center;
+  
+  .empty-icon {
+    font-size: 40px;
+    color: var(--text-color-secondary);
+    margin-bottom: 12px;
+  }
+  
+  h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  p {
+    margin: 4px 0 16px;
+    font-size: 12.5px;
+    color: var(--text-color-secondary);
+    max-width: 280px;
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .filters-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .search-box {
+    max-width: none;
+  }
+  .result-count {
+    margin-left: 0;
+    text-align: center;
+    margin-top: 4px;
+  }
+}

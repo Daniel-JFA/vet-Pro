@@ -1,0 +1,214 @@
+<div class="ai-page">
+  <div class="loading-overlay" *ngIf="loading()">
+    <div class="spinner"></div>
+  </div>
+
+  <div *ngIf="!loading() && patient() as p" class="ai-grid">
+    <!-- Cabecera de Página -->
+    <header class="ai-header">
+      <div class="header-left">
+        <a [routerLink]="['/patients', p.id]" class="btn-back">
+          <span class="material-symbols-outlined">arrow_back</span>
+        </a>
+        <div>
+          <h1 class="page-title">Bitácora Médica Inteligente</h1>
+          <p class="page-subtitle">Paciente: <strong>🐾 {{ p.name }}</strong> (Tutor: {{ p.tutor?.firstName }} {{ p.tutor?.lastName }})</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a [routerLink]="['/patients', p.id]" class="btn btn-ghost">Cancelar</a>
+        <button 
+          type="button" 
+          class="btn btn-primary" 
+          (click)="saveRecord()"
+          [disabled]="submitting() || !resultReady()"
+        >
+          <span class="material-symbols-outlined" *ngIf="!submitting()">save</span>
+          {{ submitting() ? 'Guardando...' : 'Guardar en Expediente' }}
+        </button>
+      </div>
+    </header>
+
+    <!-- Columna Izquierda: Grabación de Voz -->
+    <div class="voice-column">
+      <!-- Card: Grabación verbal -->
+      <div class="card voice-panel-card">
+        <div class="section-title">
+          <span class="material-symbols-outlined section-icon">mic</span>
+          <h2>Dictado de Consulta por Voz</h2>
+        </div>
+
+        <!-- Indicador de Minutos de IA Consumidos -->
+        <div class="ai-meter-box">
+          <div class="meter-labels">
+            <span>Uso Mensual de IA</span>
+            <strong>{{ aiMinutesUsed() | number:'1.2-2' }} / {{ aiMinutesLimit }} min</strong>
+          </div>
+          <div class="meter-bar-bg">
+            <div 
+              class="meter-fill" 
+              [style.width.%]="(aiMinutesUsed() / aiMinutesLimit) * 100"
+            ></div>
+          </div>
+        </div>
+
+        <!-- Área de Control de Micrófono -->
+        <div class="mic-container" [class.recording]="isRecording()">
+          <!-- Ondas de sonido animadas si está grabando -->
+          <div class="sound-wave" *ngIf="isRecording()">
+            <span class="wave-bar"></span>
+            <span class="wave-bar"></span>
+            <span class="wave-bar"></span>
+            <span class="wave-bar"></span>
+            <span class="wave-bar"></span>
+          </div>
+
+          <!-- Botón circular del Micrófono -->
+          <button 
+            type="button" 
+            class="mic-circle-btn" 
+            [class.active]="isRecording()"
+            (click)="isRecording() ? stopRecording() : startRecording()"
+            [disabled]="processing()"
+          >
+            <span class="material-symbols-outlined wa-mic-icon">
+              {{ isRecording() ? 'stop' : 'mic' }}
+            </span>
+          </button>
+
+          <!-- Temporizador y Estado -->
+          <div class="recording-timer" *ngIf="isRecording()">{{ recordingTimeStr() }}</div>
+          <p class="recording-status-text">
+            {{ isRecording() ? 'Grabando audio de consulta... Haz clic en STOP para finalizar.' : 'Haz clic en el micrófono para iniciar el dictado clínico.' }}
+          </p>
+
+          <!-- Controles de la grabación -->
+          <div class="recording-controls" *ngIf="isRecording() || recordingTime() > 0">
+            <button 
+              type="button" 
+              class="btn btn-primary btn-process"
+              *ngIf="!isRecording() && recordingTime() > 0"
+              (click)="processVoice()"
+            >
+              <span class="material-symbols-outlined">psychology</span>
+              Procesar con IA
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-ghost btn-cancel-rec"
+              (click)="cancelRecording()"
+            >
+              <span class="material-symbols-outlined">delete</span>
+              Descartar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card: Dictados Rápidos de Demostración -->
+      <div class="card demo-panel-card" *ngIf="!isRecording()">
+        <div class="section-title">
+          <span class="material-symbols-outlined section-icon">quick_reference_all</span>
+          <h2>Dictados Rápidos de Prueba (Simulador)</h2>
+        </div>
+        <p class="section-help">
+          Elige una consulta pre-grabada para evaluar instantáneamente la transcripción Whisper y la estructuración Claude AI.
+        </p>
+
+        <div class="demo-list">
+          <div 
+            class="demo-item-card" 
+            *ngFor="let dict of demoDictations"
+            (click)="selectDemoDictation(dict)"
+          >
+            <div class="demo-play-btn">
+              <span class="material-symbols-outlined">play_arrow</span>
+            </div>
+            <div class="demo-info">
+              <h4>{{ dict.title }}</h4>
+              <p>{{ dict.description }}</p>
+              <span class="duration-tag">⏱️ {{ dict.audioDuration }} seg (~{{ (dict.audioDuration / 60) | number:'1.2-2' }} min de IA)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Columna Derecha: Resultados de la Inteligencia Artificial -->
+    <div class="result-column">
+      <!-- Caso A: Procesando Scanner de IA -->
+      <div class="card scanner-card" *ngIf="processing()">
+        <div class="scanner-container">
+          <div class="wa-scanner-bar"></div>
+          <div class="spinner spinner-large"></div>
+          <h3>Procesando Consulta Verbal</h3>
+          <p class="pulse-text">Whisper AI transcribiendo audio de voz...</p>
+          <p class="pulse-text-delay">Claude AI estructurando anamnesis, diagnóstico presuntivo y plan terapéutico...</p>
+        </div>
+      </div>
+
+      <!-- Caso B: Resultados Estructurados y Listos -->
+      <div class="card results-card" *ngIf="resultReady() && !processing()">
+        <div class="results-header-badge">
+          <span class="material-symbols-outlined badge-icon">auto_awesome</span>
+          <h4>Expediente Clínico Estructurado por IA</h4>
+        </div>
+        <p class="badge-help">
+          A continuación se presentan los datos clínicos extraídos del audio. Revísalos y edítalos si consideras necesario antes de guardarlos.
+        </p>
+
+        <!-- Formulario de Resultados -->
+        <div class="results-fields">
+          <!-- Título -->
+          <div class="field">
+            <label>Título / Motivo de la Atención</label>
+            <input type="text" [ngModel]="title()" (ngModelChange)="title.set($event)" placeholder="Ej. Control de gastroenteritis..." />
+          </div>
+
+          <!-- Anamnesis -->
+          <div class="field">
+            <label>Anamnesis / Historia Clínica</label>
+            <textarea rows="4" [ngModel]="anamnesis()" (ngModelChange)="anamnesis.set($event)"></textarea>
+          </div>
+
+          <!-- Examen Físico -->
+          <div class="field">
+            <label>Examen Físico Completo</label>
+            <textarea rows="4" [ngModel]="physicalExam()" (ngModelChange)="physicalExam.set($event)"></textarea>
+          </div>
+
+          <div class="fields-row fields-row-2">
+            <!-- Diagnóstico Presuntivo -->
+            <div class="field highlight-danger-field">
+              <label>Diagnóstico Presuntivo (IA)</label>
+              <textarea rows="4" [ngModel]="diagnosis()" (ngModelChange)="diagnosis.set($event)"></textarea>
+            </div>
+
+            <!-- Plan de Tratamiento -->
+            <div class="field highlight-primary-field">
+              <label>Tratamiento / Indicaciones (IA)</label>
+              <textarea rows="4" [ngModel]="treatment()" (ngModelChange)="treatment.set($event)"></textarea>
+            </div>
+          </div>
+
+          <!-- Notas adicionales -->
+          <div class="field">
+            <label>Observaciones o Recomendaciones al Tutor</label>
+            <textarea rows="2" [ngModel]="notes()" (ngModelChange)="notes.set($event)" placeholder="Notas para la receta impresa o recomendaciones..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Caso C: Espera de Dictado (Estado Vacío) -->
+      <div class="card empty-results-card" *ngIf="!resultReady() && !processing()">
+        <span class="material-symbols-outlined empty-icon">assignment_late</span>
+        <h3>Esperando Dictado Clínico</h3>
+        <p>Los resultados de la transcripción y el análisis estructurado de la IA aparecerán en este panel una vez proceses un dictado de voz.</p>
+        <div class="tip-box">
+          <span class="material-symbols-outlined tip-icon">lightbulb</span>
+          <p><strong>Consejo:</strong> Si estás probando, utiliza un **Dictado Rápido de Prueba** de la columna izquierda para ver la IA en acción de inmediato.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

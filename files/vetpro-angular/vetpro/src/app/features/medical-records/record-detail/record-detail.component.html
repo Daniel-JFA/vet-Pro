@@ -1,0 +1,188 @@
+<div class="record-detail-page">
+  <!-- Spinner de Carga -->
+  <div class="loading-overlay" *ngIf="loading()">
+    <div class="spinner"></div>
+  </div>
+
+  <div *ngIf="!loading() && record()" class="content-container">
+    <!-- Barra de Navegación y Acciones -->
+    <div class="top-nav-bar no-print">
+      <a [routerLink]="['/patients', record()?.patientId]" class="back-link">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Volver al Perfil de {{ record()?.patient?.name }}
+      </a>
+      
+      <div class="actions">
+        <button class="btn btn-ghost" (click)="printRecord()">
+          <span class="material-symbols-outlined">print</span>
+          Imprimir Registro
+        </button>
+      </div>
+    </div>
+
+    <!-- CABECERA DEL EXPEDIENTE CLÍNICO -->
+    <header class="record-header">
+      <div class="header-main">
+        <div class="title-section">
+          <span class="type-pill" [attr.data-type]="record()?.type">
+            {{ recordTypeLabel(record()?.type || 'consultation') }}
+          </span>
+          <h1>{{ record()?.title }}</h1>
+        </div>
+        <p class="meta-info">
+          <span>Fecha de Atención: <strong>{{ record()?.createdAt | date:'mediumDate' }}</strong></span>
+          <span class="divider">•</span>
+          <span>Médico Veterinario: <strong>{{ record()?.vetId }}</strong></span>
+        </p>
+      </div>
+
+      <div class="ai-status-badge" *ngIf="record()?.aiGenerated">
+        <div class="ai-sparkle">✨</div>
+        <div class="ai-badge-text">
+          <strong>Documentado con IA</strong>
+          <span>Bitácora de Voz Whisper ({{ record()?.aiTranscriptionMinutes || 1.5 }} min)</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- RESUMEN DE PACIENTE & TUTOR -->
+    <section class="summary-cards-grid">
+      <!-- Ficha de la Mascota -->
+      <div class="card summary-card patient-card">
+        <div class="card-avatar" *ngIf="record()?.patient?.photoUrl">
+          <img [src]="record()?.patient?.photoUrl" alt="Foto Mascota">
+        </div>
+        <div class="card-avatar placeholder" *ngIf="!record()?.patient?.photoUrl">
+          <span class="material-symbols-outlined">pets</span>
+        </div>
+        <div class="card-details">
+          <h3>{{ record()?.patient?.name }}</h3>
+          <p class="species-breed">
+            {{ record()?.patient?.species === 'dog' ? 'Perro' : 'Gato' }} — {{ record()?.patient?.breed || 'Raza Mixta' }}
+          </p>
+          <div class="badges">
+            <span class="badge" *ngIf="record()?.patient?.weight">⚖️ {{ record()?.patient?.weight }} kg</span>
+            <span class="badge" *ngIf="record()?.patient?.chipId">🆔 Chip: {{ record()?.patient?.chipId }}</span>
+            <span class="badge" *ngIf="record()?.patient?.sterilized">✂️ Esterilizado</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ficha del Tutor -->
+      <div class="card summary-card tutor-card" *ngIf="record()?.patient?.tutor">
+        <div class="tutor-avatar">
+          {{ record()?.patient?.tutor?.firstName?.[0] }}{{ record()?.patient?.tutor?.lastName?.[0] }}
+        </div>
+        <div class="card-details">
+          <span class="card-label">Responsable / Tutor</span>
+          <h3>{{ record()?.patient?.tutor?.firstName }} {{ record()?.patient?.tutor?.lastName }}</h3>
+          <p class="tutor-contact">
+            📞 {{ record()?.patient?.tutor?.phone }}
+            <span class="divider" *ngIf="record()?.patient?.tutor?.email">|</span>
+            ✉️ {{ record()?.patient?.tutor?.email || '' }}
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECCIONES COLLAPSIBLES DE LA HISTORIA CLÍNICA -->
+    <main class="clinical-content">
+      <!-- 1. ANAMNESIS -->
+      <section class="card collapsible-section" [class.collapsed]="collapsedSections().anamnesis" *ngIf="record()?.anamnesis">
+        <header class="section-header" (click)="toggleSection('anamnesis')">
+          <div class="header-title">
+            <span class="material-symbols-outlined icon">forum</span>
+            <h2>Anamnesis / Motivo de consulta</h2>
+          </div>
+          <span class="material-symbols-outlined toggle-icon">expand_more</span>
+        </header>
+        <div class="section-body">
+          <p class="pre-wrapped">{{ record()?.anamnesis }}</p>
+        </div>
+      </section>
+
+      <!-- 2. EXAMEN FÍSICO -->
+      <section class="card collapsible-section" [class.collapsed]="collapsedSections().physicalExam" *ngIf="record()?.physicalExam">
+        <header class="section-header" (click)="toggleSection('physicalExam')">
+          <div class="header-title">
+            <span class="material-symbols-outlined icon">clinical_notes</span>
+            <h2>Examen Físico General</h2>
+          </div>
+          <span class="material-symbols-outlined toggle-icon">expand_more</span>
+        </header>
+        <div class="section-body">
+          <p class="pre-wrapped">{{ record()?.physicalExam }}</p>
+        </div>
+      </section>
+
+      <!-- 3. DIAGNÓSTICO -->
+      <section class="card collapsible-section diagnostic-highlight" [class.collapsed]="collapsedSections().diagnosis" *ngIf="record()?.diagnosis">
+        <header class="section-header" (click)="toggleSection('diagnosis')">
+          <div class="header-title">
+            <span class="material-symbols-outlined icon">psychology</span>
+            <h2>Diagnóstico Definitivo / Presuntivo</h2>
+          </div>
+          <span class="material-symbols-outlined toggle-icon">expand_more</span>
+        </header>
+        <div class="section-body">
+          <p class="pre-wrapped">{{ record()?.diagnosis }}</p>
+        </div>
+      </section>
+
+      <!-- 4. PLAN DE TRATAMIENTO -->
+      <section class="card collapsible-section treatment-highlight" [class.collapsed]="collapsedSections().treatment" *ngIf="record()?.treatment">
+        <header class="section-header" (click)="toggleSection('treatment')">
+          <div class="header-title">
+            <span class="material-symbols-outlined icon">medication_liquid</span>
+            <h2>Tratamiento y Plan Terapéutico</h2>
+          </div>
+          <span class="material-symbols-outlined toggle-icon">expand_more</span>
+        </header>
+        <div class="section-body">
+          <p class="pre-wrapped">{{ record()?.treatment }}</p>
+        </div>
+      </section>
+
+      <!-- 5. OBSERVACIONES Y NOTAS -->
+      <section class="card collapsible-section" [class.collapsed]="collapsedSections().observations" *ngIf="record()?.observations">
+        <header class="section-header" (click)="toggleSection('observations')">
+          <div class="header-title">
+            <span class="material-symbols-outlined icon">sticky_note_2</span>
+            <h2>Observaciones y Recomendaciones</h2>
+          </div>
+          <span class="material-symbols-outlined toggle-icon">expand_more</span>
+        </header>
+        <div class="section-body">
+          <p class="pre-wrapped">{{ record()?.observations }}</p>
+        </div>
+      </section>
+
+      <!-- 6. ADJUNTOS CLINICOS -->
+      <section class="card collapsible-section" [class.collapsed]="collapsedSections().attachments" *ngIf="record()?.attachments && record()!.attachments!.length > 0">
+        <header class="section-header" (click)="toggleSection('attachments')">
+          <div class="header-title">
+            <span class="material-symbols-outlined icon">cloud_download</span>
+            <h2>Archivos Adjuntos y Resultados de Laboratorio</h2>
+          </div>
+          <span class="material-symbols-outlined toggle-icon">expand_more</span>
+        </header>
+        <div class="section-body">
+          <div class="attachments-list">
+            <div class="attachment-item" *ngFor="let att of record()?.attachments">
+              <span class="material-symbols-outlined file-icon">
+                {{ att.type === 'image' ? 'image' : 'picture_as_pdf' }}
+              </span>
+              <div class="file-info">
+                <strong>{{ att.name }}</strong>
+                <span>{{ formatBytes(att.size) }}</span>
+              </div>
+              <a [href]="att.url" target="_blank" class="download-btn" title="Descargar archivo">
+                <span class="material-symbols-outlined">download</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>

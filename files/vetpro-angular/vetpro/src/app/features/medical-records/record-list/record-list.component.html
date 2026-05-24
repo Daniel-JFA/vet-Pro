@@ -1,0 +1,112 @@
+<div class="records-page">
+  <div class="loading-overlay" *ngIf="loading()">
+    <div class="spinner"></div>
+  </div>
+
+  <div *ngIf="!loading()" class="records-wrapper">
+    <!-- Cabecera de Página -->
+    <header class="page-header">
+      <div>
+        <h1 class="page-title">Historial Clínico</h1>
+        <p class="page-subtitle">Explora y consulta las atenciones médicas y bitácoras registradas en la sucursal.</p>
+      </div>
+    </header>
+
+    <!-- Barra de Filtros -->
+    <section class="filters-bar">
+      <div class="search-box">
+        <span class="material-symbols-outlined">search</span>
+        <input 
+          type="text" 
+          [ngModel]="search()" 
+          (ngModelChange)="search.set($event)" 
+          placeholder="Buscar por motivo, diagnóstico o mascota..." 
+        />
+      </div>
+
+      <select [ngModel]="typeFilter()" (ngModelChange)="typeFilter.set($event)">
+        <option value="all">Todos los tipos de atención</option>
+        <option value="consultation">Consulta General</option>
+        <option value="surgery">Cirugía</option>
+        <option value="vaccine">Vacunación</option>
+        <option value="lab">Laboratorio</option>
+      </select>
+
+      <div class="result-count">
+        Mostrando {{ filteredRecords().length }} consultas registradas
+      </div>
+    </section>
+
+    <!-- Tabla de Expedientes -->
+    <div class="table-wrapper">
+      <table class="data-table" *ngIf="filteredRecords().length > 0">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Paciente</th>
+            <th>Especie / Raza</th>
+            <th>Motivo de Consulta</th>
+            <th>Diagnóstico</th>
+            <th>Origen</th>
+            <th style="text-align: right;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of filteredRecords(); trackBy: trackById">
+            <td>{{ r.createdAt | date:'mediumDate' }}</td>
+            <td>
+              <div class="patient-cell">
+                <span class="material-symbols-outlined pet-icon" [attr.data-species]="r.patient?.species">
+                  {{ r.patient?.species === 'dog' ? 'sound_detection_dog_barking' : (r.patient?.species === 'cat' ? 'cat' : 'pets') }}
+                </span>
+                <strong>{{ r.patient?.name }}</strong>
+              </div>
+            </td>
+            <td>
+              <span class="species-text">{{ r.patient?.species === 'dog' ? 'Perro' : 'Gato' }}</span>
+              <div class="breed-text">{{ r.patient?.breed || '--' }}</div>
+            </td>
+            <td>
+              <div class="title-text">{{ r.title }}</div>
+              <span class="type-pill" [attr.data-type]="r.type">{{ recordTypeLabel(r.type) }}</span>
+            </td>
+            <td>
+              <div class="diagnosis-text">{{ r.diagnosis || 'Pendiente' }}</div>
+            </td>
+            <td>
+              <span class="ai-badge" *ngIf="r.aiGenerated">
+                🤖 Transcrito IA
+              </span>
+              <span class="manual-badge" *ngIf="!r.aiGenerated">
+                📝 Manual
+              </span>
+            </td>
+            <td>
+              <div class="actions-cell">
+                <a [routerLink]="['/medical-records', r.id]" class="action-btn" title="Ver Detalle Consulta" style="color: var(--primary-color);">
+                  <span class="material-symbols-outlined">description</span>
+                </a>
+                <a [routerLink]="['/patients', r.patientId]" class="action-btn" title="Ver Expediente Mascota">
+                  <span class="material-symbols-outlined">visibility</span>
+                </a>
+                <a [routerLink]="['/medical-records/new', r.patientId]" class="action-btn action-btn-accent" title="Nueva Bitácora IA">
+                  <span class="material-symbols-outlined">mic</span>
+                </a>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Estado de Vacío -->
+      <div class="empty-state" *ngIf="filteredRecords().length === 0">
+        <span class="material-symbols-outlined empty-icon">sticky_note_2</span>
+        <h3>No se encontraron registros clínicos</h3>
+        <p>Prueba con otros términos de búsqueda o limpia los filtros activos.</p>
+        <button class="btn btn-ghost" (click)="search.set(''); typeFilter.set('all')">
+          Limpiar Filtros
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
