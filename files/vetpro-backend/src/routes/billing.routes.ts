@@ -81,9 +81,9 @@ router.get('/invoices', async (req: AuthRequest, res: Response) => {
           updatedAt: new Date(),
           tutor: {
             id: 'dev-tutor-1',
-            firstName: 'Carlos',
-            lastName: 'Gómez',
-            phone: '3124567890'
+            firstName: 'Daniel',
+            lastName: 'Flórez Aguirre',
+            phone: '3122115299'
           }
         },
         {

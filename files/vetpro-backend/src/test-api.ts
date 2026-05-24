@@ -127,7 +127,7 @@ async function runTests() {
     const toby = result.data.find((p: any) => p.name === 'Toby');
     assert.ok(toby, 'El paciente "Toby" no está en la lista.');
     assert.strictEqual(toby.species, 'dog', 'La especie de Toby no es "dog".');
-    assert.strictEqual(toby.tutor.firstName, 'Carlos', 'El tutor asociado a Toby es incorrecto.');
+    assert.strictEqual(toby.tutor.firstName, 'Daniel', 'El tutor asociado a Toby es incorrecto.');
     console.log('✅ [TEST 6] Exitoso: Pacientes de prueba cargados correctamente con relaciones.');
   } catch (err: any) {
     console.error('❌ [TEST 6] Falló:', err.message);
@@ -195,7 +195,7 @@ async function runTests() {
     const res = await fetch(`${API_URL}/portal/auth/magic-link`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: '3124567890' })
+      body: JSON.stringify({ phone: '3122115299' })
     });
     
     assert.strictEqual(res.status, 200, 'No se pudo solicitar el link mágico.');
@@ -226,7 +226,7 @@ async function runTests() {
     assert.strictEqual(res.status, 200, 'El token del enlace mágico no es válido.');
     const data: any = await res.json();
     assert.ok(data.token, 'El token final de sesión del tutor no fue devuelto.');
-    assert.strictEqual(data.tutor.firstName, 'Carlos', 'El tutor autenticado no es Carlos.');
+    assert.strictEqual(data.tutor.firstName, 'Daniel', 'El tutor autenticado no es Daniel.');
     
     tutorToken = data.token;
     console.log('✅ [TEST 10] Exitoso: Autenticación Passwordless de Tutor validada.');

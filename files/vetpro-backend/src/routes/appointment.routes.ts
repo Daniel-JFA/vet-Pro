@@ -88,9 +88,9 @@ router.get('/', async (req: AuthRequest, res: Response) => {
             breed: 'Golden Retriever',
             tutor: {
               id: 'dev-tutor-1',
-              firstName: 'Carlos',
-              lastName: 'Gómez',
-              phone: '3124567890'
+              firstName: 'Daniel',
+              lastName: 'Flórez Aguirre',
+              phone: '3122115299'
             }
           },
           vet: {
@@ -189,9 +189,9 @@ router.get('/today', async (req: AuthRequest, res: Response) => {
             breed: 'Golden Retriever',
             tutor: {
               id: 'dev-tutor-1',
-              firstName: 'Carlos',
-              lastName: 'Gómez',
-              phone: '3124567890'
+              firstName: 'Daniel',
+              lastName: 'Flórez Aguirre',
+              phone: '3122115299'
             }
           },
           vet: {

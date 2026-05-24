@@ -74,8 +74,8 @@ async function ensureDemoTutor(phone: string) {
 
   // 4. Mapear datos demo de tutores y mascotas basándonos en el teléfono
   const demoData: Record<string, { tutor: any, patients: any[] }> = {
-    '3124567890': {
-      tutor: { firstName: 'Carlos', lastName: 'Gómez', email: 'carlos@gmail.com', phone: '3124567890', documentId: '1018234567', address: 'Calle 100 #15-30, Bogotá' },
+    '3122115299': {
+      tutor: { firstName: 'Daniel', lastName: 'Flórez Aguirre', email: 'florezaguirredaniel@gmail.com', phone: '3122115299', documentId: '1018234567', address: 'Calle 100 #15-30, Bogotá' },
       patients: [
         { name: 'Toby', species: 'dog', breed: 'Golden Retriever', sex: 'male', sterilized: true, weight: 32.5, chipId: '985112003456789', photoUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&q=80&w=150', status: 'active' },
         { name: 'Kira', species: 'dog', breed: 'Bulldog Francés', sex: 'female', sterilized: false, weight: 11.8, chipId: '985112003456781', status: 'active' }
@@ -218,7 +218,7 @@ router.post('/auth/magic-link', async (req, res) => {
     if (isDevelopment) {
       console.warn('⚠️ Base de datos no disponible. Generando Tutor de demostración ficticio offline.');
       const mockTutors: Record<string, { id: string, firstName: string, lastName: string, phone: string, clinicId: string }> = {
-        '3124567890': { id: 'dev-tutor-1', firstName: 'Carlos', lastName: 'Gómez', phone: '3124567890', clinicId: 'dev-clinic' },
+        '3122115299': { id: 'dev-tutor-1', firstName: 'Daniel', lastName: 'Flórez Aguirre', phone: '3122115299', clinicId: 'dev-clinic' },
         '3157891234': { id: 'dev-tutor-2', firstName: 'María', lastName: 'Rodríguez', phone: '3157891234', clinicId: 'dev-clinic' },
         '3209876543': { id: 'dev-tutor-3', firstName: 'Diana', lastName: 'Pérez', phone: '3209876543', clinicId: 'dev-clinic' }
       };
@@ -320,7 +320,7 @@ router.post('/auth/verify', async (req, res) => {
         if (decoded.role === 'tutor') {
           console.warn('⚠️ Base de datos no disponible. Retornando verificación de Tutor ficticia (fallback).');
           const mockTutors: Record<string, { id: string, firstName: string, lastName: string, phone: string, email: string, address: string }> = {
-            '3124567890': { id: 'dev-tutor-1', firstName: 'Carlos', lastName: 'Gómez', phone: '3124567890', email: 'carlos@gmail.com', address: 'Calle 100 #15-30, Bogotá' },
+            '3122115299': { id: 'dev-tutor-1', firstName: 'Daniel', lastName: 'Flórez Aguirre', phone: '3122115299', email: 'florezaguirredaniel@gmail.com', address: 'Calle 100 #15-30, Bogotá' },
             '3157891234': { id: 'dev-tutor-2', firstName: 'María', lastName: 'Rodríguez', phone: '3157891234', email: 'maria@outlook.com', address: 'Carrera 7 #45-12, Medellín' },
             '3209876543': { id: 'dev-tutor-3', firstName: 'Diana', lastName: 'Pérez', phone: '3209876543', email: 'diana@hotmail.com', address: 'Av. El Poblado #3-45, Envigado' }
           };

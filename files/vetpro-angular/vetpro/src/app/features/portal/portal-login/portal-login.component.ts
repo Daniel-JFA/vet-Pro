@@ -22,9 +22,9 @@ export class PortalLoginComponent {
   magicLink = signal<string | null>(null);
 
   demoNumbers = [
-    { number: '3124567890', label: 'Carlos Gómez (Perros)' },
+    { number: '3122115299', label: 'Daniel Flórez (Demo)' },
     { number: '3157891234', label: 'María Rodríguez (Gatos)' },
-    { number: '3209876543', label: 'Diana Pérez (Conenejo)' }
+    { number: '3209876543', label: 'Diana Pérez (Conejo)' }
   ];
 
   onSubmit() {

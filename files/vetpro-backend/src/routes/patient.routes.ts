@@ -85,10 +85,10 @@ router.get('/', async (req: AuthRequest, res: Response) => {
           tutor: {
             id: 'dev-tutor-1',
             clinicId: clinicId,
-            firstName: 'Carlos',
-            lastName: 'Gómez',
-            email: 'carlos@gmail.com',
-            phone: '3124567890',
+            firstName: 'Daniel',
+            lastName: 'Flórez Aguirre',
+            email: 'florezaguirredaniel@gmail.com',
+            phone: '3122115299',
             documentId: '1018234567',
             address: 'Calle 100 #15-30, Bogotá'
           }
@@ -110,10 +110,10 @@ router.get('/', async (req: AuthRequest, res: Response) => {
           tutor: {
             id: 'dev-tutor-1',
             clinicId: clinicId,
-            firstName: 'Carlos',
-            lastName: 'Gómez',
-            email: 'carlos@gmail.com',
-            phone: '3124567890',
+            firstName: 'Daniel',
+            lastName: 'Flórez Aguirre',
+            email: 'florezaguirredaniel@gmail.com',
+            phone: '3122115299',
             documentId: '1018234567',
             address: 'Calle 100 #15-30, Bogotá'
           }
