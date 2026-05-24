@@ -34,6 +34,10 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
   resultReady = signal(false);
   submitting = signal(false);
 
+  // Tipo de entrada activa: 'voice' | 'text'
+  activeInputTab = signal<'voice' | 'text'>('voice');
+  freeTextNotes = signal('');
+
   // Límite e Historial de minutos de IA
   aiMinutesUsed = signal(25.5);
   aiMinutesLimit = 120;
@@ -133,7 +137,9 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
     this.resultReady.set(false);
 
     const duration = this.recordingTime() || 45;
-    const textDictation = "Toby asiste a consulta de urgencias, tutor indica vómito y diarrea líquida de 8 horas de evolución. Al examen físico se encuentra alerta, deshidratado en 6%, mucosas secas, Temp: 39°C. Diagnóstico de gastroenteritis aguda. Plan terapéutico: Metoclopramida inyectada, Amoxicilina 500mg vía oral c/12h por 7 días y dieta blanda.";
+    const textDictation = this.activeInputTab() === 'text' 
+      ? (this.freeTextNotes() || "El tutor asiste para control preventivo.") 
+      : "Toby asiste a consulta de urgencias, tutor indica vómito y diarrea líquida de 8 horas de evolución. Al examen físico se encuentra alerta, deshidratado en 6%, mucosas secas, Temp: 39°C. Diagnóstico de gastroenteritis aguda. Plan terapéutico: Metoclopramida inyectada, Amoxicilina 500mg vía oral c/12h por 7 días y dieta blanda.";
 
     this.patientSvc.transcribeVoice(duration, textDictation).subscribe({
       next: (res) => {
@@ -149,11 +155,20 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
       error: () => {
         // Fallback offline
         const minutesUsed = parseFloat((duration / 60).toFixed(2));
-        this.title.set('Urgencia por Intoxicación Alimentaria');
-        this.anamnesis.set('Tutor asiste con Toby a urgencias, reporta vómito y diarrea líquida (bilis) de 8 horas de evolución. Sospecha de indiscreción alimentaria en el parque.');
-        this.physicalExam.set('Paciente alerta y responsivo. Ligera deshidratación (6%). Mucosas secas, dolor abdominal a la palpación profunda. FC: 115 lpm, Temp: 39.0°C.');
-        this.diagnosis.set('Gastroenteritis bacteriana aguda por indiscreción alimentaria.');
-        this.treatment.set('1. Aplicación de antiemético (Metoclopramida) SC en clínica.\n2. Amoxicilina 500mg oral (1 tableta c/12h por 7 días).\n3. Hidratación oral con suero electrolítico en casa.\n4. Dieta blanda (arroz y pollo hervido sin sal) por 3 días.');
+        if (this.activeInputTab() === 'text' && this.freeTextNotes()) {
+          const rawText = this.freeTextNotes();
+          this.title.set('Consulta General Estructurada por IA');
+          this.anamnesis.set(rawText);
+          this.physicalExam.set('Examen físico general normal. Paciente alerta, responsivo y clínicamente estable.');
+          this.diagnosis.set('Focos de atención detectados por notas manuales.');
+          this.treatment.set('1. Monitoreo de síntomas.\n2. Dieta blanda de ser necesario.\n3. Control en consulta si los síntomas persisten.');
+        } else {
+          this.title.set('Urgencia por Intoxicación Alimentaria');
+          this.anamnesis.set('Tutor asiste con Toby a urgencias, reporta vómito y diarrea líquida (bilis) de 8 horas de evolución. Sospecha de indiscreción alimentaria en el parque.');
+          this.physicalExam.set('Paciente alerta y responsivo. Ligera deshidratación (6%). Mucosas secas, dolor abdominal a la palpación profunda. FC: 115 lpm, Temp: 39.0°C.');
+          this.diagnosis.set('Gastroenteritis bacteriana aguda por indiscreción alimentaria.');
+          this.treatment.set('1. Aplicación de antiemético (Metoclopramida) SC en clínica.\n2. Amoxicilina 500mg oral (1 tableta c/12h por 7 días).\n3. Hidratación oral con suero electrolítico en casa.\n4. Dieta blanda (arroz y pollo hervido sin sal) por 3 días.');
+        }
         
         this.aiMinutesUsed.update(m => m + minutesUsed);
         this.processing.set(false);
@@ -237,6 +252,17 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
         this.router.navigate(['/patients', this.patientId()]);
       }
     });
+  }
+
+  // Permitir la redacción manual desde cero, activando el formulario
+  startManualEntry() {
+    this.title.set('');
+    this.anamnesis.set('');
+    this.physicalExam.set('');
+    this.diagnosis.set('');
+    this.treatment.set('');
+    this.notes.set('');
+    this.resultReady.set(true);
   }
 }
 

@@ -52,8 +52,34 @@
           </div>
         </div>
 
+        <!-- Selector de Modo de Entrada (Voz vs Texto Libre) -->
+        <div class="input-tabs-switcher" style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px;">
+          <button 
+            type="button" 
+            class="btn"
+            [class.btn-primary]="activeInputTab() === 'voice'"
+            [class.btn-ghost]="activeInputTab() !== 'voice'"
+            (click)="activeInputTab.set('voice')"
+            style="flex: 1; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;"
+          >
+            <span class="material-symbols-outlined" style="font-size: 18px;">mic</span>
+            Dictado de Voz
+          </button>
+          <button 
+            type="button" 
+            class="btn"
+            [class.btn-primary]="activeInputTab() === 'text'"
+            [class.btn-ghost]="activeInputTab() !== 'text'"
+            (click)="activeInputTab.set('text')"
+            style="flex: 1; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;"
+          >
+            <span class="material-symbols-outlined" style="font-size: 18px;">edit_note</span>
+            Nota Escrita
+          </button>
+        </div>
+
         <!-- Área de Control de Micrófono -->
-        <div class="mic-container" [class.recording]="isRecording()">
+        <div class="mic-container" [class.recording]="isRecording()" *ngIf="activeInputTab() === 'voice'">
           <!-- Ondas de sonido animadas si está grabando -->
           <div class="sound-wave" *ngIf="isRecording()">
             <span class="wave-bar"></span>
@@ -100,6 +126,41 @@
             >
               <span class="material-symbols-outlined">delete</span>
               Descartar
+            </button>
+          </div>
+        </div>
+
+        <!-- Área de Redacción de Nota Manual para IA -->
+        <div class="manual-notes-container" *ngIf="activeInputTab() === 'text'" style="display: flex; flex-direction: column; gap: 12px; padding: 10px 0;">
+          <p class="section-help" style="font-size: 13px; color: var(--text-secondary); margin-bottom: 5px;">
+            Escribe un párrafo rápido o copia y pega tus apuntes desordenados de la consulta. La IA los estructurará automáticamente en formato SOAP.
+          </p>
+          <textarea 
+            rows="6" 
+            [ngModel]="freeTextNotes()" 
+            (ngModelChange)="freeTextNotes.set($event)"
+            placeholder="Ej: Toby vino hoy con vómitos por haber comido basura. Temperatura 39°C. Se le inyectó metoclopramida en clínica y se recetó amoxicilina 500mg cada 12h oral..."
+            style="width: 100%; padding: 12px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: var(--text-primary); font-family: inherit; resize: vertical;"
+          ></textarea>
+          
+          <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px;">
+            <button 
+              type="button" 
+              class="btn btn-ghost"
+              (click)="freeTextNotes.set('')"
+              [disabled]="!freeTextNotes()"
+            >
+              Limpiar
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-primary"
+              (click)="processVoice()"
+              [disabled]="processing() || !freeTextNotes()"
+              style="display: inline-flex; align-items: center; gap: 6px;"
+            >
+              <span class="material-symbols-outlined">psychology</span>
+              Estructurar con IA
             </button>
           </div>
         </div>
@@ -207,6 +268,20 @@
         <div class="tip-box">
           <span class="material-symbols-outlined tip-icon">lightbulb</span>
           <p><strong>Consejo:</strong> Si estás probando, utiliza un **Dictado Rápido de Prueba** de la columna izquierda para ver la IA en acción de inmediato.</p>
+        </div>
+        
+        <!-- Botón para redactar la historia clínica manualmente sin IA -->
+        <div style="margin-top: 24px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 18px;">
+          <span style="font-size: 13px; color: var(--text-secondary); font-style: italic;">¿Prefieres registrar la consulta de manera tradicional?</span>
+          <button 
+            type="button" 
+            class="btn btn-secondary" 
+            (click)="startManualEntry()"
+            style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-primary); padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
+          >
+            <span class="material-symbols-outlined" style="font-size: 18px;">edit_note</span>
+            Redactar SOAP Manualmente
+          </button>
         </div>
       </div>
     </div>
