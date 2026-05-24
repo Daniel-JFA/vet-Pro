@@ -1,0 +1,230 @@
+<div class="billing-form-page">
+  <div class="loading-overlay" *ngIf="loading()">
+    <div class="spinner"></div>
+  </div>
+
+  <div *ngIf="!loading()" class="form-wrapper">
+    <!-- Navegación superior -->
+    <div class="top-nav-bar">
+      <a routerLink="/billing" class="back-link">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Volver a la Facturación
+      </a>
+    </div>
+
+    <!-- Título de Página -->
+    <header class="form-header">
+      <h1 class="page-title">Generar Nueva Factura</h1>
+      <p class="page-subtitle">Emite comprobantes de cobro y abonos a los tutores de forma intuitiva.</p>
+    </header>
+
+    <!-- CUERPO PRINCIPAL EN DOS COLUMNAS -->
+    <div class="form-layout-grid">
+      <!-- COLUMNA IZQUIERDA: FORMULARIO -->
+      <main class="form-main">
+        <form (ngSubmit)="onSubmit()" class="billing-form">
+          <!-- FICHA GENERAL -->
+          <section class="card form-card">
+            <h3>Datos Generales del Cobro</h3>
+            <div class="form-row-grid">
+              <div class="form-group">
+                <label for="tutor">Tutor / Responsable del Pago *</label>
+                <select id="tutor" [ngModel]="selectedTutorId()" (ngModelChange)="selectedTutorId.set($event)" name="tutorId" required>
+                  <option value="" disabled selected>Selecciona un tutor...</option>
+                  <option *ngFor="let t of tutors()" [value]="t.id">
+                    {{ t.firstName }} {{ t.lastName }} ({{ t.phone }})
+                  </option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="due-date">Fecha de Vencimiento</label>
+                <input 
+                  type="date" 
+                  id="due-date" 
+                  [ngModel]="dueAt()" 
+                  (ngModelChange)="dueAt.set($event)" 
+                  name="dueAt"
+                />
+              </div>
+            </div>
+          </section>
+
+          <!-- TABLA DE ITEMS -->
+          <section class="card form-card items-card">
+            <header class="section-title-row">
+              <h3>Ítems de Facturación</h3>
+              <button type="button" class="btn btn-ghost btn-sm" (click)="addItem('', 1, 0, 0.19, 0)">
+                <span class="material-symbols-outlined">add</span>
+                Agregar Fila
+              </button>
+            </header>
+
+            <div class="table-wrapper">
+              <table class="items-table">
+                <thead>
+                  <tr>
+                    <th>Descripción / Servicio *</th>
+                    <th style="width: 80px;">Cant.</th>
+                    <th style="width: 140px;">Precio Unitario ($)</th>
+                    <th style="width: 100px;">IVA (%)</th>
+                    <th style="width: 90px;">Desc. (%)</th>
+                    <th style="width: 130px; text-align: right;">Total ($)</th>
+                    <th style="width: 50px; text-align: center;"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of items(); let i = index">
+                    <td>
+                      <input 
+                        type="text" 
+                        [value]="item.description" 
+                        (input)="updateItemField(i, 'description', $event)"
+                        placeholder="Ej: Consulta General"
+                        required
+                        class="desc-input"
+                      />
+                    </td>
+                    <td>
+                      <input 
+                        type="number" 
+                        [value]="item.quantity" 
+                        (input)="updateItemField(i, 'quantity', $event)"
+                        min="1"
+                        step="1"
+                        required
+                        class="num-input center"
+                      />
+                    </td>
+                    <td>
+                      <input 
+                        type="number" 
+                        [value]="item.unitPrice" 
+                        (input)="updateItemField(i, 'unitPrice', $event)"
+                        min="0"
+                        placeholder="0"
+                        required
+                        class="num-input"
+                      />
+                    </td>
+                    <td>
+                      <select [value]="item.taxRate" (change)="updateItemField(i, 'taxRate', $event)" class="tax-select">
+                        <option [value]="0.19">19% (IVA)</option>
+                        <option [value]="0.05">5% (Esp.)</option>
+                        <option [value]="0.0">Exento (0%)</option>
+                      </select>
+                    </td>
+                    <td>
+                      <input 
+                        type="number" 
+                        [value]="item.discount" 
+                        (input)="updateItemField(i, 'discount', $event)"
+                        min="0"
+                        max="100"
+                        placeholder="0"
+                        class="num-input center"
+                      />
+                    </td>
+                    <td class="item-total-col">
+                      {{ (item.quantity * item.unitPrice * (1 - item.discount / 100) * (1 + item.taxRate)) | currency:'COP':'symbol-narrow':'1.0-0' }}
+                    </td>
+                    <td style="text-align: center;">
+                      <button type="button" class="delete-row-btn" (click)="removeItem(i)" [disabled]="items().length === 1">
+                        <span class="material-symbols-outlined">delete</span>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="table-empty-state" *ngIf="items().length === 0">
+              <span class="material-symbols-outlined">shopping_cart</span>
+              <p>No hay ítems agregados. Agrega un ítem personalizado o haz clic en los servicios rápidos de la derecha.</p>
+            </div>
+          </section>
+
+          <!-- OBSERVACIONES -->
+          <section class="card form-card">
+            <h3>Notas y Observaciones del Cobro</h3>
+            <div class="form-group">
+              <textarea 
+                [ngModel]="notes()" 
+                (ngModelChange)="notes.set($event)" 
+                name="notes"
+                placeholder="Ingresa notas visibles para el tutor en su factura (ej: datos de transferencia bancaria, recomendaciones de pago)..."
+                rows="3"
+              ></textarea>
+            </div>
+          </section>
+
+          <!-- ACCIONES FINALES -->
+          <div class="form-actions-row">
+            <a routerLink="/billing" class="btn btn-ghost">Cancelar</a>
+            <button type="submit" class="btn btn-primary" [disabled]="submitting() || !selectedTutorId() || items().length === 0">
+              <span class="material-symbols-outlined" *ngIf="!submitting()">save</span>
+              <span class="spinner-sm" *ngIf="submitting()"></span>
+              Guardar Factura Borrador
+            </button>
+          </div>
+        </form>
+      </main>
+
+      <!-- COLUMNA DERECHA: SIDEBAR DE PLANTILLAS Y TOTALES -->
+      <aside class="form-sidebar">
+        <!-- CARD: SERVICIOS RÁPIDOS -->
+        <div class="card sidebar-card template-card">
+          <h3>Plantillas de Servicios</h3>
+          <p class="sidebar-help">Haz clic para agregar rápidamente un servicio al listado.</p>
+          
+          <div class="template-list">
+            <button 
+              type="button" 
+              class="template-btn" 
+              *ngFor="let s of quickServices" 
+              (click)="addQuickService(s)"
+            >
+              <div class="template-info">
+                <strong>{{ s.name }}</strong>
+                <span>{{ s.price | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+              </div>
+              <span class="material-symbols-outlined plus-icon">add_circle</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- CARD: RESUMEN DE TOTALES -->
+        <div class="card sidebar-card totals-card">
+          <h3>Resumen del Comprobante</h3>
+          
+          <div class="totals-breakdown">
+            <div class="total-row">
+              <span>Subtotal Neto</span>
+              <strong>{{ totals().subtotal | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
+            </div>
+
+            <div class="total-row" *ngIf="totals().discountTotal > 0">
+              <span>Descuentos Aplicados</span>
+              <strong style="color: #0d9488;">- {{ totals().discountTotal | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
+            </div>
+
+            <div class="total-row">
+              <span>Impuestos (IVA)</span>
+              <strong>{{ totals().taxTotal | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
+            </div>
+
+            <div class="total-row net-total">
+              <span>Total a Cobrar</span>
+              <h2>{{ totals().total | currency:'COP':'symbol-narrow':'1.0-0' }}</h2>
+            </div>
+          </div>
+
+          <div class="totals-footer-badge">
+            <span class="material-symbols-outlined">info</span>
+            <span>Localizado con impuestos regulados de Colombia (COP)</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>

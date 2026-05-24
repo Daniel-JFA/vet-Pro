@@ -1,0 +1,660 @@
+.billing-receipt-page {
+  padding: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+  min-height: 100vh;
+  position: relative;
+  font-family: 'Outfit', sans-serif;
+  color: var(--text-color, #1e293b);
+  background-color: var(--bg-color, #f8fafc);
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  border-radius: 12px;
+
+  .spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid rgba(16, 185, 129, 0.2);
+    border-top-color: var(--primary-color, #10b981);
+    border-radius: 50%;
+    animation: spin 1s infinite linear;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.receipt-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+// Top actions bar
+.top-actions-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--primary-color, #10b981);
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: transform 0.2s ease;
+
+    &:hover {
+      transform: translateX(-4px);
+    }
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+}
+
+// Global buttons
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &.btn-primary {
+    background: linear-gradient(135deg, var(--primary-color, #10b981) 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
+    }
+
+    &.btn-accent {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25);
+
+      &:hover {
+        box-shadow: 0 6px 20px rgba(2, 132, 199, 0.35);
+      }
+    }
+  }
+
+  &.btn-ghost {
+    background: white;
+    border: 1px solid #cbd5e1;
+    color: #475569;
+
+    &:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+  }
+}
+
+// THE PHYSICAL INVOICE SHEET
+.invoice-sheet {
+  background: white;
+  border-radius: 16px;
+  padding: 3.5rem;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 10px 40px -10px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  position: relative;
+  box-sizing: border-box;
+
+  .pre-wrapped {
+    white-space: pre-wrap;
+    line-height: 1.5;
+  }
+}
+
+// Header
+.sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2rem;
+  border-bottom: 2px solid #f1f5f9;
+  padding-bottom: 2rem;
+  flex-wrap: wrap;
+
+  .clinic-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+
+    .clinic-logo-text {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--primary-color, #10b981);
+      margin-bottom: 0.25rem;
+
+      span {
+        font-size: 24px;
+      }
+
+      h2 {
+        font-size: 1.55rem;
+        font-weight: 850;
+        letter-spacing: -0.03em;
+        margin: 0;
+        color: #0f172a;
+      }
+    }
+
+    .clinic-subtext {
+      font-size: 0.85rem;
+      color: #64748b;
+      margin: 0;
+    }
+  }
+
+  .invoice-meta-box {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+    gap: 0.5rem;
+
+    .sheet-badge {
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      letter-spacing: 0.05em;
+
+      &[data-status="paid"] { background: #dcfce7; color: #15803d; }
+      &[data-status="partial"] { background: #ffedd5; color: #c2410c; }
+      &[data-status="issued"] { background: #e0f2fe; color: #0369a1; }
+      &[data-status="draft"] { background: #f1f5f9; color: #475569; }
+      &[data-status="void"] { background: #ffe4e6; color: #b91c1c; }
+    }
+
+    .invoice-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 0.25rem;
+    }
+
+    .invoice-number {
+      font-family: 'Fira Code', monospace;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #0f172a;
+      background: #f1f5f9;
+      padding: 0.25rem 0.75rem;
+      border-radius: 8px;
+    }
+
+    .invoice-dates {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
+      color: #64748b;
+
+      p {
+        margin: 0;
+      }
+
+      strong {
+        color: #334155;
+      }
+    }
+  }
+}
+
+// Client Info Box
+.sheet-client-section {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+
+  h3 {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #475569;
+    letter-spacing: 0.05em;
+    margin: 0;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 0.5rem;
+  }
+
+  .client-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+
+    .client-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+
+      span {
+        font-size: 0.75rem;
+        color: #94a3b8;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+
+      strong {
+        font-size: 0.95rem;
+        color: #1e293b;
+      }
+
+      &.grid-full {
+        grid-column: 1 / -1;
+      }
+    }
+  }
+}
+
+// Items Table List
+.sheet-items-section {
+  .sheet-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+
+    th {
+      border-bottom: 2px solid #cbd5e1;
+      padding: 0.75rem 0.5rem;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    td {
+      padding: 1rem 0.5rem;
+      border-bottom: 1px solid #e2e8f0;
+      color: #334155;
+    }
+  }
+}
+
+// Footer, Notes and Totals
+.sheet-footer {
+  display: flex;
+  gap: 3rem;
+  justify-content: space-between;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .sheet-notes {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    h4 {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #64748b;
+      margin: 0;
+    }
+
+    .notes-text {
+      font-size: 0.85rem;
+      color: #64748b;
+      line-height: 1.5;
+      margin: 0;
+      white-space: pre-wrap;
+    }
+  }
+
+  .sheet-totals {
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+
+    @media (max-width: 768px) {
+      width: 100%;
+    }
+
+    .totals-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      color: #64748b;
+
+      strong {
+        color: #1e293b;
+      }
+
+      &.highlight {
+        border-top: 1px solid #e2e8f0;
+        padding-top: 0.75rem;
+        color: #0f172a;
+
+        span {
+          font-weight: 700;
+          font-size: 0.9rem;
+        }
+
+        h3 {
+          font-size: 1.40rem;
+          font-weight: 800;
+          margin: 0;
+        }
+      }
+
+      &.balance-row {
+        border-top: 2px solid #cbd5e1;
+        padding-top: 0.75rem;
+
+        span {
+          font-weight: 700;
+          font-size: 0.95rem;
+        }
+
+        h2 {
+          font-size: 1.85rem;
+          font-weight: 850;
+          margin: 0;
+          letter-spacing: -0.03em;
+        }
+      }
+    }
+  }
+}
+
+// Modals Overlays
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 1.5rem;
+
+  .modal-card {
+    background: white;
+    border-radius: 20px;
+    max-width: 500px;
+    width: 100%;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    animation: modalSlideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    .modal-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid #f1f5f9;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      h2 {
+        font-size: 1.15rem;
+        font-weight: 700;
+        margin: 0;
+        color: #0f172a;
+      }
+
+      .close-btn {
+        background: none;
+        border: none;
+        outline: none;
+        color: #94a3b8;
+        cursor: pointer;
+        transition: color 0.2s ease;
+
+        &:hover {
+          color: #475569;
+        }
+
+        span { font-size: 1.25rem; }
+      }
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+
+      // Summary Box inside Payment Modal
+      .invoice-summary-box {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 1rem;
+        border: 1px solid #e2e8f0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+
+        p {
+          font-size: 0.875rem;
+          color: #475569;
+          margin: 0;
+        }
+
+        .monto-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1rem;
+          margin-top: 0.5rem;
+          border-top: 1px solid #e2e8f0;
+          padding-top: 0.5rem;
+
+          span {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-weight: 600;
+            text-transform: uppercase;
+          }
+
+          h4 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0.15rem 0 0;
+          }
+        }
+      }
+
+      // WhatsApp Simulator Bubble Preview
+      .whatsapp-bubble-preview {
+        background: #e5ddd5;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid #cbd5e1;
+
+        .bubble-header {
+          background: #075e54;
+          color: white;
+          padding: 0.625rem 1rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.8rem;
+          font-weight: 600;
+
+          span {
+            font-size: 1.15rem;
+          }
+        }
+
+        .bubble-body {
+          padding: 1rem;
+          display: flex;
+          justify-content: flex-start;
+
+          p {
+            background: #d9fdd3;
+            color: #303030;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            font-size: 0.825rem;
+            line-height: 1.5;
+            margin: 0;
+            max-width: 90%;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+          }
+        }
+      }
+
+      // Forms inside Modal
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+
+        label {
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #475569;
+        }
+
+        input, select, textarea {
+          border: 1px solid #cbd5e1;
+          border-radius: 8px;
+          padding: 0.625rem 0.875rem;
+          font-size: 0.9rem;
+          outline: none;
+          font-family: inherit;
+          color: #334155;
+          width: 100%;
+          box-sizing: border-box;
+          transition: border-color 0.2s ease;
+
+          &:focus {
+            border-color: var(--primary-color, #10b981);
+          }
+        }
+
+        textarea {
+          resize: vertical;
+        }
+      }
+    }
+
+    .modal-footer {
+      padding: 1.25rem 1.5rem;
+      border-top: 1px solid #f1f5f9;
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      background: #f8fafc;
+    }
+  }
+}
+
+@keyframes modalSlideUp {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+// REAL PRINT A4 STYLING RULES
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .billing-receipt-page {
+    padding: 0;
+    max-width: 100%;
+    background: white;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .invoice-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  .sheet-header {
+    border-bottom: 2px solid #475569 !important;
+  }
+
+  .sheet-client-section {
+    background: white !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 1rem !important;
+  }
+
+  .sheet-items-section {
+    .sheet-table {
+      th {
+        border-bottom: 2px solid #475569 !important;
+      }
+    }
+  }
+
+  .sheet-footer {
+    border-top: 1px solid #e2e8f0;
+    padding-top: 1.5rem;
+    
+    .sheet-totals {
+      .totals-row {
+        &.balance-row {
+          border-top-color: #475569 !important;
+        }
+      }
+    }
+  }
+}

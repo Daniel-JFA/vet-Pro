@@ -1,0 +1,249 @@
+<div class="billing-page">
+  <div class="loading-overlay" *ngIf="loading()">
+    <div class="spinner"></div>
+  </div>
+
+  <div *ngIf="!loading()" class="billing-wrapper">
+    <!-- Cabecera de Página -->
+    <header class="page-header">
+      <div>
+        <h1 class="page-title">Módulo de Facturación</h1>
+        <p class="page-subtitle">Gestiona cobros, abonos y estados de cuentas de los tutores.</p>
+      </div>
+      <a [routerLink]="['/billing/new']" class="btn btn-primary no-print">
+        <span class="material-symbols-outlined">add_card</span>
+        Nueva Factura
+      </a>
+    </header>
+
+    <!-- KPI / Tarjetas de Estadísticas -->
+    <section class="stats-grid">
+      <div class="card stat-card">
+        <div class="stat-icon" style="background-color: #ebf5ff; color: #1e88e5;">
+          <span class="material-symbols-outlined">payments</span>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">Total Facturado</span>
+          <h3>{{ stats().invoiced | currency:'COP':'symbol-narrow':'1.0-0' }}</h3>
+        </div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-icon" style="background-color: #e6fffa; color: #0d9488;">
+          <span class="material-symbols-outlined">price_check</span>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">Total Recaudado</span>
+          <h3>{{ stats().collected | currency:'COP':'symbol-narrow':'1.0-0' }}</h3>
+        </div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="stat-icon" style="background-color: #fff5f5; color: #e53e3e;">
+          <span class="material-symbols-outlined">pending_actions</span>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">Saldo Pendiente</span>
+          <h3>{{ stats().pending | currency:'COP':'symbol-narrow':'1.0-0' }}</h3>
+        </div>
+      </div>
+    </section>
+
+    <!-- Barra de Filtros -->
+    <section class="filters-bar no-print">
+      <div class="search-box">
+        <span class="material-symbols-outlined">search</span>
+        <input 
+          type="text" 
+          [ngModel]="search()" 
+          (ngModelChange)="search.set($event)" 
+          placeholder="Buscar por factura, tutor o teléfono..." 
+        />
+      </div>
+
+      <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
+        <option value="all">Todos los estados</option>
+        <option value="draft">Borradores</option>
+        <option value="issued">Emitidas</option>
+        <option value="partial">Abono Parcial</option>
+        <option value="paid">Pagadas</option>
+        <option value="void">Anuladas</option>
+      </select>
+
+      <div class="result-count">
+        Mostrando {{ filteredInvoices().length }} facturas registradas
+      </div>
+    </section>
+
+    <!-- Tabla de Facturas -->
+    <div class="table-wrapper">
+      <table class="data-table" *ngIf="filteredInvoices().length > 0">
+        <thead>
+          <tr>
+            <th>Consecutivo</th>
+            <th>Fecha</th>
+            <th>Tutor / Responsable</th>
+            <th>Total Facturado</th>
+            <th>Abonado</th>
+            <th>Saldo Pendiente</th>
+            <th>Estado</th>
+            <th style="text-align: right;" class="no-print">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of filteredInvoices(); trackBy: trackById">
+            <td>
+              <strong class="mono">{{ item.invoiceNumber }}</strong>
+            </td>
+            <td>{{ item.issuedAt | date:'mediumDate' }}</td>
+            <td>
+              <div class="tutor-cell" *ngIf="item.tutor">
+                <strong>{{ item.tutor.firstName }} {{ item.tutor.lastName }}</strong>
+                <span class="phone" *ngIf="item.tutor.phone">📞 {{ item.tutor.phone }}</span>
+              </div>
+            </td>
+            <td>
+              <strong>{{ item.total | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
+              <div class="subtotal-small">Base: {{ item.subtotal | currency:'COP':'symbol-narrow':'1.0-0' }}</div>
+            </td>
+            <td style="color: #0d9488;">
+              {{ item.amountPaid | currency:'COP':'symbol-narrow':'1.0-0' }}
+            </td>
+            <td [style.color]="item.balance > 0 ? '#e53e3e' : '#475569'">
+              <strong>{{ item.balance | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
+            </td>
+            <td>
+              <span class="status-pill" [attr.data-status]="item.status">
+                {{ statusLabel(item.status) }}
+              </span>
+            </td>
+            <td class="no-print">
+              <div class="actions-cell">
+                <a [routerLink]="['/billing', item.id]" class="action-btn" title="Ver Recibo / PDF">
+                  <span class="material-symbols-outlined">receipt_long</span>
+                </a>
+                <button 
+                  class="action-btn action-btn-accent" 
+                  *ngIf="item.status !== 'paid' && item.status !== 'void'"
+                  (click)="openPaymentModal(item)"
+                  title="Registrar Abono"
+                >
+                  <span class="material-symbols-outlined">payments</span>
+                </button>
+                <button 
+                  class="action-btn action-btn-danger" 
+                  *ngIf="item.status !== 'void'"
+                  (click)="openVoidModal(item)"
+                  title="Anular Factura"
+                >
+                  <span class="material-symbols-outlined">block</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Estado Vacío -->
+      <div class="empty-state" *ngIf="filteredInvoices().length === 0">
+        <span class="material-symbols-outlined empty-icon">sticky_note_2</span>
+        <h3>No se encontraron comprobantes</h3>
+        <p>Prueba con otros términos de búsqueda o cambia los filtros activos.</p>
+        <button class="btn btn-ghost" (click)="search.set(''); statusFilter.set('all')">
+          Limpiar Filtros
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE PAGO / ABONO -->
+  <div class="modal-overlay no-print" *ngIf="showPaymentModal()">
+    <div class="modal-card">
+      <header class="modal-header">
+        <h2>Registrar Abono o Pago Completo</h2>
+        <button class="close-btn" (click)="closePaymentModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </header>
+      
+      <main class="modal-body">
+        <div class="invoice-summary-box">
+          <p>Factura: <strong>{{ selectedInvoice()?.invoiceNumber }}</strong></p>
+          <p>Cliente: <strong>{{ selectedInvoice()?.tutor?.firstName }} {{ selectedInvoice()?.tutor?.lastName }}</strong></p>
+          <div class="monto-grid">
+            <div>
+              <span>Total Factura</span>
+              <h4>{{ selectedInvoice()?.total | currency:'COP':'symbol-narrow':'1.0-0' }}</h4>
+            </div>
+            <div>
+              <span>Saldo Pendiente</span>
+              <h4 style="color: #e53e3e;">{{ selectedInvoice()?.balance | currency:'COP':'symbol-narrow':'1.0-0' }}</h4>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="payment-amount">Monto a Registrar (COP)</label>
+          <input 
+            type="number" 
+            id="payment-amount" 
+            [ngModel]="paymentAmount()" 
+            (ngModelChange)="paymentAmount.set($event)" 
+            max="{{ selectedInvoice()?.balance }}"
+            placeholder="Ej: 50000"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="payment-method">Método de Pago</label>
+          <select id="payment-method" [ngModel]="paymentMethod()" (ngModelChange)="paymentMethod.set($event)">
+            <option value="Efectivo">Efectivo</option>
+            <option value="Tarjeta Débito">Tarjeta Débito</option>
+            <option value="Tarjeta Crédito">Tarjeta Crédito</option>
+            <option value="Transferencia Bancaria (Nequi/Daviplata)">Transferencia Bancaria (Nequi/Daviplata)</option>
+          </select>
+        </div>
+      </main>
+
+      <footer class="modal-footer">
+        <button class="btn btn-ghost" (click)="closePaymentModal()">Cancelar</button>
+        <button class="btn btn-primary" (click)="submitPayment()">Confirmar Acreditación</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- MODAL DE ANULACIÓN -->
+  <div class="modal-overlay no-print" *ngIf="showVoidModal()">
+    <div class="modal-card">
+      <header class="modal-header">
+        <h2 style="color: #e53e3e;">Anular Factura</h2>
+        <button class="close-btn" (click)="closeVoidModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </header>
+
+      <main class="modal-body">
+        <div class="alert-box-danger">
+          <span class="material-symbols-outlined">warning</span>
+          <p><strong>Atención:</strong> Esta acción anulará la factura definitivamente. Se cancelará cualquier saldo pendiente y quedará guardado el registro del motivo.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="void-reason">Motivo de la Anulación</label>
+          <textarea 
+            id="void-reason" 
+            [ngModel]="voidReason()" 
+            (ngModelChange)="voidReason.set($event)" 
+            placeholder="Indica el motivo (ej: error en ítems, factura duplicada)..."
+            rows="4"
+          ></textarea>
+        </div>
+      </main>
+
+      <footer class="modal-footer">
+        <button class="btn btn-ghost" (click)="closeVoidModal()">Cancelar</button>
+        <button class="btn btn-danger" (click)="submitVoid()">Confirmar Anulación</button>
+      </footer>
+    </div>
+  </div>
+</div>

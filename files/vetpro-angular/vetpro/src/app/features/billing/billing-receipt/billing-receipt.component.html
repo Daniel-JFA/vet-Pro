@@ -1,0 +1,270 @@
+<div class="billing-receipt-page">
+  <div class="loading-overlay" *ngIf="loading()">
+    <div class="spinner"></div>
+  </div>
+
+  <div *ngIf="!loading() && invoice()" class="receipt-container">
+    <!-- BARRA DE ACCIONES SUPERIOR -->
+    <div class="top-actions-bar no-print">
+      <a routerLink="/billing" class="back-link">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Volver a Facturas
+      </a>
+
+      <div class="action-buttons">
+        <!-- Formalizar factura borrador -->
+        <button 
+          class="btn btn-primary" 
+          *ngIf="invoice()?.status === 'draft'"
+          (click)="issueInvoice()"
+        >
+          <span class="material-symbols-outlined">gavel</span>
+          Formalizar y Emitir
+        </button>
+
+        <!-- Registrar abono si tiene saldo pendiente -->
+        <button 
+          class="btn btn-primary btn-accent" 
+          *ngIf="invoice()?.balance! > 0 && invoice()?.status !== 'void' && invoice()?.status !== 'draft'"
+          (click)="openPaymentModal()"
+        >
+          <span class="material-symbols-outlined">payments</span>
+          Abonar / Pagar
+        </button>
+
+        <!-- Compartir por WhatsApp -->
+        <button 
+          class="btn btn-ghost" 
+          *ngIf="invoice()?.status !== 'draft'"
+          (click)="shareWhatsApp()"
+        >
+          <span class="material-symbols-outlined">chat</span>
+          Compartir WhatsApp
+        </button>
+
+        <!-- Imprimir -->
+        <button class="btn btn-ghost" (click)="printReceipt()">
+          <span class="material-symbols-outlined">print</span>
+          Imprimir / PDF
+        </button>
+      </div>
+    </div>
+
+    <!-- EL DOCUMENTO FÍSICO DE LA FACTURA -->
+    <div class="invoice-sheet" id="print-area">
+      <!-- CABECERA DE LA CLÍNICA -->
+      <header class="sheet-header">
+        <div class="clinic-info">
+          <div class="clinic-logo-text">
+            <span class="material-symbols-outlined">local_hospital</span>
+            <h2>VETPRO SAS</h2>
+          </div>
+          <p class="clinic-subtext">NIT: 900.123.456-1</p>
+          <p class="clinic-subtext">Calle 100 #15-30, Bogotá D.C.</p>
+          <p class="clinic-subtext">Teléfono: +57 312 456 7890 | Correo: contacto@vetpro.co</p>
+        </div>
+
+        <div class="invoice-meta-box">
+          <span class="sheet-badge" [attr.data-status]="invoice()?.status">
+            {{ statusLabel(invoice()?.status || 'draft').toUpperCase() }}
+          </span>
+          <div class="invoice-title">FACTURA DE VENTA</div>
+          <div class="invoice-number mono">{{ invoice()?.invoiceNumber }}</div>
+          <div class="invoice-dates">
+            <p>Fecha Emisión: <strong>{{ invoice()?.issuedAt ? (invoice()?.issuedAt | date:'mediumDate') : 'Borrador' }}</strong></p>
+            <p *ngIf="invoice()?.dueAt">Vencimiento: <strong>{{ invoice()?.dueAt | date:'mediumDate' }}</strong></p>
+          </div>
+        </div>
+      </header>
+
+      <!-- DATOS DEL TUTOR / CLIENTE -->
+      <section class="sheet-client-section">
+        <h3>Datos del Cliente / Responsable</h3>
+        <div class="client-grid" *ngIf="invoice()?.tutor">
+          <div class="client-field">
+            <span>Señor(a)</span>
+            <strong>{{ invoice()?.tutor?.firstName }} {{ invoice()?.tutor?.lastName }}</strong>
+          </div>
+          <div class="client-field" *ngIf="invoice()?.tutor?.documentId">
+            <span>Cédula / NIT</span>
+            <strong>{{ invoice()?.tutor?.documentId }}</strong>
+          </div>
+          <div class="client-field">
+            <span>Teléfono</span>
+            <strong>{{ invoice()?.tutor?.phone }}</strong>
+          </div>
+          <div class="client-field" *ngIf="invoice()?.tutor?.email">
+            <span>Correo</span>
+            <strong>{{ invoice()?.tutor?.email }}</strong>
+          </div>
+          <div class="client-field grid-full" *ngIf="invoice()?.tutor?.address">
+            <span>Dirección de Residencia</span>
+            <strong>{{ invoice()?.tutor?.address }}</strong>
+          </div>
+        </div>
+      </section>
+
+      <!-- TABLA DE ITEMS VENDIDOS -->
+      <section class="sheet-items-section">
+        <table class="sheet-table">
+          <thead>
+            <tr>
+              <th>Descripción del Servicio / Medicamento</th>
+              <th style="width: 80px; text-align: center;">Cant.</th>
+              <th style="width: 140px; text-align: right;">Unitario ($)</th>
+              <th style="width: 80px; text-align: center;">IVA</th>
+              <th style="width: 80px; text-align: center;">Desc.</th>
+              <th style="width: 140px; text-align: right;">Total ($)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of invoice()?.items">
+              <td><strong>{{ item.description }}</strong></td>
+              <td style="text-align: center;">{{ item.quantity }}</td>
+              <td style="text-align: right;">{{ item.unitPrice | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+              <td style="text-align: center;">{{ (item.taxRate * 100) }}%</td>
+              <td style="text-align: center;">{{ item.discount }}%</td>
+              <td style="text-align: right; font-weight: 700;">
+                {{ item.total | currency:'COP':'symbol-narrow':'1.0-0' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- TOTALES Y NOTAS -->
+      <footer class="sheet-footer">
+        <!-- NOTAS -->
+        <div class="sheet-notes">
+          <h4>Condiciones e Instrucciones de Pago:</h4>
+          <p class="notes-text" *ngIf="invoice()?.notes">{{ invoice()?.notes }}</p>
+          <p class="notes-text" *ngIf="!invoice()?.notes">
+            Favor realizar transferencias a nuestra cuenta corriente Bancolombia No. 123-456789-01 a nombre de VetPro SAS. Enviar soporte de pago por WhatsApp.
+          </p>
+        </div>
+
+        <!-- TOTALES FINALES -->
+        <div class="sheet-totals">
+          <div class="totals-row">
+            <span>Subtotal Neto</span>
+            <strong>{{ invoice()?.subtotal | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
+          </div>
+          <div class="totals-row">
+            <span>Impuestos (IVA)</span>
+            <strong>{{ invoice()?.taxTotal | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
+          </div>
+          <div class="totals-row highlight">
+            <span>Valor Total</span>
+            <h3>{{ invoice()?.total | currency:'COP':'symbol-narrow':'1.0-0' }}</h3>
+          </div>
+          <div class="totals-row" style="color: #0d9488;">
+            <span>Monto Pagado</span>
+            <strong>{{ invoice()?.amountPaid | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
+          </div>
+          <div class="totals-row balance-row" [style.color]="invoice()?.balance! > 0 ? '#e53e3e' : '#334155'">
+            <span>Saldo Restante</span>
+            <h2>{{ invoice()?.balance | currency:'COP':'symbol-narrow':'1.0-0' }}</h2>
+          </div>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- MODAL DE PAGO / ABONO -->
+  <div class="modal-overlay no-print" *ngIf="showPaymentModal()">
+    <div class="modal-card">
+      <header class="modal-header">
+        <h2>Registrar Abono o Pago Completo</h2>
+        <button class="close-btn" (click)="closePaymentModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </header>
+      
+      <main class="modal-body">
+        <div class="invoice-summary-box">
+          <p>Factura: <strong>{{ invoice()?.invoiceNumber }}</strong></p>
+          <p>Cliente: <strong>{{ invoice()?.tutor?.firstName }} {{ invoice()?.tutor?.lastName }}</strong></p>
+          <div class="monto-grid">
+            <div>
+              <span>Total Factura</span>
+              <h4>{{ invoice()?.total | currency:'COP':'symbol-narrow':'1.0-0' }}</h4>
+            </div>
+            <div>
+              <span>Saldo Pendiente</span>
+              <h4 style="color: #e53e3e;">{{ invoice()?.balance | currency:'COP':'symbol-narrow':'1.0-0' }}</h4>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="payment-amount">Monto a Registrar (COP)</label>
+          <input 
+            type="number" 
+            id="payment-amount" 
+            [ngModel]="paymentAmount()" 
+            (ngModelChange)="paymentAmount.set($event)" 
+            max="{{ invoice()?.balance }}"
+            placeholder="Ej: 50000"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="payment-method">Método de Pago</label>
+          <select id="payment-method" [ngModel]="paymentMethod()" (ngModelChange)="paymentMethod.set($event)">
+            <option value="Efectivo">Efectivo</option>
+            <option value="Tarjeta Débito">Tarjeta Débito</option>
+            <option value="Tarjeta Crédito">Tarjeta Crédito</option>
+            <option value="Transferencia Bancaria (Nequi/Daviplata)">Transferencia Bancaria (Nequi/Daviplata)</option>
+          </select>
+        </div>
+      </main>
+
+      <footer class="modal-footer">
+        <button class="btn btn-ghost" (click)="closePaymentModal()">Cancelar</button>
+        <button class="btn btn-primary" (click)="submitPayment()">Confirmar Acreditación</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- MODAL DE WHATSAPP -->
+  <div class="modal-overlay no-print" *ngIf="showWhatsAppModal()">
+    <div class="modal-card">
+      <header class="modal-header">
+        <h2>Enviar Comprobante por WhatsApp</h2>
+        <button class="close-btn" (click)="closeWhatsAppModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </header>
+
+      <main class="modal-body">
+        <div class="whatsapp-bubble-preview">
+          <header class="bubble-header">
+            <span class="material-symbols-outlined">chat</span>
+            <span>Previsualización del mensaje</span>
+          </header>
+          <div class="bubble-body">
+            <p class="pre-wrapped">{{ whatsappMessage() }}</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="wa-msg">Edita el mensaje antes de enviar</label>
+          <textarea 
+            id="wa-msg" 
+            [ngModel]="whatsappMessage()" 
+            (ngModelChange)="whatsappMessage.set($event)" 
+            rows="6"
+          ></textarea>
+        </div>
+      </main>
+
+      <footer class="modal-footer">
+        <button class="btn btn-ghost" (click)="closeWhatsAppModal()">Cerrar</button>
+        <button class="btn btn-primary" (click)="sendWhatsAppReal()" style="background-color: #25d366; box-shadow: 0 4px 14px rgba(37, 211, 102, 0.25);">
+          <span class="material-symbols-outlined">send</span>
+          Abrir en WhatsApp Web
+        </button>
+      </footer>
+    </div>
+  </div>
+</div>
