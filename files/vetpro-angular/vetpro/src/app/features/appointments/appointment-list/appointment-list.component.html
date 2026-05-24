@@ -207,13 +207,22 @@
               <p class="reason-text" *ngIf="app.reason">"{{ app.reason }}"</p>
             </div>
 
-            <footer class="card-actions">
+            <footer class="card-actions" style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: space-between; width: 100%;">
+              <a 
+                [routerLink]="['/medical-records', 'new', app.patientId]"
+                class="btn-action btn-action-primary" 
+                style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 4px; flex: 1; min-width: 120px;"
+              >
+                <span class="material-symbols-outlined" style="font-size: 18px;">stethoscope</span>
+                Registrar SOAP
+              </a>
               <button 
                 class="btn-action btn-action-gray" 
                 (click)="changeStatus(app, 'done')"
+                style="flex: 1; min-width: 100px; display: inline-flex; align-items: center; justify-content: center; gap: 4px;"
               >
-                <span class="material-symbols-outlined">task_alt</span>
-                Finalizar Consulta
+                <span class="material-symbols-outlined" style="font-size: 18px;">task_alt</span>
+                Finalizar
               </button>
             </footer>
           </div>

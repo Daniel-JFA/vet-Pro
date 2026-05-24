@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AppointmentService } from '../../../core/services/appointment.service';
 import { Appointment, Patient, Tutor } from '../../../core/models';
@@ -14,6 +14,7 @@ import { Appointment, Patient, Tutor } from '../../../core/models';
 })
 export class AppointmentListComponent implements OnInit {
   private svc = inject(AppointmentService);
+  private router = inject(Router);
 
   appointments = signal<Appointment[]>([]);
   loading = signal(true);
@@ -66,10 +67,16 @@ export class AppointmentListComponent implements OnInit {
     this.svc.updateStatus(app.id, newStatus).subscribe({
       next: updated => {
         this.updateLocalStatus(app.id, newStatus);
+        if (newStatus === 'in-progress') {
+          this.router.navigate(['/medical-records', 'new', app.patientId]);
+        }
       },
       error: () => {
         // Fallback local offline exitoso
         this.updateLocalStatus(app.id, newStatus);
+        if (newStatus === 'in-progress') {
+          this.router.navigate(['/medical-records', 'new', app.patientId]);
+        }
       }
     });
   }
