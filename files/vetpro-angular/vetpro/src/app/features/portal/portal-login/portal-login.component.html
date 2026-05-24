@@ -1,0 +1,96 @@
+<div class="login-wrapper">
+  <div class="login-container glass-effect animate-fade-in">
+    <div class="card-glow"></div>
+    
+    <!-- Cabecera de Identidad -->
+    <header class="login-header">
+      <div class="logo-area">
+        <span class="material-symbols-outlined logo-icon">pets</span>
+        <span class="logo-text">VetPro<span class="logo-accent">Portal</span></span>
+      </div>
+      <h1>Acceso sin Contraseña</h1>
+      <p>Ingresa tu número telefónico registrado para recibir un enlace de acceso seguro por WhatsApp.</p>
+    </header>
+
+    <!-- Estado de Error -->
+    <div *ngIf="error()" class="alert-box error-alert animate-shake">
+      <span class="material-symbols-outlined">error</span>
+      <p>{{ error() }}</p>
+    </div>
+
+    <!-- Formulario Principal -->
+    <form *ngIf="!success()" (ngSubmit)="onSubmit()" class="login-form">
+      <div class="form-group">
+        <label for="phone">Número de Celular</label>
+        <div class="input-wrapper">
+          <span class="material-symbols-outlined input-icon">smartphone</span>
+          <input 
+            type="tel" 
+            id="phone" 
+            name="phone" 
+            [(ngModel)]="phone"
+            placeholder="Ej: 3124567890" 
+            required 
+            [disabled]="loading()"
+            autocomplete="tel"
+          />
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn" [disabled]="loading()">
+        <span *ngIf="!loading()">Recibir Enlace por WhatsApp</span>
+        <span *ngIf="loading()" class="spinner animate-spin"></span>
+        <span *ngIf="loading()">Enviando enlace...</span>
+      </button>
+    </form>
+
+    <!-- Estado de Éxito / Mock Link para Desarrollo -->
+    <div *ngIf="success()" class="success-container animate-fade-in">
+      <div class="success-badge">
+        <span class="material-symbols-outlined">check_circle</span>
+      </div>
+      <h3>¡Enlace Enviado!</h3>
+      <p>Hemos generado tu enlace de acceso seguro.</p>
+
+      <!-- Panel especial para Desarrollo Local -->
+      <div *ngIf="magicLink()" class="dev-panel glass-effect">
+        <div class="dev-header">
+          <span class="material-symbols-outlined">terminal</span>
+          <h4>Entorno de Desarrollo Local</h4>
+        </div>
+        <p>En producción, este enlace se envía automáticamente por la API de WhatsApp. Puedes simular la acción dando clic aquí:</p>
+        <button (click)="navigateToMagicLink()" class="dev-action-btn">
+          <span class="material-symbols-outlined">login</span>
+          Iniciar Sesión Inmediatamente
+        </button>
+      </div>
+
+      <button (click)="success.set(false)" class="back-btn">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Volver a intentar
+      </button>
+    </div>
+
+    <!-- Sección de Números Demo para Desarrollo Local -->
+    <div *ngIf="!success()" class="demo-section">
+      <div class="demo-divider">
+        <span>O ACCEDE CON NÚMEROS DEMO</span>
+      </div>
+      <div class="demo-buttons">
+        <button 
+          *ngFor="let item of demoNumbers" 
+          type="button" 
+          (click)="useDemoNumber(item.number)"
+          [disabled]="loading()"
+          class="demo-btn"
+        >
+          <span class="material-symbols-outlined">account_circle</span>
+          <div class="demo-btn-text">
+            <span class="demo-name">{{ item.label }}</span>
+            <span class="demo-num">Tel: {{ item.number }}</span>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

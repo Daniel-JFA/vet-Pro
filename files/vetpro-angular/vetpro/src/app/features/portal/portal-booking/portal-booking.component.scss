@@ -1,0 +1,777 @@
+/* ==========================================================================
+   💎 VETPRO PORTAL BOOKING STYLESHEET (Emerald HSL theme)
+   ========================================================================== */
+
+.booking-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.booking-header {
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin: 0 0 6px;
+    letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff 0%, #a7f3d0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  p {
+    font-size: 0.9rem;
+    color: #9ca3af;
+    margin: 0;
+    line-height: 1.45;
+  }
+}
+
+/* Barra de Progreso del Asistente */
+.step-progress-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  margin: 10px 0 20px;
+  padding-inline: 10px;
+
+  .step-indicator {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(17, 24, 39, 0.8);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    color: #6b7280;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    z-index: 2;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &.active {
+      border-color: #10b981;
+      color: #34d399;
+      background: rgba(16, 185, 129, 0.1);
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+    }
+
+    &.current {
+      background: #10b981;
+      color: #ffffff;
+      border-color: #10b981;
+      transform: scale(1.1);
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+    }
+  }
+
+  .progress-line {
+    position: absolute;
+    top: 50%;
+    left: 20px;
+    width: calc(100% - 40px);
+    height: 2px;
+    background: rgba(255, 255, 255, 0.08);
+    z-index: 1;
+    transform: translateY(-50%);
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981 0%, #0d9488 100%);
+      transition: width 0.3s ease;
+    }
+  }
+}
+
+/* Estructura común de Pasos */
+.step-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  h3 {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin: 0;
+  }
+
+  .step-sub {
+    font-size: 0.88rem;
+    color: #9ca3af;
+    margin: -10px 0 10px;
+  }
+}
+
+.glass-effect {
+  background: rgba(17, 24, 39, 0.55);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* PASO 1: SELECCIONAR MASCOTA */
+.pets-selection-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pet-selection-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-radius: 16px;
+  padding: 14px 20px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: all 0.25s ease;
+
+  .avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.15);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #34d399;
+    overflow: hidden;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    span {
+      font-size: 1.5rem;
+    }
+  }
+
+  .meta {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+
+    .name {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .breed {
+      font-size: 0.78rem;
+      color: #9ca3af;
+      margin-top: 2px;
+    }
+  }
+
+  .check-icon {
+    color: #10b981;
+    font-size: 1.4rem;
+  }
+
+  &.selected {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.08);
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.05);
+  }
+}
+
+/* PASO 2: SELECCIONAR SERVICIO */
+.services-selection-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.service-selection-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  border-radius: 16px;
+  padding: 16px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: all 0.25s ease;
+
+  .svc-icon {
+    font-size: 1.6rem;
+    color: #34d399;
+    background: rgba(16, 185, 129, 0.08);
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(16, 185, 129, 0.15);
+  }
+
+  .meta {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+
+    h4 {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #ffffff;
+      margin: 0 0 4px;
+    }
+
+    p {
+      font-size: 0.78rem;
+      line-height: 1.4;
+      color: #9ca3af;
+      margin: 0;
+    }
+  }
+
+  &.selected {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.08);
+  }
+}
+
+/* PASO 3: SELECCIONAR VETERINARIO */
+.vets-selection-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.vet-selection-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-radius: 16px;
+  padding: 14px 20px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: all 0.25s ease;
+
+  .avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+    color: #ffffff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .meta {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+
+    .name {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .specialty {
+      font-size: 0.78rem;
+      color: #9ca3af;
+      margin-top: 2px;
+    }
+  }
+
+  .check-icon {
+    color: #10b981;
+    font-size: 1.4rem;
+  }
+
+  &.selected {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.08);
+  }
+}
+
+/* PASO 4: SELECCIONAR FECHA Y HORA */
+.datetime-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #cbd5e1;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  .icon {
+    position: absolute;
+    left: 16px;
+    color: #10b981;
+    font-size: 1.25rem;
+    pointer-events: none;
+  }
+
+  input[type="date"] {
+    width: 100%;
+    background: rgba(10, 15, 26, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 14px 16px 14px 48px;
+    color: #ffffff;
+    font-size: 1rem;
+    font-family: inherit;
+    box-sizing: border-box;
+    color-scheme: dark;
+    transition: all 0.3s ease;
+
+    &:focus {
+      outline: none;
+      border-color: #10b981;
+      box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+    }
+  }
+}
+
+.time-slots-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #cbd5e1;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+.slots-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+
+  @media (min-width: 480px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .slot-btn {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: #e2e8f0;
+    padding: 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: inherit;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #ffffff;
+    }
+
+    &.selected {
+      background: #10b981;
+      color: #ffffff;
+      border-color: #10b981;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+    }
+  }
+}
+
+/* PASO 5: RESUMEN DE RESERVA */
+.summary-card {
+  border-radius: 20px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.summary-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  padding-bottom: 12px;
+
+  &:last-of-type {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .icon {
+    font-size: 1.4rem;
+    color: #34d399;
+    background: rgba(16, 185, 129, 0.08);
+    padding: 6px;
+    border-radius: 8px;
+  }
+
+  .details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    strong {
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    span {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #ffffff;
+    }
+  }
+}
+
+.reason-group {
+  margin-top: 8px;
+
+  textarea {
+    width: 100%;
+    min-height: 80px;
+    background: rgba(10, 15, 26, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: #ffffff;
+    font-size: 0.9rem;
+    font-family: inherit;
+    box-sizing: border-box;
+    resize: vertical;
+    transition: border-color 0.3s ease;
+
+    &:focus {
+      outline: none;
+      border-color: #10b981;
+    }
+  }
+}
+
+/* BOTONES DE PASOS */
+.step-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+
+  button {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.3s ease;
+  }
+
+  .back-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #cbd5e1;
+
+    span {
+      font-size: 1.2rem;
+    }
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: #ffffff;
+    }
+  }
+
+  .next-btn {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    border: none;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+
+    span {
+      font-size: 1.2rem;
+    }
+
+    &:hover:not(:disabled) {
+      background: linear-gradient(135deg, #047857 0%, #059669 100%);
+      transform: translateY(-1px);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  .confirm-btn {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    border: none;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25);
+
+    span {
+      font-size: 1.2rem;
+    }
+
+    &:hover {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      transform: translateY(-1px);
+    }
+  }
+}
+
+/* PASO 6: PANTALLA DE ÉXITO */
+.success-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Notificación de WhatsApp */
+.whatsapp-notification {
+  background: rgba(20, 27, 37, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4), 0 0 15px rgba(37, 211, 102, 0.06);
+  box-sizing: border-box;
+
+  .notif-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+
+    .notif-logo {
+      width: 18px;
+      height: 18px;
+    }
+
+    .notif-meta {
+      flex: 1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      strong {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #ffffff;
+      }
+
+      span {
+        font-size: 0.7rem;
+        color: #6b7280;
+      }
+    }
+  }
+
+  .notif-body {
+    font-size: 0.825rem;
+    line-height: 1.45;
+    color: #e2e8f0;
+    margin: 0;
+
+    strong {
+      color: #34d399;
+      font-weight: 700;
+    }
+  }
+}
+
+.success-content {
+  border-radius: 24px;
+  padding: 40px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  .success-badge {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 16px;
+
+    span {
+      font-size: 3rem;
+      color: #10b981;
+    }
+  }
+
+  h2 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin: 0 0 10px;
+  }
+
+  p {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #9ca3af;
+    margin-bottom: 32px;
+    max-width: 320px;
+  }
+
+  .home-btn {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+    transition: all 0.3s ease;
+
+    span {
+      font-size: 1.25rem;
+    }
+
+    &:hover {
+      background: linear-gradient(135deg, #047857 0%, #059669 100%);
+      transform: translateY(-1px);
+    }
+  }
+}
+
+/* ── ANIMACIONES & CARGA ────────────────────────────── */
+
+.booking-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 80px 24px;
+  color: #9ca3af;
+  font-size: 0.9rem;
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  border-top-color: #34d399;
+  animation: spin 1s linear infinite;
+}
+
+.error-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+  border-radius: 16px;
+  text-align: center;
+  color: #f87171;
+  margin-bottom: 12px;
+
+  span {
+    font-size: 2rem;
+    color: #ef4444;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+
+  .retry-btn {
+    background: #ef4444;
+    border: none;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 0.825rem;
+    font-weight: 700;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+
+    &:hover {
+      background: #dc2626;
+    }
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}

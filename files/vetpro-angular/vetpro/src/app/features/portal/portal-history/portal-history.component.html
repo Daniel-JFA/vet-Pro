@@ -1,0 +1,195 @@
+<div class="history-container">
+  <!-- Botón Volver y Header Mascota -->
+  <header class="history-header animate-fade-in" *ngIf="patient() as pet">
+    <a routerLink="../../dashboard" class="back-link">
+      <span class="material-symbols-outlined">arrow_back</span>
+      Volver
+    </a>
+    
+    <div class="pet-profile-card glass-effect">
+      <div class="card-glow"></div>
+      
+      <div class="profile-info-wrapper">
+        <div class="pet-avatar">
+          <img 
+            *ngIf="pet.photoUrl" 
+            [src]="pet.photoUrl" 
+            [alt]="pet.name" 
+            class="avatar-img"
+          />
+          <div *ngIf="!pet.photoUrl" class="avatar-placeholder">
+            <span class="material-symbols-outlined">pets</span>
+          </div>
+        </div>
+
+        <div class="profile-meta">
+          <h1>{{ pet.name }}</h1>
+          <p class="species-breed">{{ getSpeciesLabel(pet.species) }} · {{ pet.breed || 'Sin raza' }}</p>
+          <div class="profile-chips">
+            <span class="pill-badge" [class.male]="pet.sex === 'male'" [class.female]="pet.sex === 'female'">
+              <span class="material-symbols-outlined icon">{{ pet.sex === 'male' ? 'male' : 'female' }}</span>
+              {{ pet.sex === 'male' ? 'Macho' : 'Hembra' }}
+            </span>
+            <span class="pill-badge status">
+              <span class="material-symbols-outlined icon">check_circle</span>
+              Activo
+            </span>
+            <span class="pill-badge chip" *ngIf="pet.chipId">
+              <span class="material-symbols-outlined icon">qr_code</span>
+              Chip: {{ pet.chipId }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Estado de Carga -->
+  <div *ngIf="loading()" class="history-loading">
+    <div class="spinner"></div>
+    <p>Consolidando ficha médica...</p>
+  </div>
+
+  <!-- Mensaje de Error -->
+  <div *ngIf="error()" class="error-panel animate-shake">
+    <span class="material-symbols-outlined">error</span>
+    <p>{{ error() }}</p>
+    <button (click)="loadHistory()" class="retry-btn">Reintentar</button>
+  </div>
+
+  <!-- Contenido Médico -->
+  <div *ngIf="!loading() && !error()" class="history-content animate-fade-in">
+    <!-- Selectores de Pestaña -->
+    <div class="tab-selector glass-effect">
+      <button 
+        (click)="activeTab.set('records')"
+        [class.active]="activeTab() === 'records'"
+        class="tab-btn"
+      >
+        <span class="material-symbols-outlined">history</span>
+        Historial Médico
+      </button>
+
+      <button 
+        (click)="activeTab.set('vaccines')"
+        [class.active]="activeTab() === 'vaccines'"
+        class="tab-btn"
+      >
+        <span class="material-symbols-outlined">vaccines</span>
+        Vacunas
+      </button>
+    </div>
+
+    <!-- PESTAÑA 1: HISTORIAL MÉDICO -->
+    <div *ngIf="activeTab() === 'records'" class="tab-pane animate-fade-in">
+      <div *ngIf="records().length === 0" class="empty-state glass-effect">
+        <span class="material-symbols-outlined empty-icon">sticky_note_2</span>
+        <h4>Sin consultas médicas</h4>
+        <p>Aún no se registran consultas ni procedimientos médicos para esta mascota.</p>
+      </div>
+
+      <div *ngIf="records().length > 0" class="records-timeline">
+        <div 
+          *ngFor="let rec of records()" 
+          class="record-timeline-item"
+        >
+          <!-- Indicador del timeline -->
+          <div class="timeline-dot"></div>
+          
+          <div class="record-card glass-effect animate-slide-up" [class.expanded]="expandedRecords()[rec.id]">
+            <div class="record-header" (click)="toggleRecord(rec.id)">
+              <div class="header-main">
+                <span class="date">{{ rec.createdAt | date: 'dd MMM, yyyy · h:mm a' }}</span>
+                <h3>{{ rec.title }}</h3>
+                <span class="vet-name">Dr(a). {{ rec.vet.firstName }} {{ rec.vet.lastName }}</span>
+              </div>
+              <button class="expand-btn">
+                <span class="material-symbols-outlined">
+                  {{ expandedRecords()[rec.id] ? 'expand_less' : 'expand_more' }}
+                </span>
+              </button>
+            </div>
+
+            <!-- Detalles Colapsables -->
+            <div class="record-details" *ngIf="expandedRecords()[rec.id]">
+              <div class="detail-section" *ngIf="rec.anamnesis">
+                <h4>Motivo & Anamnesis</h4>
+                <p>{{ rec.anamnesis }}</p>
+              </div>
+
+              <div class="detail-section" *ngIf="rec.physicalExam">
+                <h4>Examen Físico</h4>
+                <p>{{ rec.physicalExam }}</p>
+              </div>
+
+              <div class="detail-section" *ngIf="rec.diagnosis">
+                <h4>Diagnóstico</h4>
+                <p class="diagnosis-highlight">{{ rec.diagnosis }}</p>
+              </div>
+
+              <div class="detail-section" *ngIf="rec.treatment">
+                <h4>Tratamiento Indicado</h4>
+                <p class="treatment-highlight">{{ rec.treatment }}</p>
+              </div>
+
+              <div class="detail-section" *ngIf="rec.observations">
+                <h4>Observaciones</h4>
+                <p>{{ rec.observations }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PESTAÑA 2: CARTILLA DE VACUNAS -->
+    <div *ngIf="activeTab() === 'vaccines'" class="tab-pane animate-fade-in">
+      <div class="vaccines-header-row">
+        <h3>Cartilla Digital de Vacunas</h3>
+        <button (click)="printVaccineCard()" class="download-pdf-btn">
+          <span class="material-symbols-outlined">download</span>
+          Descargar Cartilla (PDF)
+        </button>
+      </div>
+
+      <div *ngIf="vaccines().length === 0" class="empty-state glass-effect">
+        <span class="material-symbols-outlined empty-icon">vaccines</span>
+        <h4>Sin vacunas aplicadas</h4>
+        <p>No hay vacunas registradas en el historial médico central.</p>
+      </div>
+
+      <!-- Tabla de Vacunas (Mobile friendly) -->
+      <div *ngIf="vaccines().length > 0" class="vaccines-list">
+        <div 
+          *ngFor="let vac of vaccines()" 
+          class="vaccine-row glass-effect animate-slide-up"
+        >
+          <div class="vaccine-meta">
+            <span class="material-symbols-outlined vaccine-icon">vaccines</span>
+            <div class="vaccine-info">
+              <h4>{{ vac.name }}</h4>
+              <p class="sub">{{ vac.brand || 'Zoetis/Nobivac' }} · Lote: {{ vac.batch || 'N/A' }}</p>
+            </div>
+          </div>
+
+          <div class="vaccine-dates">
+            <div class="date-group">
+              <strong>Aplicada el:</strong>
+              <span>{{ vac.appliedAt | date: 'dd MMM, yyyy' }}</span>
+            </div>
+            
+            <div class="date-group" *ngIf="vac.nextDueAt">
+              <strong>Siguiente dosis:</strong>
+              <span class="next-due">{{ vac.nextDueAt | date: 'dd MMM, yyyy' }}</span>
+            </div>
+          </div>
+
+          <div class="vaccine-vet">
+            <p>Veterinario: <strong>Dr(a). {{ vac.vet.firstName }} {{ vac.vet.lastName }}</strong></p>
+            <p class="notes" *ngIf="vac.notes">Nota: "{{ vac.notes }}"</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

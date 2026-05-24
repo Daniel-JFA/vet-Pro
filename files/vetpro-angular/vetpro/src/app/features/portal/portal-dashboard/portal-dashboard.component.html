@@ -1,0 +1,90 @@
+<div class="dashboard-container">
+  <!-- Tarjeta de Bienvenida -->
+  <section class="welcome-section animate-fade-in" *ngIf="authSvc.tutor() as tutor">
+    <div class="welcome-text">
+      <h1>¡Hola, {{ tutor.firstName }}! 👋</h1>
+      <p>Bienvenido a tu portal de salud animal. Supervisa vacunas, atenciones y reserva citas fácilmente.</p>
+    </div>
+  </section>
+
+  <!-- Estado de Carga -->
+  <div *ngIf="loading()" class="dashboard-loading">
+    <div class="spinner"></div>
+    <p>Cargando tus mascotas registradas...</p>
+  </div>
+
+  <!-- Mensaje de Error -->
+  <div *ngIf="error()" class="error-panel animate-shake">
+    <span class="material-symbols-outlined">error</span>
+    <p>{{ error() }}</p>
+    <button (click)="loadPatients()" class="retry-btn">Reintentar</button>
+  </div>
+
+  <!-- Contenido Principal -->
+  <div *ngIf="!loading() && !error()" class="dashboard-content animate-fade-in">
+    <div class="section-title">
+      <h3>Tus Mascotas</h3>
+      <span class="badge">{{ patients().length }}</span>
+    </div>
+
+    <!-- Si no hay mascotas registradas -->
+    <div *ngIf="patients().length === 0" class="empty-state glass-effect">
+      <span class="material-symbols-outlined empty-icon">sentiment_dissatisfied</span>
+      <h4>No tienes mascotas registradas</h4>
+      <p>Pídele a tu médico veterinario en clínica que asocie tus mascotas a tu número de celular registrado.</p>
+    </div>
+
+    <!-- Grid de Mascotas -->
+    <div *ngIf="patients().length > 0" class="pets-grid">
+      <div 
+        *ngFor="let pet of patients()" 
+        class="pet-card glass-effect animate-slide-up"
+      >
+        <div class="card-glow"></div>
+        
+        <!-- Foto / Icono de la Mascota -->
+        <div class="pet-avatar-wrapper">
+          <img 
+            *ngIf="pet.photoUrl" 
+            [src]="pet.photoUrl" 
+            [alt]="pet.name" 
+            class="pet-image"
+          />
+          <div *ngIf="!pet.photoUrl" class="pet-placeholder">
+            <span class="material-symbols-outlined">{{ getSpeciesIcon(pet.species) }}</span>
+          </div>
+          <span class="pet-gender-badge" [class.male]="pet.sex === 'male'" [class.female]="pet.sex === 'female'">
+            <span class="material-symbols-outlined">{{ pet.sex === 'male' ? 'male' : 'female' }}</span>
+          </span>
+        </div>
+
+        <!-- Información de la Mascota -->
+        <div class="pet-body">
+          <h2 class="pet-name">{{ pet.name }}</h2>
+          <div class="pet-details">
+            <span class="detail-pill">
+              <span class="material-symbols-outlined icon">label</span>
+              {{ getSpeciesLabel(pet.species) }} · {{ pet.breed || 'Sin raza registrada' }}
+            </span>
+            <span class="detail-pill">
+              <span class="material-symbols-outlined icon">calendar_today</span>
+              {{ calculateAge(pet.birthDate) }}
+            </span>
+            <span class="detail-pill" *ngIf="pet.weight">
+              <span class="material-symbols-outlined icon">weight</span>
+              {{ pet.weight }} kg
+            </span>
+          </div>
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="pet-actions">
+          <a [routerLink]="['../patient', pet.id]" class="history-btn">
+            <span class="material-symbols-outlined">description</span>
+            Historial Médico & Vacunas
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

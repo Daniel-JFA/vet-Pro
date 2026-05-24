@@ -11,6 +11,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/consent/consent-sign/consent-sign.component').then(m => m.ConsentSignComponent)
   },
   {
+    path: 'portal',
+    loadChildren: () => import('./features/portal/portal.routes').then(m => m.PORTAL_ROUTES)
+  },
+  {
     path: '',
     canActivate: [authGuard],
     loadComponent: () => import('./layout/shell.component').then(m => m.ShellComponent),

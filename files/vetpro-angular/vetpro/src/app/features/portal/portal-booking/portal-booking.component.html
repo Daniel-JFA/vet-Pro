@@ -1,0 +1,278 @@
+<div class="booking-container">
+  <header class="booking-header" *ngIf="currentStep() <= 5">
+    <h1>Reservar Cita en Línea</h1>
+    <p>Sigue los pasos para programar la atención de tu mascota en pocos segundos.</p>
+  </header>
+
+  <!-- Estado de Carga -->
+  <div *ngIf="loading()" class="booking-loading">
+    <div class="spinner"></div>
+    <p>Procesando agendamiento...</p>
+  </div>
+
+  <!-- Mensaje de Error -->
+  <div *ngIf="error()" class="error-panel animate-shake">
+    <span class="material-symbols-outlined">error</span>
+    <p>{{ error() }}</p>
+    <button (click)="error.set('')" class="retry-btn">Entendido</button>
+  </div>
+
+  <!-- Barra de Progreso del Asistente -->
+  <div class="step-progress-bar" *ngIf="currentStep() <= 5">
+    <div 
+      *ngFor="let step of [1, 2, 3, 4, 5]" 
+      class="step-indicator" 
+      [class.active]="currentStep() >= step"
+      [class.current]="currentStep() === step"
+    >
+      <span class="step-num">{{ step }}</span>
+    </div>
+    <div class="progress-line">
+      <div class="progress-fill" [style.width.%]="(currentStep() - 1) * 25"></div>
+    </div>
+  </div>
+
+  <!-- PASO 1: SELECCIONAR MASCOTA -->
+  <div *ngIf="currentStep() === 1 && !loading()" class="step-pane animate-fade-in">
+    <h3>¿Para quién es la cita médica?</h3>
+    <p class="step-sub">Selecciona una de tus mascotas registradas:</p>
+
+    <div class="pets-selection-list">
+      <button 
+        *ngFor="let pet of patients()" 
+        type="button" 
+        class="pet-selection-card glass-effect" 
+        [class.selected]="selectedPatientId() === pet.id"
+        (click)="selectedPatientId.set(pet.id)"
+      >
+        <div class="avatar">
+          <img *ngIf="pet.photoUrl" [src]="pet.photoUrl" [alt]="pet.name" />
+          <span *ngIf="!pet.photoUrl" class="material-symbols-outlined">pets</span>
+        </div>
+        <div class="meta">
+          <span class="name">{{ pet.name }}</span>
+          <span class="breed">{{ pet.breed || 'Sin raza' }}</span>
+        </div>
+        <span class="material-symbols-outlined check-icon" *ngIf="selectedPatientId() === pet.id">check_circle</span>
+      </button>
+    </div>
+
+    <div class="step-actions">
+      <button class="next-btn" [disabled]="!selectedPatientId()" (click)="nextStep()">
+        Siguiente
+        <span class="material-symbols-outlined">arrow_forward</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- PASO 2: SELECCIONAR SERVICIO -->
+  <div *ngIf="currentStep() === 2 && !loading()" class="step-pane animate-fade-in">
+    <h3>¿Qué tipo de servicio necesitas?</h3>
+    <p class="step-sub">Elige el motivo principal de la consulta:</p>
+
+    <div class="services-selection-grid">
+      <button 
+        *ngFor="let s of services" 
+        type="button" 
+        class="service-selection-card glass-effect"
+        [class.selected]="selectedService() === s.id"
+        (click)="selectedService.set(s.id)"
+      >
+        <span class="material-symbols-outlined svc-icon">{{ s.icon }}</span>
+        <div class="meta">
+          <h4>{{ s.label }}</h4>
+          <p>{{ s.desc }}</p>
+        </div>
+      </button>
+    </div>
+
+    <div class="step-actions">
+      <button class="back-btn" (click)="prevStep()">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Atrás
+      </button>
+      <button class="next-btn" [disabled]="!selectedService()" (click)="nextStep()">
+        Siguiente
+        <span class="material-symbols-outlined">arrow_forward</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- PASO 3: SELECCIONAR VETERINARIO -->
+  <div *ngIf="currentStep() === 3 && !loading()" class="step-pane animate-fade-in">
+    <h3>Selecciona un médico veterinario</h3>
+    <p class="step-sub">Elige el profesional para la atención:</p>
+
+    <div class="vets-selection-list">
+      <button 
+        *ngFor="let vet of vets()" 
+        type="button" 
+        class="vet-selection-card glass-effect"
+        [class.selected]="selectedVetId() === vet.id"
+        (click)="selectedVetId.set(vet.id)"
+      >
+        <div class="avatar">
+          {{ vet.firstName.charAt(0) }}{{ vet.lastName.charAt(0) }}
+        </div>
+        <div class="meta">
+          <span class="name">Dr(a). {{ vet.firstName }} {{ vet.lastName }}</span>
+          <span class="specialty">Médico Veterinario General</span>
+        </div>
+        <span class="material-symbols-outlined check-icon" *ngIf="selectedVetId() === vet.id">check_circle</span>
+      </button>
+    </div>
+
+    <div class="step-actions">
+      <button class="back-btn" (click)="prevStep()">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Atrás
+      </button>
+      <button class="next-btn" [disabled]="!selectedVetId()" (click)="nextStep()">
+        Siguiente
+        <span class="material-symbols-outlined">arrow_forward</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- PASO 4: SELECCIONAR FECHA Y HORA -->
+  <div *ngIf="currentStep() === 4 && !loading()" class="step-pane animate-fade-in">
+    <h3>Elige el día y la hora de tu cita</h3>
+    <p class="step-sub">Selecciona un horario disponible:</p>
+
+    <div class="datetime-wrapper">
+      <!-- Entrada de Fecha -->
+      <div class="form-group">
+        <label for="date-select">Fecha de la Cita</label>
+        <div class="input-wrapper">
+          <span class="material-symbols-outlined icon">calendar_today</span>
+          <input 
+            type="date" 
+            id="date-select" 
+            [(ngModel)]="selectedDate"
+            name="selectedDate"
+            min="2026-05-24"
+          />
+        </div>
+      </div>
+
+      <!-- Grilla de Slots de Hora -->
+      <div class="time-slots-section" *ngIf="selectedDate()">
+        <label>Horas Disponibles</label>
+        <div class="slots-grid">
+          <button 
+            *ngFor="let slot of timeSlots" 
+            type="button" 
+            class="slot-btn" 
+            [class.selected]="selectedTime() === slot"
+            (click)="selectedTime.set(slot)"
+          >
+            {{ slot }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-actions">
+      <button class="back-btn" (click)="prevStep()">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Atrás
+      </button>
+      <button class="next-btn" [disabled]="!selectedDate() || !selectedTime()" (click)="nextStep()">
+        Siguiente
+        <span class="material-symbols-outlined">arrow_forward</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- PASO 5: RESUMEN Y CONFIRMACIÓN -->
+  <div *ngIf="currentStep() === 5 && !loading()" class="step-pane animate-fade-in">
+    <h3>Confirma los datos de tu reserva</h3>
+    <p class="step-sub">Revisa la información antes de guardar la cita:</p>
+
+    <div class="summary-card glass-effect">
+      <div class="summary-item">
+        <span class="material-symbols-outlined icon">pets</span>
+        <div class="details">
+          <strong>Paciente:</strong>
+          <span>{{ getSelectedPatientName() }}</span>
+        </div>
+      </div>
+
+      <div class="summary-item">
+        <span class="material-symbols-outlined icon">medical_services</span>
+        <div class="details">
+          <strong>Servicio:</strong>
+          <span>{{ selectedService() }}</span>
+        </div>
+      </div>
+
+      <div class="summary-item">
+        <span class="material-symbols-outlined icon">badge</span>
+        <div class="details">
+          <strong>Veterinario:</strong>
+          <span>{{ getSelectedVetName() }}</span>
+        </div>
+      </div>
+
+      <div class="summary-item">
+        <span class="material-symbols-outlined icon">event</span>
+        <div class="details">
+          <strong>Horario:</strong>
+          <span>{{ selectedDate() | date: 'EEEE, dd LLLL yyyy' }} a las {{ selectedTime() }}</span>
+        </div>
+      </div>
+
+      <!-- Motivo opcional -->
+      <div class="form-group reason-group">
+        <label for="reason">Motivo de consulta (Opcional)</label>
+        <textarea 
+          id="reason" 
+          [(ngModel)]="reason" 
+          name="reason" 
+          placeholder="Describe brevemente los síntomas de tu mascota..."
+        ></textarea>
+      </div>
+    </div>
+
+    <div class="step-actions">
+      <button class="back-btn" (click)="prevStep()">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Atrás
+      </button>
+      <button class="confirm-btn" (click)="confirmBooking()">
+        <span class="material-symbols-outlined">check</span>
+        Confirmar Agendamiento
+      </button>
+    </div>
+  </div>
+
+  <!-- PASO 6: ÉXITO -->
+  <div *ngIf="currentStep() === 6" class="success-screen animate-fade-in">
+    <!-- Notificación simulada de WhatsApp -->
+    <div class="whatsapp-notification animate-slide-down">
+      <div class="notif-header">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" class="notif-logo" />
+        <div class="notif-meta">
+          <strong>VetPro Clínica</strong>
+          <span>Hace un momento</span>
+        </div>
+      </div>
+      <p class="notif-body">
+        🐾 Hola <strong>{{ authSvc.tutor()?.firstName }}</strong>, tu cita para <strong>{{ getSelectedPatientName() }}</strong> ha sido reservada con éxito el día <strong>{{ selectedDate() | date: 'dd/MM/yyyy' }}</strong> a las <strong>{{ selectedTime() }}</strong> con el <strong>{{ getSelectedVetName() }}</strong>. ¡Te esperamos!
+      </p>
+    </div>
+
+    <div class="success-content glass-effect">
+      <div class="success-badge">
+        <span class="material-symbols-outlined">check_circle</span>
+      </div>
+      <h2>¡Cita Reservada con Éxito!</h2>
+      <p>La cita médica ha sido agendada e integrada automáticamente en el calendario clínico de la veterinaria.</p>
+
+      <button (click)="goToDashboard()" class="home-btn">
+        <span class="material-symbols-outlined">home</span>
+        Volver a Mis Mascotas
+      </button>
+    </div>
+  </div>
+</div>

@@ -313,7 +313,7 @@ vetpro/
 | 5 | Facturación básica (DIAN pospuesto) | 11–12 | ✅ Entregado |
 | 6 | Firma digital & Docs | 13–14 | ✅ Entregado |
 | 7 | Reportes & Analytics | 15–16 | ✅ Entregado |
-| 8 | Portal del tutor | 17–18 | 🔲 Pendiente |
+| 8 | Portal del tutor | 17–18 | ✅ Entregado |
 | 9 | Multi-sucursal & Roles | 19–20 | 🔲 Pendiente |
 | 10 | QA, Facturación DIAN & Go-Live | 21–22 | 🔲 Pendiente |
 

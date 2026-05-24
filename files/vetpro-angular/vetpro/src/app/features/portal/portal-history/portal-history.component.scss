@@ -1,0 +1,548 @@
+/* ==========================================================================
+   💎 VETPRO PORTAL HISTORY STYLESHEET (Emerald HSL theme)
+   ========================================================================== */
+
+.history-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Header & Perfil Mascota */
+.history-header {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #9ca3af;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 700;
+    transition: color 0.3s ease;
+
+    span {
+      font-size: 1.2rem;
+    }
+
+    &:hover {
+      color: #34d399;
+    }
+  }
+}
+
+.pet-profile-card {
+  position: relative;
+  border-radius: 24px;
+  padding: 24px;
+  overflow: hidden;
+
+  .card-glow {
+    position: absolute;
+    top: -50px;
+    left: -50px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, hsla(162, 72%, 46%, 0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+}
+
+.profile-info-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+
+  .pet-avatar {
+    width: 80px;
+    height: 80px;
+    position: relative;
+
+    .avatar-img {
+      width: 100%;
+      height: 100%;
+      border-radius: 20px;
+      object-fit: cover;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .avatar-placeholder {
+      width: 100%;
+      height: 100%;
+      border-radius: 20px;
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px dashed rgba(16, 185, 129, 0.25);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #34d399;
+
+      span {
+        font-size: 2.5rem;
+      }
+    }
+  }
+
+  .profile-meta {
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: #ffffff;
+      margin: 0 0 4px;
+      letter-spacing: -0.4px;
+    }
+
+    .species-breed {
+      font-size: 0.9rem;
+      color: #9ca3af;
+      margin: 0 0 12px;
+    }
+
+    .profile-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pill-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      color: #cbd5e1;
+
+      .icon {
+        font-size: 0.95rem;
+      }
+
+      &.male {
+        background: rgba(56, 189, 248, 0.1);
+        border-color: rgba(56, 189, 248, 0.2);
+        color: #38bdf8;
+      }
+
+      &.female {
+        background: rgba(244, 114, 182, 0.1);
+        border-color: rgba(244, 114, 182, 0.2);
+        color: #f472b6;
+      }
+
+      &.status {
+        background: rgba(16, 185, 129, 0.1);
+        border-color: rgba(16, 185, 129, 0.2);
+        color: #34d399;
+      }
+    }
+  }
+}
+
+/* Selectores de Pestañas */
+.tab-selector {
+  display: flex;
+  background: rgba(17, 24, 39, 0.4);
+  border-radius: 16px;
+  padding: 6px;
+  gap: 6px;
+
+  .tab-btn {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    font-size: 0.88rem;
+    font-weight: 700;
+    padding: 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: inherit;
+
+    span {
+      font-size: 1.25rem;
+    }
+
+    &:hover {
+      color: #ffffff;
+    }
+
+    &.active {
+      background: linear-gradient(135deg, #059669 0%, #0d9488 100%);
+      color: #ffffff;
+      box-shadow: 0 4px 15px rgba(5, 150, 105, 0.25);
+    }
+  }
+}
+
+/* PESTAÑA 1: HISTORIAL MÉDICO (TIMELINE) */
+.records-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
+  padding-left: 20px;
+  border-left: 2px solid rgba(255, 255, 255, 0.05);
+}
+
+.record-timeline-item {
+  position: relative;
+
+  .timeline-dot {
+    position: absolute;
+    left: -27px;
+    top: 24px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #059669;
+    border: 3px solid rgba(17, 24, 39, 1);
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+  }
+}
+
+.record-card {
+  border-radius: 20px;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  .record-header {
+    padding: 20px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+
+    .header-main {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+
+      .date {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #10b981;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      h3 {
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: #ffffff;
+        margin: 0;
+        letter-spacing: -0.2px;
+      }
+
+      .vet-name {
+        font-size: 0.825rem;
+        color: #9ca3af;
+        margin-top: 2px;
+      }
+    }
+
+    .expand-btn {
+      background: transparent;
+      border: none;
+      color: #9ca3af;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: #ffffff;
+      }
+    }
+  }
+
+  /* Sección expandida */
+  .record-details {
+    padding: 0 24px 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: rgba(10, 15, 26, 0.2);
+
+    .detail-section {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+
+      h4 {
+        font-size: 0.78rem;
+        font-weight: 800;
+        color: #9ca3af;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin: 16px 0 0;
+      }
+
+      p {
+        font-size: 0.9rem;
+        line-height: 1.5;
+        color: #cbd5e1;
+        margin: 0;
+
+        &.diagnosis-highlight {
+          color: #ffffff;
+          font-weight: 700;
+          background: rgba(16, 185, 129, 0.08);
+          border-left: 3px solid #10b981;
+          padding: 8px 12px;
+          border-radius: 0 8px 8px 0;
+        }
+
+        &.treatment-highlight {
+          color: #ffffff;
+          font-weight: 600;
+          background: rgba(13, 148, 136, 0.08);
+          border-left: 3px solid #0d9488;
+          padding: 8px 12px;
+          border-radius: 0 8px 8px 0;
+        }
+      }
+    }
+  }
+
+  &.expanded {
+    border-color: rgba(16, 185, 129, 0.2);
+  }
+}
+
+/* PESTAÑA 2: CARTILLA DE VACUNAS */
+.vaccines-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+
+  h3 {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin: 0;
+  }
+
+  .download-pdf-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    border: none;
+    color: #ffffff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 10px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+    transition: all 0.3s ease;
+
+    span {
+      font-size: 1.2rem;
+    }
+
+    &:hover {
+      background: linear-gradient(135deg, #047857 0%, #059669 100%);
+      transform: translateY(-1px);
+    }
+  }
+}
+
+.vaccines-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.vaccine-row {
+  border-radius: 20px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  @media (min-width: 600px) {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .vaccine-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    .vaccine-icon {
+      font-size: 1.8rem;
+      color: #34d399;
+      background: rgba(16, 185, 129, 0.08);
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(16, 185, 129, 0.15);
+    }
+
+    .vaccine-info {
+      h4 {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: #ffffff;
+        margin: 0 0 4px;
+      }
+      p.sub {
+        font-size: 0.8rem;
+        color: #9ca3af;
+        margin: 0;
+      }
+    }
+  }
+
+  .vaccine-dates {
+    display: flex;
+    gap: 20px;
+
+    .date-group {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+
+      strong {
+        font-size: 0.72rem;
+        font-weight: 800;
+        color: #9ca3af;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+      }
+
+      span {
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: #cbd5e1;
+
+        &.next-due {
+          color: #34d399;
+          font-weight: 700;
+        }
+      }
+    }
+  }
+
+  .vaccine-vet {
+    font-size: 0.825rem;
+    color: #cbd5e1;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 12px;
+
+    @media (min-width: 600px) {
+      border-top: none;
+      padding-top: 0;
+      text-align: right;
+    }
+
+    p {
+      margin: 0 0 4px;
+      strong {
+        color: #ffffff;
+      }
+    }
+
+    p.notes {
+      font-size: 0.78rem;
+      color: #9ca3af;
+      font-style: italic;
+      margin: 0;
+    }
+  }
+}
+
+/* ESTADOS MOCK / CARGA / VACÍO */
+.history-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 80px 24px;
+  color: #9ca3af;
+  font-size: 0.9rem;
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  border-top-color: #34d399;
+  animation: spin 1s linear infinite;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 48px 32px;
+  border-radius: 24px;
+
+  .empty-icon {
+    font-size: 3rem;
+    color: #6b7280;
+    margin-bottom: 16px;
+  }
+
+  h4 {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin: 0 0 8px;
+  }
+
+  p {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: #9ca3af;
+    max-width: 320px;
+    margin: 0;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
