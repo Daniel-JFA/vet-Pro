@@ -4,6 +4,30 @@ import { authMiddleware, AuthRequest } from '../middleware/auth.js';
 
 const router = Router();
 
+// Mapeadores auxiliares para reconciliar la discrepancia de AppointmentStatus (guión vs guión bajo)
+// El frontend usa 'in-progress' y 'no-show', pero la BD usa 'in_progress' y 'no_show'.
+function toDbStatus(status: any): any {
+  if (!status) return undefined;
+  if (status === 'in-progress') return 'in_progress';
+  if (status === 'no-show') return 'no_show';
+  return status;
+}
+
+function toApiStatus(status: any): any {
+  if (!status) return undefined;
+  if (status === 'in_progress') return 'in-progress';
+  if (status === 'no_show') return 'no-show';
+  return status;
+}
+
+function mapAppointmentToApi(app: any): any {
+  if (!app) return app;
+  return {
+    ...app,
+    status: toApiStatus(app.status)
+  };
+}
+
 // Activar verificación de token JWT para todas las rutas de citas
 router.use(authMiddleware as any);
 
@@ -53,9 +77,9 @@ router.get('/', async (req: AuthRequest, res: Response) => {
       orderBy: { scheduledAt: 'asc' }
     });
 
-    // Aplanar veterinario para el formato que espera el frontend
+    // Aplanar veterinario y normalizar estados para el formato que espera el frontend
     const mapped = appointments.map(a => ({
-      ...a,
+      ...mapAppointmentToApi(a),
       vetId: a.vetId // Mantiene el ID del vet y añade metadatos si fuera necesario
     }));
 
@@ -165,7 +189,7 @@ router.get('/today', async (req: AuthRequest, res: Response) => {
       orderBy: { scheduledAt: 'asc' }
     });
 
-    return res.json(appointments);
+    return res.json(appointments.map(a => mapAppointmentToApi(a)));
   } catch (error) {
     console.error('Error al listar citas de hoy:', error);
     if (process.env.NODE_ENV !== 'production') {
@@ -257,7 +281,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Cita no encontrada.' });
     }
 
-    return res.json(appointment);
+    return res.json(mapAppointmentToApi(appointment));
   } catch (error) {
     console.error('Error al buscar cita:', error);
     return res.status(500).json({ error: 'Error al obtener cita.' });
@@ -340,7 +364,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
         durationMinutes: durationMinutes ? parseInt(durationMinutes) : existing.durationMinutes,
         reason: reason !== undefined ? reason : existing.reason,
         notes: notes !== undefined ? notes : existing.notes,
-        status: status || existing.status
+        status: status ? toDbStatus(status) : existing.status
       },
       include: {
         patient: {
@@ -349,7 +373,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
       }
     });
 
-    return res.json(updated);
+    return res.json(mapAppointmentToApi(updated));
   } catch (error) {
     console.error('Error al editar cita:', error);
     return res.status(500).json({ error: 'Error al actualizar cita.' });
@@ -378,7 +402,7 @@ router.patch('/:id/status', async (req: AuthRequest, res: Response) => {
 
     const updated = await prisma.appointment.update({
       where: { id },
-      data: { status },
+      data: { status: toDbStatus(status) },
       include: {
         patient: {
           include: { tutor: true }
@@ -389,7 +413,7 @@ router.patch('/:id/status', async (req: AuthRequest, res: Response) => {
     // [OPCIONAL WHATSAPP TRIGER LOGIC]
     // Si pasa a 'waiting' o 'done' se dispararía la cola BullMQ en producción
 
-    return res.json(updated);
+    return res.json(mapAppointmentToApi(updated));
   } catch (error) {
     console.error('Error al cambiar estado de cita:', error);
     if (process.env.NODE_ENV !== 'production') {
