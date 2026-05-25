@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, HostListener } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -17,8 +17,11 @@ interface NavItem {
   imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule, FormsModule],
   template: `
     <div class="shell">
+      <!-- Backdrop Overlay for Mobile -->
+      <div class="sidebar-overlay" *ngIf="mobileSidebarOpen()" (click)="mobileSidebarOpen.set(false)"></div>
+
       <!-- Sidebar -->
-      <nav class="sidebar" [class.collapsed]="sidebarCollapsed()">
+      <nav class="sidebar" [class.collapsed]="sidebarCollapsed()" [class.mobile-open]="mobileSidebarOpen()">
         <div class="sidebar-header">
           <div class="logo-mark">
             <span class="logo-icon">V</span>
@@ -36,7 +39,7 @@ interface NavItem {
 
         <div class="nav-section">
           <span class="nav-label">Principal</span>
-          <a *ngFor="let item of mainNav()" class="nav-link" [routerLink]="item.path" routerLinkActive="active">
+          <a *ngFor="let item of mainNav()" class="nav-link" [routerLink]="item.path" routerLinkActive="active" (click)="mobileSidebarOpen.set(false)">
             <span class="material-symbols-outlined nav-icon">{{ item.icon }}</span>
             <span class="nav-text">{{ item.label }}</span>
             <span class="nav-badge" *ngIf="item.badge">{{ item.badge }}</span>
@@ -45,14 +48,14 @@ interface NavItem {
 
         <div class="nav-section" *ngIf="managementNav().length > 0">
           <span class="nav-label">Gestión</span>
-          <a *ngFor="let item of managementNav()" class="nav-link" [routerLink]="item.path" routerLinkActive="active">
+          <a *ngFor="let item of managementNav()" class="nav-link" [routerLink]="item.path" routerLinkActive="active" (click)="mobileSidebarOpen.set(false)">
             <span class="material-symbols-outlined nav-icon">{{ item.icon }}</span>
             <span class="nav-text">{{ item.label }}</span>
           </a>
         </div>
 
         <div class="nav-section mt-auto">
-          <button class="nav-link logout-btn" (click)="auth.logout()">
+          <button class="nav-link logout-btn" (click)="auth.logout(); mobileSidebarOpen.set(false)">
             <span class="material-symbols-outlined nav-icon">logout</span>
             <span class="nav-text">Cerrar sesión</span>
           </button>
@@ -62,6 +65,10 @@ interface NavItem {
       <!-- Main content -->
       <main class="main-area">
         <header class="topbar">
+          <button class="hamburger-btn" (click)="mobileSidebarOpen.set(true)" aria-label="Abrir menú">
+            <span class="material-symbols-outlined">menu</span>
+          </button>
+
           <div class="topbar-search">
             <span class="material-symbols-outlined">search</span>
             <input type="text" placeholder="Buscar paciente, tutor, cita… (Cmd+K)" />
@@ -108,6 +115,15 @@ interface NavItem {
 export class ShellComponent {
   auth = inject(AuthService);
   sidebarCollapsed = signal(false);
+  mobileSidebarOpen = signal(false);
+
+  // Close mobile sidebar menu when Escape key is pressed
+  @HostListener('window:keydown.escape')
+  onEscapePressed() {
+    if (this.mobileSidebarOpen()) {
+      this.mobileSidebarOpen.set(false);
+    }
+  }
 
   // Filtrado reactivo de links principales de navegación según el Rol
   mainNav = computed(() => {
