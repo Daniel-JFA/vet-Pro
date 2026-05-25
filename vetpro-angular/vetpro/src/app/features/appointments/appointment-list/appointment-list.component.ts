@@ -38,6 +38,20 @@ export class AppointmentListComponent implements OnInit {
     this.appointments().filter(a => a.status === 'done' || a.status === 'cancelled')
   );
 
+  doneAppointments = computed(() => 
+    this.appointments().filter(a => a.status === 'done')
+  );
+
+  vetDoneCount = computed(() => {
+    const user = this.auth.currentUser;
+    if (!user) return 0;
+    if (user.role === 'admin') {
+      return this.doneAppointments().length;
+    }
+    const vetId = user.id;
+    return this.appointments().filter(a => a.status === 'done' && a.vetId === vetId).length;
+  });
+
   // Estadísticas del día
   stats = computed(() => ({
     total: this.appointments().length,
