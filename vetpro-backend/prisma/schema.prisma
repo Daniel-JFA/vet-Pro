@@ -151,6 +151,9 @@ enum PatientSpecies {
   rabbit
   bird
   reptile
+  horse
+  cow
+  pig
   other
 }
 

@@ -99,6 +99,9 @@ export class PatientDetailComponent implements OnInit {
       case 'rabbit': return 'Conejo';
       case 'bird': return 'Ave';
       case 'reptile': return 'Reptil';
+      case 'horse': return 'Caballo';
+      case 'cow': return 'Vaca';
+      case 'pig': return 'Cerdo';
       default: return 'Otro';
     }
   }

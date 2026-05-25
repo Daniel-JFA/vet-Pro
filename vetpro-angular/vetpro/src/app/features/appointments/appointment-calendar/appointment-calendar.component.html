@@ -79,7 +79,7 @@
                 <div class="pet-name">
                   <a [routerLink]="['/patients', app.patientId]">{{ app.patient?.name }}</a>
                   <span class="species-icon-sm" [attr.data-species]="app.patient?.species">
-                    {{ app.patient?.species === 'dog' ? '🐾' : (app.patient?.species === 'cat' ? '🐱' : '🐰') }}
+                    {{ app.patient?.species === 'dog' ? '🐾' : (app.patient?.species === 'cat' ? '🐱' : (app.patient?.species === 'rabbit' ? '🐰' : (app.patient?.species === 'horse' ? '🐴' : (app.patient?.species === 'cow' ? '🐮' : (app.patient?.species === 'pig' ? '🐷' : '🐾'))))) }}
                   </span>
                 </div>
                 <div class="service-pill" [attr.data-status]="app.status">

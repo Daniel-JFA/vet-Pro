@@ -31,6 +31,9 @@ export class PatientListComponent implements OnInit {
     { value: 'rabbit', label: 'Conejos', icon: 'cruelty_free' },
     { value: 'bird', label: 'Aves', icon: 'nest_gator' },
     { value: 'reptile', label: 'Reptiles', icon: 'thermostat' },
+    { value: 'horse', label: 'Caballos', icon: 'pets' },
+    { value: 'cow', label: 'Vacas', icon: 'agriculture' },
+    { value: 'pig', label: 'Cerdos', icon: 'pets' },
     { value: 'other', label: 'Otros', icon: 'help' }
   ];
 

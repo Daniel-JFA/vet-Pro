@@ -42,7 +42,7 @@ export interface Tutor {
   createdAt: Date;
 }
 
-export type Species = 'dog' | 'cat' | 'rabbit' | 'bird' | 'reptile' | 'other';
+export type Species = 'dog' | 'cat' | 'rabbit' | 'bird' | 'reptile' | 'horse' | 'cow' | 'pig' | 'other';
 
 export type PatientStatus = 'active' | 'inactive' | 'deceased';
 

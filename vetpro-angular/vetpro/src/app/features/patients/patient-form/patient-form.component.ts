@@ -41,6 +41,9 @@ export class PatientFormComponent implements OnInit {
     { value: 'rabbit', label: 'Conejo' },
     { value: 'bird', label: 'Ave' },
     { value: 'reptile', label: 'Reptil' },
+    { value: 'horse', label: 'Caballo' },
+    { value: 'cow', label: 'Vaca' },
+    { value: 'pig', label: 'Cerdo' },
     { value: 'other', label: 'Otro' }
   ];
 
