@@ -61,7 +61,10 @@ export class PatientDetailComponent implements OnInit {
     });
 
     this.svc.getVaccines(id).subscribe({
-      next: v => this.vaccines.set(v),
+      next: v => {
+        this.vaccines.set(v);
+        this.loading.set(false);
+      },
       error: () => {
         this.vaccines.set(MOCK_VACCINES);
         this.attachments.set(MOCK_ATTACHMENTS);
