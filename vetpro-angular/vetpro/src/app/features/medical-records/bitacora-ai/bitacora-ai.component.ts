@@ -34,7 +34,7 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
   });
 
   processing = signal(false);
-  resultReady = signal(false);
+  resultReady = signal(true); // El formulario SOAP está visible por defecto para redacción manual inmediata
   submitting = signal(false);
 
   // Tipo de entrada activa: 'voice' | 'text'
@@ -54,26 +54,31 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
   notes = signal('');
 
   private timerInterval: any;
-
-  // Dictados rápidos de demostración
+  // Plantillas Clínicas Rápidas (Templates editables)
   demoDictations = [
     {
       title: 'Urgencia por Intoxicación Alimentaria',
-      description: 'Dictado clínico detallando síntomas estomacales agudos tras ingesta de basura.',
-      audioDuration: 72, // 1.2 minutos
-      text: 'Toby asiste a consulta de urgencias, tutor indica vómito y diarrea líquida hace 8 horas. Posible ingesta de restos de comida de la basura en el parque ayer por la tarde. Al examen físico se encuentra alerta, deshidratado en 6%, mucosas ligeramente secas y dolor a la palpación en epigastrio. Frecuencia cardíaca de 115 lpm, temperatura de 39°C. Diagnóstico presuntivo de gastroenteritis bacteriana aguda por indiscreción alimentaria. Tratamiento indicado: inyección de Metoclopramida, suero oral en casa, Amoxicilina 500mg vía oral una tableta cada 12 horas por 7 días y dieta blanda.'
+      description: 'Gastroenteritis aguda tras ingesta de restos de comida.',
+      anamnesis: 'Tutor asiste con Toby a urgencias, reporta vómito y diarrea líquida (bilis) de 8 horas de evolución. Sospecha de indiscreción alimentaria en el parque ayer por comer residuos de basura.',
+      physicalExam: 'Paciente alerta y responsivo. Ligera deshidratación (6%). Mucosas secas, dolor abdominal generalizado a la palpación profunda en epigastrio. FC: 115 lpm, Temp: 39.0°C.',
+      diagnosis: 'Gastroenteritis bacteriana aguda por indiscreción alimentaria.',
+      treatment: '1. Aplicación de antiemético (Metoclopramida) SC en clínica.\n2. Amoxicilina 500mg oral (1 tableta c/12h por 7 días).\n3. Hidratación oral con suero electrolítico en casa.\n4. Dieta blanda (arroz y pollo hervido sin sal) por 3 días.'
     },
     {
       title: 'Control Anual de Vacunas Sano',
-      description: 'Control normal de vacunación anual y peso estable.',
-      audioDuration: 45, // 0.75 minutos
-      text: 'Luna viene para control de vacunas anual. Tutor reporta que está muy activa, comiendo bien y sin novedad médica. Al examen físico está alerta, mucosas rosadas sanas, FC de 100 lpm, peso estable de 4.2 kg. Diagnóstico: Paciente clínicamente sano. Tratamiento: Se aplica refuerzo anual de vacuna Antirrábica Nobivac y se programan desparasitaciones periódicas.'
+      description: 'Aplicación de refuerzos anuales de vacunación y peso estable.',
+      anamnesis: 'Luna asiste con su tutora para su control anual de vacunas. Tutor reporta excelente nivel de actividad física, apetito óptimo y sin novedades médicas previas.',
+      physicalExam: 'Paciente alerta. Mucosas rosadas y húmedas. Tiempo de llenado capilar < 2s. Frecuencia cardíaca: 100 lpm. Peso de 4.2 kg.',
+      diagnosis: 'Paciente clínicamente sano.',
+      treatment: 'Se realiza aplicación subcutánea de vacuna Antirrábica Nobivac (Lote: RAB-2026X). Se agenda próximo refuerzo en 1 año.'
     },
     {
       title: 'Control de Otitis Externa',
-      description: 'Dictado de sospecha de otitis en oreja derecha.',
-      audioDuration: 90, // 1.5 minutos
-      text: 'Kira presenta rascado frecuente en oreja derecha desde hace 3 días, tutor indica sacudidas de cabeza constantes. Al examen físico hay eritema en el pabellón auricular derecho con presencia de secreción ceruminosa marrón oscura y olor rancio. Dolor leve a la palpación profunda en el conducto auditivo derecho. Oreja izquierda sana. Diagnóstico presuntivo: Otitis externa eritemato-ceruminosa bilateral asimétrica. Tratamiento: Limpieza de canal y gotas óticas Otomax 4 gotas cada 12 horas por 10 días.'
+      description: 'Sospecha de otitis en el canal auditivo derecho.',
+      anamnesis: 'Kira asiste por rascado constante de oreja derecha sacudiendo la cabeza con frecuencia desde hace 3 días. Tutor sospecha de ingreso de agua en baño reciente.',
+      physicalExam: 'Eritema marcado en pabellón auricular derecho con secreción de cerumen café oscuro y olor rancio. Dolor agudo a la palpación en el conducto auditivo externo. Oreja izquierda normal.',
+      diagnosis: 'Otitis externa eritemato-ceruminosa asimétrica derecha.',
+      treatment: '1. Limpieza profiláctica en clínica.\n2. Prescripción de gotas óticas Otomax (4 gotas c/12h en oreja derecha por 10 días).'
     }
   ];
 
@@ -184,49 +189,16 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Simular procesamiento instantáneo con una de las plantillas demo preparadas
+  // Cargar una plantilla de forma instantánea en los campos SOAP correspondientes
   selectDemoDictation(dict: any) {
-    this.processing.set(true);
-    this.resultReady.set(false);
-
-    const minutesUsed = parseFloat((dict.audioDuration / 60).toFixed(2));
-
-    this.patientSvc.transcribeVoice(dict.audioDuration, dict.text).subscribe({
-      next: (res) => {
-        this.title.set(res.title);
-        this.anamnesis.set(res.anamnesis);
-        this.physicalExam.set(res.physicalExam);
-        this.diagnosis.set(res.diagnosis);
-        this.treatment.set(res.treatment);
-        this.aiMinutesUsed.update(m => m + res.aiTranscriptionMinutes);
-        this.processing.set(false);
-        this.resultReady.set(true);
-      },
-      error: () => {
-        // Fallback local en caso de error
-        this.title.set(dict.title);
-        if (dict.title.includes('Intoxicación')) {
-          this.anamnesis.set('Tutor asiste con Toby a urgencias, reporta vómito y diarrea líquida (bilis) de 8 horas de evolución. Sospecha de indiscreción alimentaria en el parque ayer por comer residuos de basura.');
-          this.physicalExam.set('Paciente alerta y responsivo. Ligera deshidratación (6%). Mucosas secas, dolor abdominal generalizado a la palpación profunda en epigastrio. FC: 115 lpm, Temp: 39.0°C.');
-          this.diagnosis.set('Gastroenteritis bacteriana aguda por indiscreción alimentaria.');
-          this.treatment.set('1. Aplicación de antiemético (Metoclopramida) SC en clínica.\n2. Amoxicilina 500mg oral (1 tableta c/12h por 7 días).\n3. Hidratación oral con suero electrolítico en casa.\n4. Dieta blanda (arroz y pollo hervido sin sal) por 3 días.');
-        } else if (dict.title.includes('Vacunas')) {
-          this.anamnesis.set('Luna asiste con su tutora para su control anual de vacunas. Tutor reporta excelente nivel de actividad física, apetito óptimo y sin novedades médicas previas.');
-          this.physicalExam.set('Paciente alerta. Mucosas rosadas y húmedas. Tiempo de llenado capilar < 2s. Frecuencia cardíaca: 100 lpm. Peso de 4.2 kg.');
-          this.diagnosis.set('Paciente clínicamente sano.');
-          this.treatment.set('Se realiza aplicación subcutánea de vacuna Antirrábica Nobivac (Lote: RAB-2026X). Se agenda próximo refuerzo en 1 año.');
-        } else {
-          this.anamnesis.set('Kira asiste por rascado constante de oreja derecha sacudiendo la cabeza con frecuencia desde hace 3 días. Tutor sospecha de ingreso de agua en baño reciente.');
-          this.physicalExam.set('Eritema marcado en pabellón auricular derecho con secreción de cerumen café oscuro y olor rancio. Dolor agudo a la palpación en el conducto auditivo externo. Oreja izquierda normal.');
-          this.diagnosis.set('Otitis externa eritemato-ceruminosa asimétrica derecha.');
-          this.treatment.set('1. Limpieza profiláctica en clínica.\n2. Prescripción de gotas óticas Otomax (4 gotas c/12h en oreja derecha por 10 días).');
-        }
-
-        this.aiMinutesUsed.update(m => m + minutesUsed);
-        this.processing.set(false);
-        this.resultReady.set(true);
-      }
-    });
+    this.title.set(dict.title);
+    this.anamnesis.set(dict.anamnesis);
+    this.physicalExam.set(dict.physicalExam);
+    this.diagnosis.set(dict.diagnosis);
+    this.treatment.set(dict.treatment);
+    this.notes.set('');
+    this.resultReady.set(true);
+    this.processing.set(false);
   }
 
   // Guardar definitivamente la historia clínica en base de datos

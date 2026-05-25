@@ -166,14 +166,14 @@
         </div>
       </div>
 
-      <!-- Card: Dictados Rápidos de Demostración -->
+      <!-- Card: Plantillas Clínicas Rápidas -->
       <div class="card demo-panel-card" *ngIf="!isRecording()">
         <div class="section-title">
-          <span class="material-symbols-outlined section-icon">quick_reference_all</span>
-          <h2>Dictados Rápidos de Prueba (Simulador)</h2>
+          <span class="material-symbols-outlined section-icon">article</span>
+          <h2>Plantillas Clínicas Rápidas</h2>
         </div>
         <p class="section-help">
-          Elige una consulta pre-grabada para evaluar instantáneamente la transcripción Whisper y la estructuración Claude AI.
+          Selecciona una plantilla de consulta para auto-rellenar el expediente SOAP de forma instantánea. Podrás editar y ajustar libremente todos los campos en la columna derecha.
         </p>
 
         <div class="demo-list">
@@ -181,14 +181,15 @@
             class="demo-item-card" 
             *ngFor="let dict of demoDictations"
             (click)="selectDemoDictation(dict)"
+            style="cursor: pointer; transition: all 0.2s;"
           >
-            <div class="demo-play-btn">
-              <span class="material-symbols-outlined">play_arrow</span>
+            <div class="demo-play-btn" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--primary-color);">
+              <span class="material-symbols-outlined">description</span>
             </div>
             <div class="demo-info">
               <h4>{{ dict.title }}</h4>
               <p>{{ dict.description }}</p>
-              <span class="duration-tag">⏱️ {{ dict.audioDuration }} seg (~{{ (dict.audioDuration / 60) | number:'1.2-2' }} min de IA)</span>
+              <span class="duration-tag" style="background: rgba(16,185,129,0.1); color: var(--primary-color); font-weight: 500; font-size: 11px; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 4px;">⚡ Carga Instantánea</span>
             </div>
           </div>
         </div>
@@ -211,11 +212,11 @@
       <!-- Caso B: Resultados Estructurados y Listos -->
       <div class="card results-card" *ngIf="resultReady() && !processing()">
         <div class="results-header-badge">
-          <span class="material-symbols-outlined badge-icon">auto_awesome</span>
-          <h4>Expediente Clínico Estructurado por IA</h4>
+          <span class="material-symbols-outlined badge-icon">assignment</span>
+          <h4>Expediente Clínico Digital SOAP</h4>
         </div>
         <p class="badge-help">
-          A continuación se presentan los datos clínicos extraídos del audio. Revísalos y edítalos si consideras necesario antes de guardarlos.
+          Escribe libremente a mano en las casillas inferiores, usa el dictador por voz o notas de IA en la izquierda, o haz clic en una <strong>Plantilla Clínica</strong> para auto-rellenar.
         </p>
 
         <!-- Formulario de Resultados -->
@@ -223,32 +224,32 @@
           <!-- Título -->
           <div class="field">
             <label>Título / Motivo de la Atención</label>
-            <input type="text" [ngModel]="title()" (ngModelChange)="title.set($event)" placeholder="Ej. Control de gastroenteritis..." />
+            <input type="text" [ngModel]="title()" (ngModelChange)="title.set($event)" placeholder="Ej. Consulta de urgencia, vacunación anual, otitis..." />
           </div>
 
           <!-- Anamnesis -->
           <div class="field">
             <label>Anamnesis / Historia Clínica</label>
-            <textarea rows="4" [ngModel]="anamnesis()" (ngModelChange)="anamnesis.set($event)"></textarea>
+            <textarea rows="4" [ngModel]="anamnesis()" (ngModelChange)="anamnesis.set($event)" placeholder="Ingresa los antecedentes e historia clínica reportada por el tutor..."></textarea>
           </div>
 
           <!-- Examen Físico -->
           <div class="field">
             <label>Examen Físico Completo</label>
-            <textarea rows="4" [ngModel]="physicalExam()" (ngModelChange)="physicalExam.set($event)"></textarea>
+            <textarea rows="4" [ngModel]="physicalExam()" (ngModelChange)="physicalExam.set($event)" placeholder="Constantes fisiológicas, mucosas, palpación, auscultación..."></textarea>
           </div>
 
           <div class="fields-row fields-row-2">
             <!-- Diagnóstico Presuntivo -->
             <div class="field highlight-danger-field">
-              <label>Diagnóstico Presuntivo (IA)</label>
-              <textarea rows="4" [ngModel]="diagnosis()" (ngModelChange)="diagnosis.set($event)"></textarea>
+              <label>Diagnóstico Presuntivo</label>
+              <textarea rows="4" [ngModel]="diagnosis()" (ngModelChange)="diagnosis.set($event)" placeholder="Diagnóstico presuntivo o diferencial..."></textarea>
             </div>
 
             <!-- Plan de Tratamiento -->
             <div class="field highlight-primary-field">
-              <label>Tratamiento / Indicaciones (IA)</label>
-              <textarea rows="4" [ngModel]="treatment()" (ngModelChange)="treatment.set($event)"></textarea>
+              <label>Tratamiento / Indicaciones</label>
+              <textarea rows="4" [ngModel]="treatment()" (ngModelChange)="treatment.set($event)" placeholder="Medicamentos, dosis, frecuencia, dieta y recomendaciones..."></textarea>
             </div>
           </div>
 
@@ -257,31 +258,6 @@
             <label>Observaciones o Recomendaciones al Tutor</label>
             <textarea rows="2" [ngModel]="notes()" (ngModelChange)="notes.set($event)" placeholder="Notas para la receta impresa o recomendaciones..."></textarea>
           </div>
-        </div>
-      </div>
-
-      <!-- Caso C: Espera de Dictado (Estado Vacío) -->
-      <div class="card empty-results-card" *ngIf="!resultReady() && !processing()">
-        <span class="material-symbols-outlined empty-icon">assignment_late</span>
-        <h3>Esperando Dictado Clínico</h3>
-        <p>Los resultados de la transcripción y el análisis estructurado de la IA aparecerán en este panel una vez proceses un dictado de voz.</p>
-        <div class="tip-box">
-          <span class="material-symbols-outlined tip-icon">lightbulb</span>
-          <p><strong>Consejo:</strong> Si estás probando, utiliza un **Dictado Rápido de Prueba** de la columna izquierda para ver la IA en acción de inmediato.</p>
-        </div>
-        
-        <!-- Botón para redactar la historia clínica manualmente sin IA -->
-        <div style="margin-top: 24px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 18px;">
-          <span style="font-size: 13px; color: var(--text-secondary); font-style: italic;">¿Prefieres registrar la consulta de manera tradicional?</span>
-          <button 
-            type="button" 
-            class="btn btn-secondary" 
-            (click)="startManualEntry()"
-            style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-primary); padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
-          >
-            <span class="material-symbols-outlined" style="font-size: 18px;">edit_note</span>
-            Redactar SOAP Manualmente
-          </button>
         </div>
       </div>
     </div>
