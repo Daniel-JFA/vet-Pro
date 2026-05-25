@@ -48,12 +48,12 @@ export const routes: Routes = [
       },
       {
         path: 'inventory',
-        canActivate: [roleGuard(['admin'])],
+        canActivate: [roleGuard(['admin', 'vet'])],
         loadChildren: () => import('./features/inventory/inventory.routes').then(m => m.INVENTORY_ROUTES)
       },
       {
         path: 'billing',
-        canActivate: [roleGuard(['admin', 'receptionist'])],
+        canActivate: [roleGuard(['admin', 'vet', 'receptionist'])],
         loadChildren: () => import('./features/billing/billing.routes').then(m => m.BILLING_ROUTES)
       },
       {

@@ -6,7 +6,7 @@ import { roleMiddleware } from '../middleware/role.js';
 const router = Router();
 
 router.use(authMiddleware as any);
-router.use(roleMiddleware(['admin', 'receptionist']) as any);
+router.use(roleMiddleware(['admin', 'vet', 'receptionist']) as any);
 
 // GET /billing/invoices (Listado paginado de facturas con filtros)
 router.get('/invoices', async (req: AuthRequest, res: Response) => {

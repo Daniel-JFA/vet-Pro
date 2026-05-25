@@ -140,7 +140,11 @@ export class ShellComponent {
         { label: 'Reportes',        icon: 'bar_chart',       path: '/reports' }
       );
     } else if (role === 'vet') {
-      items.push({ label: 'Consentimientos', icon: 'draw', path: '/consent' });
+      items.push(
+        { label: 'Inventario',      icon: 'inventory_2',     path: '/inventory' },
+        { label: 'Facturación',     icon: 'receipt_long',    path: '/billing' },
+        { label: 'Consentimientos', icon: 'draw',            path: '/consent' }
+      );
     } else if (role === 'receptionist') {
       items.push(
         { label: 'Facturación',     icon: 'receipt_long',    path: '/billing' },

@@ -6,7 +6,7 @@ import { roleMiddleware } from '../middleware/role.js';
 const router = Router();
 
 router.use(authMiddleware as any);
-router.use(roleMiddleware(['admin']) as any);
+router.use(roleMiddleware(['admin', 'vet']) as any);
 
 // GET /api/v1/reports/dashboard — Métricas de Negocio & Datasets de Gráficas
 router.get('/dashboard', async (req: AuthRequest, res: Response) => {
