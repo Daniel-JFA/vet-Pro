@@ -19,7 +19,7 @@ jobs:
           node-version: '20'
 
       - name: Install & build frontend
-        working-directory: ./vetpro-frontend
+        working-directory: ./vetpro-angular/vetpro
         run: |
           npm ci
           npm run build -- --configuration=production || npm run build
@@ -45,7 +45,7 @@ jobs:
       - name: Build and push frontend image
         uses: docker/build-push-action@v4
         with:
-          context: ./vetpro-frontend
+          context: ./vetpro-angular/vetpro
           push: true
           tags: |
             ${{ secrets.REGISTRY }}/vetpro-frontend:latest

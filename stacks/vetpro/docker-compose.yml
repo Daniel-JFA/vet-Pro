@@ -1,0 +1,92 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: vetpro-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-vetpro}
+    volumes:
+      - vetpro_postgres_data:/var/lib/postgresql/data
+    networks:
+      - vetpro-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-vetpro}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  backend:
+    build:
+      context: /home/djfa/Dev/projects/vet-Pro/vetpro-backend
+      dockerfile: /home/djfa/Dev/projects/vet-Pro/vetpro-backend/Dockerfile
+    container_name: vetpro-backend
+    restart: unless-stopped
+    command: ["sh", "-lc", "npx prisma migrate deploy && npm run start"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: "3000"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-vetpro}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      NODE_ENV: production
+    networks:
+      - vetpro-internal
+      - proxy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.routers.vetpro-api.rule=Host(`vetpro.danielflorez.dev`) && PathPrefix(`/api`)
+      - traefik.http.routers.vetpro-api.entrypoints=web
+      - traefik.http.routers.vetpro-api.priority=100
+      - traefik.http.routers.vetpro-api.service=vetpro-api
+      - traefik.http.services.vetpro-api.loadbalancer.server.port=3000
+
+  frontend:
+    build:
+      context: /home/djfa/Dev/projects/vet-Pro/vetpro-angular/vetpro
+      dockerfile: /home/djfa/Dev/projects/vet-Pro/vetpro-angular/vetpro/Dockerfile
+    container_name: vetpro-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    networks:
+      - vetpro-internal
+      - proxy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.routers.vetpro-web.rule=Host(`vetpro.danielflorez.dev`)
+      - traefik.http.routers.vetpro-web.entrypoints=web
+      - traefik.http.routers.vetpro-web.priority=10
+      - traefik.http.routers.vetpro-web.service=vetpro-web
+      - traefik.http.services.vetpro-web.loadbalancer.server.port=80
+
+volumes:
+  vetpro_postgres_data:
+    name: vetpro_postgres_data
+
+networks:
+  proxy:
+    external: true
+    name: proxy
+  vetpro-internal:
+    name: vetpro-internal
+    driver: bridge
+    internal: true

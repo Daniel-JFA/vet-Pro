@@ -1,5 +1,8 @@
 # --- Build Stage ---
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
+
+# Instalar herramientas del sistema necesarias
+RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -19,7 +22,10 @@ COPY src ./src/
 RUN npm run build
 
 # --- Production Runner Stage ---
-FROM node:20-alpine AS runner
+FROM node:20-slim AS runner
+
+# Instalar herramientas del sistema necesarias
+RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

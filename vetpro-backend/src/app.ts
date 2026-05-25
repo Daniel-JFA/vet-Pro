@@ -39,7 +39,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Ruta de diagnóstico simple
-app.get('/health', (req, res) => {
+app.get(['/health', '/api/health'], (req, res) => {
   res.json({ status: 'ok', service: 'VetPro API', timestamp: new Date() });
 });
 
