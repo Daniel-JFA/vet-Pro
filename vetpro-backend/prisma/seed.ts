@@ -181,7 +181,7 @@ async function main() {
   });
 
   // Kira (Perro de Carlos)
-  await prisma.patient.create({
+  const patient3 = await prisma.patient.create({
     data: {
       clinicId: clinic.id,
       tutorId: tutor1.id,
@@ -198,7 +198,7 @@ async function main() {
   });
 
   // Copito (Conejo de Diana)
-  await prisma.patient.create({
+  const patient4 = await prisma.patient.create({
     data: {
       clinicId: clinic.id,
       tutorId: tutor3.id,
@@ -214,7 +214,7 @@ async function main() {
   });
 
   // Rocky (Perro de Juan - Inactivo)
-  await prisma.patient.create({
+  const patient5 = await prisma.patient.create({
     data: {
       clinicId: clinic.id,
       tutorId: tutor4.id,
@@ -232,7 +232,7 @@ async function main() {
   });
 
   // Mimi (Gato de María)
-  await prisma.patient.create({
+  const patient6 = await prisma.patient.create({
     data: {
       clinicId: clinic.id,
       tutorId: tutor2.id,
@@ -336,6 +336,84 @@ async function main() {
     }
   });
   console.log('💉 Cartilla de vacunas de Toby sembrada.');
+
+  // 9. Crear Citas de prueba para hoy
+  console.log('📅 Sembrando citas para el día de hoy...');
+  const today = new Date();
+
+  // Toby (Perro de Carlos) - Programado
+  const app1Today = new Date(today);
+  app1Today.setHours(10, 0, 0, 0);
+  const appointment1 = await prisma.appointment.create({
+    data: {
+      clinicId: clinic.id,
+      branchId: branch.id,
+      patientId: patient1.id,
+      vetId: vetUser.id,
+      serviceType: 'Consulta General',
+      scheduledAt: app1Today,
+      durationMinutes: 30,
+      status: 'scheduled',
+      reason: 'Baja de apetito y letargo leve',
+      notes: 'Tutor reside en Envigado. Dirección: Carrera 43A #25S-15, Envigado.'
+    }
+  });
+
+  // Luna (Gata de María) - En espera (Llegada marcada)
+  const app2Today = new Date(today);
+  app2Today.setHours(12, 30, 0, 0);
+  const appointment2 = await prisma.appointment.create({
+    data: {
+      clinicId: clinic.id,
+      branchId: branch.id,
+      patientId: patient2.id,
+      vetId: vetUser.id,
+      serviceType: 'Vacunación',
+      scheduledAt: app2Today,
+      durationMinutes: 30,
+      status: 'waiting',
+      reason: 'Refuerzo de Triple Felina anual',
+      notes: 'Tutor reside en Belén, Medellín. Dirección: Calle 30 #76-22, Medellín.'
+    }
+  });
+
+  // Copito (Conejo de Diana) - En consulta
+  const app3Today = new Date(today);
+  app3Today.setHours(14, 0, 0, 0);
+  const appointment3 = await prisma.appointment.create({
+    data: {
+      clinicId: clinic.id,
+      branchId: branch.id,
+      patientId: patient4.id,
+      vetId: vetUser.id,
+      serviceType: 'Control',
+      scheduledAt: app3Today,
+      durationMinutes: 45,
+      status: 'in_progress',
+      reason: 'Control post-operatorio de esterilización',
+      notes: 'Revisar sutura abdominal. Tutor reside en Laureles, Medellín. Dirección: Circular 4 #73-10, Medellín.'
+    }
+  });
+
+  // Kira (Perro de Carlos) - Finalizado
+  const app4Today = new Date(today);
+  app4Today.setHours(8, 30, 0, 0);
+  const appointment4 = await prisma.appointment.create({
+    data: {
+      clinicId: clinic.id,
+      branchId: branch.id,
+      patientId: patient3.id,
+      vetId: vetUser.id,
+      serviceType: 'Vacunación',
+      scheduledAt: app4Today,
+      durationMinutes: 30,
+      status: 'done',
+      reason: 'Vacuna Pentavalente canina',
+      notes: 'Control general sano. Tutor reside en El Poblado, Medellín. Dirección: Carrera 38 #5-45, El Poblado.'
+    }
+  });
+
+  console.log('📅 Citas de prueba sembradas.');
 
   console.log('✅ Base de datos sembrada perfectamente con datos realistas.');
 }
