@@ -16,9 +16,9 @@ import { RouterLink } from '@angular/router';
         </div>
         <div class="nav-links">
           <a href="#features">Características</a>
-          <a href="#ai-demo">Dictado IA</a>
-          <a href="#tutor-portal">Portal del Tutor</a>
-          <a href="#pricing">Precios</a>
+          <a href="#ai-demo">Dictado en Campo</a>
+          <a href="#tutor-portal">Portal de Tutores</a>
+          <a href="#pricing">Planes</a>
           <a href="#faq">Preguntas</a>
         </div>
         <div class="nav-actions">
@@ -26,7 +26,7 @@ import { RouterLink } from '@angular/router';
             <span class="material-symbols-outlined">tactic</span> Portal Tutor
           </a>
           <a routerLink="/auth/login" class="btn-primary-nav">
-            <span class="material-symbols-outlined">login</span> Ingresar Staff
+            <span class="material-symbols-outlined">login</span> Ingresar Médico
           </a>
         </div>
       </nav>
@@ -35,18 +35,18 @@ import { RouterLink } from '@angular/router';
       <header class="hero-section">
         <div class="hero-content">
           <div class="hero-badge animate-fade-in">
-            <span class="sparkle">✦</span> Plataforma Veterinaria Inteligente 2026
+            <span class="sparkle">✦</span> VetPro Domiciliario — Edición Medellín 2026
           </div>
           <h1 class="hero-title animate-slide-up">
-            Revoluciona tu clínica con <br>
-            <span class="gradient-text">Inteligencia Artificial</span>
+            La plataforma definitiva para <br>
+            <span class="gradient-text">Veterinarios a Domicilio</span>
           </h1>
           <p class="hero-subtitle animate-slide-up">
-            VetPro combina dictado clínico estructurado con Whisper y Claude AI, notificaciones automáticas por WhatsApp, y un portal PWA Passwordless para tutores. Todo integrado en una hermosa interfaz de alto rendimiento.
+            El primer software SaaS diseñado exclusivamente para profesionales itinerantes. Optimiza tus rutas de visita en Medellín, redacta expedientes SOAP desde tu celular en casa del paciente y envía recetas digitales por WhatsApp al instante. Todo en una hermosa interfaz ultrarrápida.
           </p>
           <div class="hero-ctas animate-slide-up">
             <a routerLink="/auth/login" class="btn-hero-primary">
-              <span class="material-symbols-outlined">rocket_launch</span> Iniciar Demo Gratis
+              <span class="material-symbols-outlined">directions_car</span> Probar Demo de Rutas
             </a>
             <a href="#ai-demo" class="btn-hero-secondary">
               <span class="material-symbols-outlined">play_circle</span> Probar Transcriptor IA
@@ -54,20 +54,20 @@ import { RouterLink } from '@angular/router';
           </div>
           
           <div class="hero-trust">
-            <span>✓ Sin tarjeta de crédito</span>
-            <span>✓ Cumplimiento Ley 1581 (Habeas Data)</span>
-            <span>✓ Fallback Offline para Desarrollo</span>
+            <span>✓ Medellín & AMVA</span>
+            <span>✓ Operación Offline / Resiliente</span>
+            <span>✓ Ley 1581 (Habeas Data)</span>
           </div>
         </div>
 
-        <!-- Hero Mockup Dashboard -->
+        <!-- Hero Mockup Dashboard - Visitas de Hoy -->
         <div class="hero-mockup animate-fade-in">
           <div class="mockup-frame">
             <div class="mockup-header">
               <span class="dot red"></span>
               <span class="dot yellow"></span>
               <span class="dot green"></span>
-              <div class="mockup-url">app.vetpro.co/dashboard</div>
+              <div class="mockup-url">app.vetpro.co/rutas-de-hoy</div>
             </div>
             <div class="mockup-body">
               <div class="mock-sidebar">
@@ -79,38 +79,38 @@ import { RouterLink } from '@angular/router';
               </div>
               <div class="mock-main">
                 <div class="mock-header">
-                  <div class="mock-title">Panel de Control: Sede Principal</div>
+                  <div class="mock-title">Ruta de Domicilios: Dr. Andrés</div>
                   <div class="mock-avatar"></div>
                 </div>
                 <div class="mock-grid">
                   <div class="mock-card">
-                    <span class="mock-card-label">Ingresos de Hoy</span>
-                    <span class="mock-card-value">$1'450,000 COP</span>
-                    <span class="mock-card-trend green">+12.4% vs ayer</span>
+                    <span class="mock-card-label">Visitas Completadas</span>
+                    <span class="mock-card-value">5 Domicilios</span>
+                    <span class="mock-card-trend green">+2 vs ayer</span>
                   </div>
                   <div class="mock-card">
-                    <span class="mock-card-label">Citas Agendadas</span>
-                    <span class="mock-card-value">18 Mascotas</span>
-                    <span class="mock-card-trend blue">4 en sala de espera</span>
+                    <span class="mock-card-label">Siguiente Visita</span>
+                    <span class="mock-card-value">Toby (Golden)</span>
+                    <span class="mock-card-trend blue">📍 El Poblado</span>
                   </div>
                   <div class="mock-card">
-                    <span class="mock-card-label">Consumo de IA</span>
-                    <span class="mock-card-value">84 / 120 min</span>
-                    <span class="mock-card-trend orange">Renueva en 6 días</span>
+                    <span class="mock-card-label">En Tránsito Ahora</span>
+                    <span class="mock-card-value">1 Médico</span>
+                    <span class="mock-card-trend orange">Ruta: Laureles</span>
                   </div>
                 </div>
                 <div class="mock-chart-container">
                   <div class="mock-chart-header">
-                    <span>Métricas de Crecimiento</span>
-                    <span class="mock-legend">狗 Perros (64%) | 猫 Gatos (31%)</span>
+                    <span>Mapa de Visitas de Hoy</span>
+                    <span class="mock-legend">🚗 Poblado (45%) | 🚗 Laureles (35%)</span>
                   </div>
                   <div class="mock-chart-bars">
-                    <div class="bar" style="height: 40%"></div>
-                    <div class="bar" style="height: 60%"></div>
-                    <div class="bar active" style="height: 85%"></div>
-                    <div class="bar" style="height: 50%"></div>
-                    <div class="bar" style="height: 75%"></div>
-                    <div class="bar active" style="height: 95%"></div>
+                    <div class="bar" style="height: 35%"></div>
+                    <div class="bar" style="height: 55%"></div>
+                    <div class="bar active" style="height: 80%"></div>
+                    <div class="bar" style="height: 45%"></div>
+                    <div class="bar" style="height: 70%"></div>
+                    <div class="bar active" style="height: 90%"></div>
                   </div>
                 </div>
               </div>
@@ -122,58 +122,58 @@ import { RouterLink } from '@angular/router';
       <!-- ── SECCIÓN CARACTERÍSTICAS ── -->
       <section id="features" class="features-section">
         <div class="section-header">
-          <span class="section-label">¿Por qué VetPro?</span>
-          <h2>Diseñado para el Flujo Clínico Moderno</h2>
-          <p>Olvídate del papeleo y de software lentos del pasado. VetPro está optimizado al milisegundo.</p>
+          <span class="section-label">Hecho para el Trabajo de Campo</span>
+          <h2>Herramientas Diseñadas para la Veterinaria Itinerante</h2>
+          <p>Olvídate del papeleo, del software lento y de estar atado a una clínica física. VetPro va contigo en el auto o la moto.</p>
         </div>
 
         <div class="features-grid">
           <div class="feature-card">
             <div class="icon-wrapper green">
-              <span class="material-symbols-outlined">mic</span>
+              <span class="material-symbols-outlined">map</span>
             </div>
-            <h3>Dictado Clínico Inteligente</h3>
-            <p>Habla con naturalidad sobre el diagnóstico del paciente. Whisper y Claude AI estructuran tu SOAP completo en segundos, ahorrando hasta 3 horas al día.</p>
+            <h3>Rutas y Logística de Visitas</h3>
+            <p>Visualiza tu agenda diaria organizada en una ruta lógica en Medellín. Minimiza tiempos en el tráfico y planifica tus traslados eficientemente.</p>
           </div>
 
           <div class="feature-card">
             <div class="icon-wrapper blue">
-              <span class="material-symbols-outlined">sms</span>
+              <span class="material-symbols-outlined">edit_document</span>
             </div>
-            <h3>WhatsApp Recordatorios</h3>
-            <p>Envía automáticamente alertas de vacunas, desparasitaciones y recordatorios de citas. Aumenta la tasa de asistencia en más del 35% sin esfuerzo manual.</p>
+            <h3>SOAP Instantáneo en Domicilio</h3>
+            <p>Rellena el expediente médico SOAP usando plantillas clínicas adaptables al instante en tu celular o tablet en 0.0ms mientras atiendes al paciente frente al tutor.</p>
           </div>
 
           <div class="feature-card">
             <div class="icon-wrapper purple">
-              <span class="material-symbols-outlined">phonelink</span>
+              <span class="material-symbols-outlined">share</span>
             </div>
-            <h3>Portal de Tutores PWA</h3>
-            <p>Tus clientes acceden inmediatamente a su historial de vacunas, citas y reservas en línea desde su celular con un enlace mágico sin recordar contraseñas.</p>
+            <h3>Despacho por WhatsApp</h3>
+            <p>Envía recetas médicas estéticas en formato PDF, recomendaciones post-consulta y recordatorios directamente al WhatsApp del tutor en un solo clic.</p>
           </div>
 
           <div class="feature-card">
             <div class="icon-wrapper orange">
-              <span class="material-symbols-outlined">point_of_sale</span>
+              <span class="material-symbols-outlined">cloud_off</span>
             </div>
-            <h3>Facturación y Caja A4</h3>
-            <p>Emite facturas estéticas, controla abonos parciales y genera recibos en formato PDF A4 optimizados para imprimir o enviar por correo de manera instantánea.</p>
+            <h3>Operación Offline Resiliente</h3>
+            <p>¿Mala señal celular en el sótano de una copropiedad o zonas rurales del AMVA? Trabaja sin conexión con almacenamiento persistente para que no pierdas ningún dato.</p>
           </div>
 
           <div class="feature-card">
             <div class="icon-wrapper teal">
-              <span class="material-symbols-outlined">query_stats</span>
+              <span class="material-symbols-outlined">mobile_friendly</span>
             </div>
-            <h3>Métricas de Rendimiento</h3>
-            <p>Visualiza gráficos financieros interactivos, distribución de especies y alertas de stock mínimo para tomar decisiones de negocio inteligentes.</p>
+            <h3>Portal PWA del Tutor</h3>
+            <p>Tus clientes pueden consultar el carnet de vacunas digital de sus mascotas y programar su próximo domicilio mediante un enlace mágico enviado por WhatsApp sin contraseñas.</p>
           </div>
 
           <div class="feature-card">
             <div class="icon-wrapper red">
-              <span class="material-symbols-outlined">shield</span>
+              <span class="material-symbols-outlined">gavel</span>
             </div>
-            <h3>Seguridad y Habeas Data</h3>
-            <p>Manejo de firmas de consentimientos digitales y resguardo de datos clínicos según la Ley 1581 de 2012. Tus datos están completamente blindados y encriptados.</p>
+            <h3>Habeas Data & Ley 1581</h3>
+            <p>Firma digital de consentimientos informados y resguardo estricto de historiales médicos confidenciales de acuerdo a la legislación colombiana de protección de datos.</p>
           </div>
         </div>
       </section>
@@ -182,10 +182,10 @@ import { RouterLink } from '@angular/router';
       <section id="ai-demo" class="ai-demo-section">
         <div class="demo-grid">
           <div class="demo-text-content">
-            <span class="demo-badge">IA EN VIVO</span>
-            <h2>Prueba el Transcriptor Clínico Integrado</h2>
+            <span class="demo-badge">DICTADO CLÍNICO EN VIVO</span>
+            <h2>Prueba el Transcriptor para el Médico Itinerante</h2>
             <p>
-              Simula el dictado de una consulta veterinaria. VetPro procesa el flujo de voz y extrae automáticamente la Anamnesis, el Examen Físico, la Sospecha Diagnóstica y el Plan de Tratamiento estructurado en formato médico.
+              Simula el dictado de una consulta veterinaria a domicilio. VetPro procesa el flujo de voz libre y lo estructura automáticamente en formato médico SOAP estandarizado en segundos.
             </p>
             <div class="demo-actions">
               <button 
@@ -218,7 +218,7 @@ import { RouterLink } from '@angular/router';
           <!-- Sandbox Preview Area -->
           <div class="demo-preview-card">
             <div class="preview-header">
-              <span class="preview-label">CONSULTA VETERINARIA — TRANSCRIPCIÓN IA</span>
+              <span class="preview-label">DOMICILIO — EXPEDIENTE CLÍNICO SOAP</span>
               <span class="preview-status" [class.active]="showNote()">{{ showNote() ? 'Estructurado por Claude AI' : 'Esperando Entrada de Voz' }}</span>
             </div>
             <div class="preview-body">
@@ -321,7 +321,7 @@ import { RouterLink } from '@angular/router';
 
                 <div class="app-action-bar">
                   <a routerLink="/portal/login" class="app-btn-booking">
-                    <span class="material-symbols-outlined">calendar_month</span> Agendar Cita Online
+                    <span class="material-symbols-outlined">directions_car</span> Reservar Domicilio
                   </a>
                 </div>
               </div>
@@ -330,22 +330,22 @@ import { RouterLink } from '@angular/router';
 
           <div class="tutor-text-content">
             <span class="section-label">PORTAL DEL TUTOR (PWA)</span>
-            <h2>Fideliza a tus Clientes con Cero Esfuerzo</h2>
+            <h2>Fideliza a tus Clientes con Cero Fricción</h2>
             <p>
-              Ofrece a los dueños de mascotas una aplicación web progresiva y moderna en su celular. Acceden mediante enlaces mágicos enviados por WhatsApp sin engorrosos registros.
+              Ofrece a los dueños de mascotas una aplicación móvil web progresiva para consultar su historial de domicilios. Acceden mediante enlaces mágicos enviados por WhatsApp sin contraseñas.
             </p>
             <ul class="tutor-list">
               <li>
                 <span class="material-symbols-outlined check-icon">check_circle</span>
-                <strong>Historial Clínico Accesible:</strong> Consulta digital de vacunas e informes médicos.
+                <strong>Historial Clínico en Mano:</strong> Consulta inmediata de recetas PDF y vacunas aplicadas.
               </li>
               <li>
                 <span class="material-symbols-outlined check-icon">check_circle</span>
-                <strong>Agendamiento de Citas 24/7:</strong> Integración de calendario para agendar citas directamente con el veterinario disponible.
+                <strong>Reserva de Domicilios 24/7:</strong> Integración de calendario interactivo para reservar visitas veterinarias en su propio hogar.
               </li>
               <li>
                 <span class="material-symbols-outlined check-icon">check_circle</span>
-                <strong>Alertas de Próximas Dosis:</strong> Mantiene a los tutores al día con sus vacunas y tratamientos activos.
+                <strong>Alertas por WhatsApp:</strong> Mantiene a los tutores al día con notificaciones automáticas y directas al celular.
               </li>
             </ul>
             <div class="tutor-cta">
@@ -361,31 +361,31 @@ import { RouterLink } from '@angular/router';
       <section id="pricing" class="pricing-section">
         <div class="section-header">
           <span class="section-label">Planes Flexibles</span>
-          <h2>Precios Claros. Diseñados para Crecer</h2>
-          <p>Elige el plan ideal para tu clínica o red de hospitales veterinarios. Cancela en cualquier momento.</p>
+          <h2>Precios Claros y Transparentes</h2>
+          <p>Elige el plan ideal para tu práctica itinerante o para tu red de veterinarios móviles. Cancela cuando quieras.</p>
         </div>
 
         <div class="pricing-grid">
           <!-- Plan Sede Única -->
           <div class="price-card">
             <div class="plan-header">
-              <h3>Plan Inicial Sede</h3>
+              <h3>Plan VetPro Itinerante</h3>
               <div class="price">
                 <span class="currency">$</span>
                 <span class="amount">189,000</span>
                 <span class="period">/ mes (COP)</span>
               </div>
-              <p>Ideal para veterinarios independientes o clínicas de una sola sede física.</p>
+              <p>Diseñado para médicos veterinarios independientes que atienden a domicilio.</p>
             </div>
             <div class="plan-divider"></div>
             <ul class="plan-features">
-              <li>✓ 1 Sede Física Principal</li>
-              <li>✓ Consultas Médicas Ilimitadas</li>
-              <li>✓ Agenda Digital Inteligente</li>
-              <li>✓ Portal de Tutores PWA Básico</li>
+              <li>✓ 1 Profesional / Médico Clínico</li>
+              <li>✓ Consultas e Historiales Clínicos Ilimitados</li>
+              <li>✓ Gestión Logística y de Rutas de Hoy</li>
+              <li>✓ Portal de Tutores PWA con Reservas</li>
               <li>✓ 60 minutos de Transcripción IA al mes</li>
-              <li>✓ Facturación tradicional PDF</li>
-              <li>✓ Soporte por Correo electrónico</li>
+              <li>✓ Recetario Digital y Envío por WhatsApp</li>
+              <li>✓ Soporte Directo vía Correo</li>
             </ul>
             <a routerLink="/auth/login" class="btn-price-secondary">Iniciar Demo de 14 Días</a>
           </div>
@@ -394,25 +394,25 @@ import { RouterLink } from '@angular/router';
           <div class="price-card recommended">
             <div class="featured-badge">MÁS POPULAR</div>
             <div class="plan-header">
-              <h3>Plan VetPro Multisede</h3>
+              <h3>Plan Clínicas Móviles</h3>
               <div class="price">
                 <span class="currency">$</span>
                 <span class="amount">299,000</span>
                 <span class="period">/ mes (COP)</span>
               </div>
-              <p>Perfecto para clínicas en crecimiento y redes hospitalarias con múltiples sucursales.</p>
+              <p>Ideal para empresas de visitas veterinarias a domicilio con múltiples sucursales y médicos.</p>
             </div>
             <div class="plan-divider"></div>
             <ul class="plan-features">
-              <li>✓ Sucursales Físicas Ilimitadas (Branch Switcher)</li>
+              <li>✓ Profesionales / Médicos Ilimitados</li>
               <li>✓ Control de Accesos por Roles (RBAC)</li>
-              <li>✓ 120 minutos de Transcripción IA al mes (Whisper)</li>
-              <li>✓ Portal de Tutores PWA con Agendamiento de Citas</li>
-              <li>✓ Respaldos automáticos a la nube</li>
-              <li>✓ Reportes Gerenciales y KPIs Interactivos</li>
+              <li>✓ 120 minutos de Transcripción IA al mes</li>
+              <li>✓ Portal de Tutores Completo con Magic Links</li>
+              <li>✓ Respaldos automáticos en la nube</li>
+              <li>✓ Panel de Control Financiero y KPIs</li>
               <li>✓ Soporte Prioritario WhatsApp 24/7</li>
             </ul>
-            <a routerLink="/auth/login" class="btn-price-primary">Obtener Plan Multisede</a>
+            <a routerLink="/auth/login" class="btn-price-primary">Obtener Plan Clínicas Móviles</a>
           </div>
         </div>
       </section>
@@ -441,8 +441,8 @@ import { RouterLink } from '@angular/router';
 
       <!-- ── CALL TO ACTION FINAL ── -->
       <section class="cta-banner">
-        <h2>¿Listo para digitalizar tu clínica veterinaria?</h2>
-        <p>Prueba VetPro SaaS gratis por 14 días. Configuración en 3 minutos.</p>
+        <h2>¿Listo para optimizar tus visitas a domicilio?</h2>
+        <p>Prueba VetPro gratis por 14 días. Configura tu cuenta e inicia tu ruta en 3 minutos.</p>
         <a routerLink="/auth/login" class="btn-cta-final">
           <span class="material-symbols-outlined">bolt</span> Comenzar Ahora
         </a>
@@ -454,7 +454,7 @@ import { RouterLink } from '@angular/router';
           <div class="footer-brand">
             <span class="logo-mark">V</span>
             <span class="logo-name">VetPro</span>
-            <p>El sistema definitivo para clínicas veterinarias del futuro.</p>
+            <p>El sistema definitivo para médicos veterinarios a domicilio en Colombia.</p>
           </div>
           <div class="footer-links">
             <h5>Enlaces</h5>
@@ -463,12 +463,12 @@ import { RouterLink } from '@angular/router';
             <a href="#pricing">Precios</a>
           </div>
           <div class="footer-legal">
-            <h5>Seguridad</h5>
-            <p>Cumplimiento estricto con la Ley 1581 de 2012 de Habeas Data y protección de expedientes médicos confidenciales.</p>
+            <h5>Seguridad & Leyes</h5>
+            <p>Protección y custodia segura de historiales clínicos y datos de tutores en estricto cumplimiento con la Ley 1581 de 2012 de Habeas Data.</p>
           </div>
         </div>
         <div class="footer-bottom">
-          <p>© 2026 VetPro SaaS. Todos los derechos reservados. Desarrollado con 💚 para Clínicas Veterinarias de Colombia.</p>
+          <p>© 2026 VetPro SaaS. Todos los derechos reservados. Desarrollado con 💚 para la Veterinaria Itinerante en Colombia.</p>
         </div>
       </footer>
     </div>
