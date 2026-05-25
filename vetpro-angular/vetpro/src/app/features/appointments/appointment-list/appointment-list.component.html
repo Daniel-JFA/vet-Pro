@@ -7,8 +7,8 @@
     <!-- Cabecera de Página -->
     <header class="page-header">
       <div>
-        <h1 class="page-title">Sala de Espera Digital</h1>
-        <p class="page-subtitle">Gestiona el flujo de ingreso de pacientes en tiempo real.</p>
+        <h1 class="page-title">Ruta de Visitas de Hoy (Veterinarios a Domicilio)</h1>
+        <p class="page-subtitle">Gestiona y optimiza el flujo de traslados y visitas veterinarias en tiempo real. • Medellín</p>
       </div>
       <div class="header-actions">
         <a routerLink="/appointments/calendar" class="btn btn-ghost">
@@ -17,7 +17,7 @@
         </a>
         <a routerLink="/appointments/new" class="btn btn-primary">
           <span class="material-symbols-outlined">add</span>
-          Agendar Cita
+          Agendar Domicilio
         </a>
       </div>
     </header>
@@ -30,27 +30,27 @@
         </div>
         <div>
           <div class="stat-value">{{ stats().total }}</div>
-          <div class="stat-label">Citas del Día</div>
+          <div class="stat-label">Visitas de Hoy</div>
         </div>
       </div>
 
       <div class="stat-card">
         <div class="stat-icon icon-orange">
-          <span class="material-symbols-outlined">hourglass_empty</span>
+          <span class="material-symbols-outlined">directions_car</span>
         </div>
         <div>
           <div class="stat-value">{{ stats().waiting }}</div>
-          <div class="stat-label">En Sala de Espera</div>
+          <div class="stat-label">En Camino / Tránsito</div>
         </div>
       </div>
 
       <div class="stat-card" *ngIf="auth.currentUser?.role === 'admin'">
         <div class="stat-icon icon-emerald">
-          <span class="material-symbols-outlined">stethoscope</span>
+          <span class="material-symbols-outlined">home_health</span>
         </div>
         <div>
           <div class="stat-value">{{ stats().active }}</div>
-          <div class="stat-label">En Consulta Activa</div>
+          <div class="stat-label">En Visita Activa</div>
         </div>
       </div>
 
@@ -60,19 +60,19 @@
         </div>
         <div>
           <div class="stat-value">{{ auth.currentUser?.role === 'admin' ? stats().done : vetDoneCount() }}</div>
-          <div class="stat-label">{{ auth.currentUser?.role === 'admin' ? 'Atendidos Hoy' : 'Mis Atenciones Hoy' }}</div>
+          <div class="stat-label">{{ auth.currentUser?.role === 'admin' ? 'Visitas Completadas' : 'Mis Visitas Completadas' }}</div>
         </div>
       </div>
     </section>
 
     <!-- Tablero Kanban de Sala de Espera -->
     <section class="kanban-board" [style.grid-template-columns]="auth.currentUser?.role === 'admin' ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)'">
-      <!-- Columna 1: PROGRAMADAS -->
+      <!-- Columna 1: VISITAS PROGRAMADAS -->
       <div class="kanban-column column-scheduled">
         <header class="column-header">
           <h3>
             <span class="dot dot-blue"></span>
-            Programadas
+            Visitas Agendadas
           </h3>
           <span class="column-count">{{ scheduledAppointments().length }}</span>
         </header>
@@ -80,7 +80,7 @@
         <div class="cards-container">
           <div class="empty-column-placeholder" *ngIf="scheduledAppointments().length === 0">
             <span class="material-symbols-outlined">event_busy</span>
-            <p>No hay citas programadas pendientes</p>
+            <p>No hay visitas agendadas pendientes</p>
           </div>
 
           <div 
@@ -99,6 +99,13 @@
                 <span class="breed-text">({{ app.patient?.breed || app.patient?.species }})</span>
               </div>
               <div class="tutor-sub">👤 Tutor: {{ app.patient?.tutor?.firstName }} {{ app.patient?.tutor?.lastName }}</div>
+              
+              <!-- Dirección física del Domicilio -->
+              <div class="address-sub" *ngIf="app.patient?.tutor?.address" style="display: flex; align-items: flex-start; gap: 4px; font-size: 11.5px; color: var(--primary-color); margin: 6px 0; font-weight: 500;">
+                <span class="material-symbols-outlined" style="font-size: 16px;">pin_drop</span>
+                <span>{{ app.patient?.tutor?.address }}</span>
+              </div>
+
               <div class="vet-sub">🩺 Asignado: {{ app.vetId === 'v1' ? 'Dr. Andrés' : 'Dra. Laura' }}</div>
               <p class="reason-text" *ngIf="app.reason">"{{ app.reason }}"</p>
             </div>
@@ -107,11 +114,12 @@
               <button 
                 class="btn-action btn-action-success" 
                 (click)="changeStatus(app, 'waiting')"
+                style="display: inline-flex; align-items: center; gap: 4px;"
               >
-                <span class="material-symbols-outlined">login</span>
-                Registrar Llegada
+                <span class="material-symbols-outlined">directions_car</span>
+                Iniciar Viaje / En Camino
               </button>
-              <button class="btn-cancel" (click)="changeStatus(app, 'cancelled')" title="Cancelar Cita">
+              <button class="btn-cancel" (click)="changeStatus(app, 'cancelled')" title="Cancelar Visita">
                 <span class="material-symbols-outlined">cancel</span>
               </button>
             </footer>
@@ -119,28 +127,29 @@
         </div>
       </div>
 
-      <!-- Columna 2: EN SALA DE ESPERA -->
+      <!-- Columna 2: EN TRÁNSITO / EN CAMINO -->
       <div class="kanban-column column-waiting">
         <header class="column-header">
           <h3>
             <span class="dot dot-orange"></span>
-            En Espera (En Sala)
+            En Tránsito / En Camino
           </h3>
           <span class="column-count">{{ waitingAppointments().length }}</span>
         </header>
 
         <div class="cards-container">
           <div class="empty-column-placeholder" *ngIf="waitingAppointments().length === 0">
-            <span class="material-symbols-outlined">weekend</span>
-            <p>Sala de espera vacía</p>
+            <span class="material-symbols-outlined">directions_car</span>
+            <p>No hay veterinarios en camino ahora</p>
           </div>
 
           <div 
             class="kanban-card" 
             *ngFor="let app of waitingAppointments(); trackBy: trackById"
+            style="border-color: rgba(245,158,11,0.2); background: rgba(245,158,11,0.02);"
           >
             <header class="card-header">
-              <span class="card-time">{{ app.scheduledAt | date:'shortTime' }}</span>
+              <span class="card-time" style="color: var(--orange-500);">🚗 En Camino</span>
               <span class="card-service">{{ app.serviceType }}</span>
             </header>
             
@@ -151,6 +160,13 @@
                 <span class="breed-text">({{ app.patient?.breed || app.patient?.species }})</span>
               </div>
               <div class="tutor-sub">👤 Tutor: {{ app.patient?.tutor?.firstName }} {{ app.patient?.tutor?.lastName }}</div>
+              
+              <!-- Dirección física del Domicilio -->
+              <div class="address-sub" *ngIf="app.patient?.tutor?.address" style="display: flex; align-items: flex-start; gap: 4px; font-size: 11.5px; color: var(--primary-color); margin: 6px 0; font-weight: 500;">
+                <span class="material-symbols-outlined" style="font-size: 16px;">pin_drop</span>
+                <span>{{ app.patient?.tutor?.address }}</span>
+              </div>
+
               <div class="vet-sub">🩺 Asignado: {{ app.vetId === 'v1' ? 'Dr. Andrés' : 'Dra. Laura' }}</div>
               <p class="reason-text" *ngIf="app.reason">"{{ app.reason }}"</p>
             </div>
@@ -159,11 +175,12 @@
               <button 
                 class="btn-action btn-action-primary" 
                 (click)="changeStatus(app, 'in-progress')"
+                style="display: inline-flex; align-items: center; gap: 4px;"
               >
-                <span class="material-symbols-outlined">stethoscope</span>
-                Ingresar a Consulta
+                <span class="material-symbols-outlined">home</span>
+                Llegué / Iniciar Atención
               </button>
-              <button class="btn-cancel" (click)="changeStatus(app, 'cancelled')" title="Cancelar Cita">
+              <button class="btn-cancel" (click)="changeStatus(app, 'cancelled')" title="Cancelar Visita">
                 <span class="material-symbols-outlined">cancel</span>
               </button>
             </footer>
@@ -171,12 +188,12 @@
         </div>
       </div>
 
-      <!-- Columna 3: EN CONSULTA -->
+      <!-- Columna 3: EN VISITA ACTIVA (SOLO ADMIN) -->
       <div class="kanban-column column-active" *ngIf="auth.currentUser?.role === 'admin'">
         <header class="column-header">
           <h3>
             <span class="dot dot-emerald"></span>
-            En Consulta Activa
+            En Visita Activa (En Domicilio)
           </h3>
           <span class="column-count">{{ inProgressAppointments().length }}</span>
         </header>
@@ -184,15 +201,16 @@
         <div class="cards-container">
           <div class="empty-column-placeholder" *ngIf="inProgressAppointments().length === 0">
             <span class="material-symbols-outlined">medical_information</span>
-            <p>No hay consultas en curso ahora</p>
+            <p>No hay visitas activas ahora</p>
           </div>
 
           <div 
             class="kanban-card" 
             *ngFor="let app of inProgressAppointments(); trackBy: trackById"
+            style="border-color: rgba(16,185,129,0.2); background: rgba(16,185,129,0.02);"
           >
             <header class="card-header">
-              <span class="card-time">{{ app.scheduledAt | date:'shortTime' }}</span>
+              <span class="card-time" style="color: var(--primary-color);">🩺 Atendiendo</span>
               <span class="card-service">{{ app.serviceType }}</span>
             </header>
             
@@ -203,6 +221,13 @@
                 <span class="breed-text">({{ app.patient?.breed || app.patient?.species }})</span>
               </div>
               <div class="tutor-sub">👤 Tutor: {{ app.patient?.tutor?.firstName }} {{ app.patient?.tutor?.lastName }}</div>
+              
+              <!-- Dirección física del Domicilio -->
+              <div class="address-sub" *ngIf="app.patient?.tutor?.address" style="display: flex; align-items: flex-start; gap: 4px; font-size: 11.5px; color: var(--primary-color); margin: 6px 0; font-weight: 500;">
+                <span class="material-symbols-outlined" style="font-size: 16px;">pin_drop</span>
+                <span>{{ app.patient?.tutor?.address }}</span>
+              </div>
+
               <div class="vet-sub">🩺 Atendido por: {{ app.vetId === 'v1' ? 'Dr. Andrés' : 'Dra. Laura' }}</div>
               <p class="reason-text" *ngIf="app.reason">"{{ app.reason }}"</p>
             </div>
@@ -227,15 +252,15 @@
               </button>
             </footer>
           </div>
+        </div>
       </div>
-    </div>
 
-      <!-- Columna 4: ATENDIDAS / FINALIZADAS -->
+      <!-- Columna 4: VISITAS COMPLETADAS -->
       <div class="kanban-column column-finished">
         <header class="column-header">
           <h3>
             <span class="dot dot-gray"></span>
-            {{ auth.currentUser?.role === 'admin' ? 'Atendidas Hoy' : 'Mis Atenciones Hoy' }}
+            {{ auth.currentUser?.role === 'admin' ? 'Visitas Completadas' : 'Mis Visitas Completadas' }}
           </h3>
           <span class="column-count" style="background: rgba(16,185,129,0.1); color: var(--primary-color);">
             {{ auth.currentUser?.role === 'admin' ? doneAppointments().length : vetDoneCount() }}
@@ -245,7 +270,7 @@
         <div class="cards-container">
           <div class="empty-column-placeholder" *ngIf="(auth.currentUser?.role === 'admin' ? doneAppointments().length : vetDoneCount()) === 0">
             <span class="material-symbols-outlined">task_alt</span>
-            <p>No hay citas finalizadas aún hoy</p>
+            <p>No hay visitas finalizadas aún hoy</p>
           </div>
 
           <ng-container *ngFor="let app of appointments(); trackBy: trackById">
@@ -256,7 +281,7 @@
               style="border-color: rgba(16,185,129,0.2); background: rgba(16, 185, 129, 0.02);"
             >
               <header class="card-header">
-                <span class="card-time" style="color: var(--primary-color);">✓ Finalizada</span>
+                <span class="card-time" style="color: var(--primary-color);">✓ Completado</span>
                 <span class="card-service">{{ app.serviceType }}</span>
               </header>
               
@@ -267,13 +292,20 @@
                   <span class="breed-text">({{ app.patient?.breed || app.patient?.species }})</span>
                 </div>
                 <div class="tutor-sub">👤 Tutor: {{ app.patient?.tutor?.firstName }} {{ app.patient?.tutor?.lastName }}</div>
+                
+                <!-- Dirección física del Domicilio -->
+                <div class="address-sub" *ngIf="app.patient?.tutor?.address" style="display: flex; align-items: flex-start; gap: 4px; font-size: 11.5px; color: var(--text-color-secondary); margin: 6px 0;">
+                  <span class="material-symbols-outlined" style="font-size: 16px;">pin_drop</span>
+                  <span>{{ app.patient?.tutor?.address }}</span>
+                </div>
+
                 <div class="vet-sub">🩺 Atendido por: {{ app.vetId === 'v1' ? 'Dr. Andrés' : 'Dra. Laura' }}</div>
                 <p class="reason-text" style="color: var(--text-color-secondary);" *ngIf="app.reason">"{{ app.reason }}"</p>
               </div>
 
               <footer class="card-actions" style="justify-content: flex-end; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 8px;">
                 <span class="material-symbols-outlined" style="color: var(--primary-color); font-size: 20px;">check_circle</span>
-                <span style="font-size: 11.5px; color: var(--primary-color); font-weight: 500; margin-left: 4px;">Atención Completada</span>
+                <span style="font-size: 11.5px; color: var(--primary-color); font-weight: 500; margin-left: 4px;">Domicilio Finalizado</span>
               </footer>
             </div>
           </ng-container>
@@ -284,7 +316,7 @@
     <!-- Historial de Citas Cerradas / Canceladas hoy -->
     <section class="finished-section" *ngIf="finishedAppointments().length > 0">
       <div class="card finished-card">
-        <h3>Historial de Citas Finalizadas / Canceladas Hoy</h3>
+        <h3>Historial de Visitas Domiciliarias Finalizadas / Canceladas Hoy</h3>
         <table class="data-table">
           <thead>
             <tr>
@@ -292,21 +324,24 @@
               <th>Mascota</th>
               <th>Servicio</th>
               <th>Profesional</th>
+              <th>Dirección de Visita</th>
               <th>Estado</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let app of finishedAppointments(); trackBy: trackById">
               <td>{{ app.scheduledAt | date:'shortTime' }}</td>
-              <td><strong>{{ app.patient?.name }}</strong></td>
+              <td><strong>🐾 {{ app.patient?.name }}</strong></td>
               <td>{{ app.serviceType }}</td>
-              <td>{{ app.vetId === 'v1' ? 'Dr. Andrés Espinoza' : 'Dra. Laura Cardona' }}</td>
+              <td>{{ app.vetId === 'v1' ? 'Dr. Andrés' : 'Dra. Laura' }}</td>
+              <td><span style="color: var(--primary-color); font-size: 12px;">📍 {{ app.patient?.tutor?.address || 'N/A' }}</span></td>
               <td>
                 <span 
-                  class="status-micro-badge" 
-                  [attr.data-status]="app.status"
+                  class="badge" 
+                  [class.badge-success]="app.status === 'done'"
+                  [class.badge-danger]="app.status === 'cancelled'"
                 >
-                  {{ app.status === 'done' ? 'Atendida' : 'Cancelada' }}
+                  {{ app.status === 'done' ? 'Completada' : 'Cancelada' }}
                 </span>
               </td>
             </tr>

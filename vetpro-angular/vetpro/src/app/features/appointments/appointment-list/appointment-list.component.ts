@@ -115,9 +115,9 @@ export class AppointmentListComponent implements OnInit {
 // ── MOCK DATA ─────────────────────────────────
 
 const MOCK_TUTORS: Tutor[] = [
-  { id: 't1', clinicId: 'c1', firstName: 'Carlos', lastName: 'Gómez', phone: '3124567890', createdAt: new Date() },
-  { id: 't2', clinicId: 'c1', firstName: 'María', lastName: 'Rodríguez', phone: '3157891234', createdAt: new Date() },
-  { id: 't3', clinicId: 'c1', firstName: 'Diana', lastName: 'Pérez', phone: '3209876543', createdAt: new Date() }
+  { id: 't1', clinicId: 'c1', firstName: 'Carlos', lastName: 'Gómez', phone: '3124567890', address: 'Calle 10A #34-12, El Poblado, Medellín', createdAt: new Date() },
+  { id: 't2', clinicId: 'c1', firstName: 'María', lastName: 'Rodríguez', phone: '3157891234', address: 'Carrera 65 #45-89, Laureles, Medellín', createdAt: new Date() },
+  { id: 't3', clinicId: 'c1', firstName: 'Diana', lastName: 'Pérez', phone: '3209876543', address: 'Circular 4 #73-22, Conquistadores, Medellín', createdAt: new Date() }
 ];
 
 const MOCK_PATIENTS: Patient[] = [
