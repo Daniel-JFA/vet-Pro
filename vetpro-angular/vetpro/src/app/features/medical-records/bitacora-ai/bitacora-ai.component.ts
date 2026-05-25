@@ -88,6 +88,30 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
       physicalExam: 'Eritema marcado en pabellón auricular derecho con secreción de cerumen café oscuro y olor rancio. Dolor agudo a la palpación en el conducto auditivo externo. Oreja izquierda normal.',
       diagnosis: 'Otitis externa eritemato-ceruminosa asimétrica derecha.',
       treatment: '1. Limpieza profiláctica en clínica.\n2. Prescripción de gotas óticas Otomax (4 gotas c/12h en oreja derecha por 10 días).'
+    },
+    {
+      title: 'Control de Alergia Dermatológica (Dermatitis Atópica)',
+      description: 'Prurito crónico, eritema podal y sospecha de alergia estacional.',
+      anamnesis: 'Tutor reporta prurito intenso (escala 8/10) en patas, abdomen y orejas desde hace 2 semanas. El paciente se lame constantemente las patas y sacude la cabeza. Antecedente de dermatitis atópica recurrente durante la primavera.',
+      physicalExam: 'Frecuencia cardíaca: 110 lpm. Temperatura: 38.5°C. Eritema marcado en zonas interdigitales de los 4 miembros. Alopecia parcial y liquenificación leve en zona ventral del abdomen. Conducto auditivo externo con eritema leve bilateral sin secreción purulenta.',
+      diagnosis: 'Brote agudo de dermatitis atópica (hipersensibilidad cutánea) con pioderma secundaria leve.',
+      treatment: '1. Apoquel 5.4mg (1 tableta oral c/12h por 5 días, luego 1 tableta c/24h por 10 días).\n2. Baño terapéutico con champú de Clorhexidina al 3% c/3 días (dejar actuar por 10 minutos antes de enjuagar).\n3. Dieta hipoalergénica con proteína hidrolizada por 8 semanas de forma estricta.'
+    },
+    {
+      title: 'Control Posquirúrgico de Esterilización (OVH)',
+      description: 'Evaluación de herida quirúrgica a los 7 días de la cirugía.',
+      anamnesis: 'Luna asiste a control posquirúrgico a los 7 días de haber sido esterilizada. La tutora reporta comportamiento calmado en casa, buen apetito y consumo de agua normal. Ha usado el collar isabelino de forma constante.',
+      physicalExam: 'Paciente alerta y dócil. Mucosas rosadas y húmedas. Temperatura: 38.2°C. Incisión quirúrgica en línea alba completamente afrontada, limpia y seca. Sin eritema, edema ni signos de secreción o exudado. Puntos de sutura intactos.',
+      diagnosis: 'Evolución posquirúrgica óptima de ovariohisterectomía.',
+      treatment: '1. Se autoriza retiro del collar isabelino durante periodos supervisados.\n2. Limpieza diaria de la herida con clorhexidina en spray por 3 días más.\n3. Se programa cita para retiro de puntos en 3 días (día 10 posquirúrgico).'
+    },
+    {
+      title: 'Profilaxis y Limpieza Dental Ultrasónica',
+      description: 'Tratamiento de enfermedad periodontal grado II bajo anestesia.',
+      anamnesis: 'Tutor reporta halitosis severa y dificultad para masticar alimento seco en los últimos meses. No hay antecedentes de sangrado gingival espontáneo.',
+      physicalExam: 'Paciente pre-anestesiado bajo protocolo seguro. Halitosis severa (olor fétido). Presencia de abundante cálculo dental (sarro) en premolares y molares superiores e inferiores. Gingivitis moderada generalizada con retracción gingival leve (<1mm).',
+      diagnosis: 'Enfermedad periodontal Grado II (gingivitis y sarro).',
+      treatment: '1. Profilaxis dental con ultrasonido y pulido de piezas dentales.\n2. Antibioticoterapia profiláctica: Espiramicina/Metronidazol (1 tableta c/24h por 5 días).\n3. Gel antiséptico bucal (Clorhexidina) aplicado con gasa c/24h por 7 días.\n4. Transición a alimento formulado para cuidado oral o cepillado dental preventivo en casa.'
     }
   ];
 
@@ -249,6 +273,21 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
     const appId = this.appointmentId();
     if (appId) {
       this.appointmentSvc.updateStatus(appId, 'done').subscribe();
+    } else {
+      const pId = this.patientId();
+      if (pId) {
+        this.appointmentSvc.getAppointments().subscribe({
+          next: res => {
+            const activeApp = res?.data?.find((a: any) => a.patientId === pId && (a.status === 'in-progress' || a.status === 'waiting'));
+            if (activeApp) {
+              this.appointmentSvc.updateStatus(activeApp.id, 'done').subscribe();
+            }
+          },
+          error: () => {
+            console.log('Finalización de cita offline/memoria');
+          }
+        });
+      }
     }
   }
 

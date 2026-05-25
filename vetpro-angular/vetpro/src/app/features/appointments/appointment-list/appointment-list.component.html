@@ -23,7 +23,7 @@
     </header>
 
     <!-- Tarjetas de Estadísticas Rápidas -->
-    <section class="stats-row">
+    <section class="stats-row" [style.grid-template-columns]="auth.currentUser?.role === 'admin' ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)'">
       <div class="stat-card">
         <div class="stat-icon icon-blue">
           <span class="material-symbols-outlined">assignment</span>
@@ -44,7 +44,7 @@
         </div>
       </div>
 
-      <div class="stat-card">
+      <div class="stat-card" *ngIf="auth.currentUser?.role === 'admin'">
         <div class="stat-icon icon-emerald">
           <span class="material-symbols-outlined">stethoscope</span>
         </div>
@@ -66,7 +66,7 @@
     </section>
 
     <!-- Tablero Kanban de Sala de Espera -->
-    <section class="kanban-board">
+    <section class="kanban-board" [style.grid-template-columns]="auth.currentUser?.role === 'admin' ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)'">
       <!-- Columna 1: PROGRAMADAS -->
       <div class="kanban-column column-scheduled">
         <header class="column-header">
@@ -172,7 +172,7 @@
       </div>
 
       <!-- Columna 3: EN CONSULTA -->
-      <div class="kanban-column column-active">
+      <div class="kanban-column column-active" *ngIf="auth.currentUser?.role === 'admin'">
         <header class="column-header">
           <h3>
             <span class="dot dot-emerald"></span>

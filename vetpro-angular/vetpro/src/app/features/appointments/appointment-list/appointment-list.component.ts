@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AppointmentService } from '../../../core/services/appointment.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { Appointment, Patient, Tutor } from '../../../core/models';
 
 @Component({
@@ -15,6 +16,7 @@ import { Appointment, Patient, Tutor } from '../../../core/models';
 export class AppointmentListComponent implements OnInit {
   private svc = inject(AppointmentService);
   private router = inject(Router);
+  public auth = inject(AuthService);
 
   appointments = signal<Appointment[]>([]);
   loading = signal(true);
