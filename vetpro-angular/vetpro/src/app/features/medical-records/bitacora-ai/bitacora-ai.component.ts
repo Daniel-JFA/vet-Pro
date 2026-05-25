@@ -35,11 +35,20 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
 
   processing = signal(false);
   resultReady = signal(true); // El formulario SOAP está visible por defecto para redacción manual inmediata
-  submitting = signal(false);
-
-  // Tipo de entrada activa: 'voice' | 'text'
-  activeInputTab = signal<'voice' | 'text'>('voice');
+  submitting = signal(false);  // Tipo de entrada activa: 'templates' | 'text' | 'voice'
+  activeInputTab = signal<'templates' | 'text' | 'voice'>('templates');
   freeTextNotes = signal('');
+
+  // Plantillas Personalizadas y Demo
+  customTemplates = signal<any[]>([]);
+  allTemplates = computed(() => {
+    return [...this.customTemplates(), ...this.demoDictations];
+  });
+
+  // Modal para Guardar Plantilla
+  showSaveTemplateModal = signal(false);
+  newTemplateName = signal('');
+  newTemplateDescription = signal('');
 
   // Límite e Historial de minutos de IA
   aiMinutesUsed = signal(25.5);
@@ -92,6 +101,7 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
     if (appId) {
       this.appointmentId.set(appId);
     }
+    this.loadCustomTemplates();
   }
 
   ngOnDestroy() {
@@ -190,13 +200,13 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
   }
 
   // Cargar una plantilla de forma instantánea en los campos SOAP correspondientes
-  selectDemoDictation(dict: any) {
+  selectTemplate(dict: any) {
     this.title.set(dict.title);
-    this.anamnesis.set(dict.anamnesis);
-    this.physicalExam.set(dict.physicalExam);
-    this.diagnosis.set(dict.diagnosis);
-    this.treatment.set(dict.treatment);
-    this.notes.set('');
+    this.anamnesis.set(dict.anamnesis || '');
+    this.physicalExam.set(dict.physicalExam || '');
+    this.diagnosis.set(dict.diagnosis || '');
+    this.treatment.set(dict.treatment || '');
+    this.notes.set(dict.notes || '');
     this.resultReady.set(true);
     this.processing.set(false);
   }
@@ -251,6 +261,72 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
     this.treatment.set('');
     this.notes.set('');
     this.resultReady.set(true);
+  }
+
+  loadCustomTemplates() {
+    try {
+      const stored = localStorage.getItem('vetpro_custom_templates');
+      if (stored) {
+        this.customTemplates.set(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error('Error loading custom templates', e);
+    }
+  }
+
+  openSaveTemplate() {
+    // Si no hay contenido mínimo, avisar
+    if (!this.title() && !this.anamnesis() && !this.diagnosis()) {
+      alert('Por favor, escribe algo en el expediente antes de guardarlo como plantilla.');
+      return;
+    }
+    // Pre-poblar el nombre de la plantilla con el título
+    this.newTemplateName.set(this.title() || 'Nueva Plantilla');
+    this.newTemplateDescription.set('Plantilla personalizada creada el ' + new Date().toLocaleDateString());
+    this.showSaveTemplateModal.set(true);
+  }
+
+  closeSaveTemplate() {
+    this.showSaveTemplateModal.set(false);
+  }
+
+  saveCustomTemplate() {
+    if (!this.newTemplateName().trim()) return;
+
+    const newTpl = {
+      id: 'tpl_' + Date.now(),
+      isCustom: true,
+      title: this.newTemplateName().trim(),
+      description: this.newTemplateDescription().trim() || 'Plantilla personalizada',
+      anamnesis: this.anamnesis(),
+      physicalExam: this.physicalExam(),
+      diagnosis: this.diagnosis(),
+      treatment: this.treatment()
+    };
+
+    const updated = [newTpl, ...this.customTemplates()];
+    this.customTemplates.set(updated);
+    try {
+      localStorage.setItem('vetpro_custom_templates', JSON.stringify(updated));
+    } catch (e) {
+      console.error('Error saving custom template to localStorage', e);
+    }
+
+    this.showSaveTemplateModal.set(false);
+    alert('¡Plantilla "' + newTpl.title + '" guardada con éxito! La encontrarás en la pestaña de Plantillas.');
+  }
+
+  deleteCustomTemplate(id: string, event: Event) {
+    event.stopPropagation(); // Evitar que al dar clic en eliminar se cargue la plantilla
+    if (!confirm('¿Estás seguro de que deseas eliminar esta plantilla personalizada?')) return;
+
+    const updated = this.customTemplates().filter(t => t.id !== id);
+    this.customTemplates.set(updated);
+    try {
+      localStorage.setItem('vetpro_custom_templates', JSON.stringify(updated));
+    } catch (e) {
+      console.error('Error deleting custom template', e);
+    }
   }
 }
 

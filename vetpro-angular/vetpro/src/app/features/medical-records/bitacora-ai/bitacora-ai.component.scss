@@ -670,3 +670,42 @@
     }
   }
 }
+
+// ── Modal Overlay y Plantillas Personalizadas ─────
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  animation: fadeInTpl 200ms ease-out;
+}
+
+.modal-card {
+  animation: scaleInTpl 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: rgba(15, 23, 42, 0.95) !important; // Fondo ultra dark slate para glassmorphism
+  backdrop-filter: blur(20px);
+}
+
+@keyframes fadeInTpl {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleInTpl {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.btn-delete-tpl {
+  transition: all 120ms;
+  opacity: 0.7;
+  &:hover {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}

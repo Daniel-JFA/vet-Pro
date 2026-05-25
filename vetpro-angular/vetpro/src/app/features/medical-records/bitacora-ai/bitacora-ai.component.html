@@ -11,8 +11,8 @@
           <span class="material-symbols-outlined">arrow_back</span>
         </a>
         <div>
-          <h1 class="page-title">Bitácora Médica Inteligente</h1>
-          <p class="page-subtitle">Paciente: <strong>🐾 {{ p.name }}</strong> (Tutor: {{ p.tutor?.firstName }} {{ p.tutor?.lastName }})</p>
+          <h1 class="page-title">Registro de Consulta y Plantillas Clínicas (SOAP)</h1>
+          <p class="page-subtitle">Paciente: <strong>🐾 {{ p.name }}</strong> (Tutor: {{ p.tutor?.firstName }} {{ p.tutor?.lastName }}) • Medellín</p>
         </div>
       </div>
       <div class="header-actions">
@@ -29,41 +29,27 @@
       </div>
     </header>
 
-    <!-- Columna Izquierda: Grabación de Voz -->
+    <!-- Columna Izquierda: Selector de Métodos & Plantillas -->
     <div class="voice-column">
-      <!-- Card: Grabación verbal -->
+      <!-- Card Principal de Controles -->
       <div class="card voice-panel-card">
         <div class="section-title">
-          <span class="material-symbols-outlined section-icon">mic</span>
-          <h2>Dictado de Consulta por Voz</h2>
+          <span class="material-symbols-outlined section-icon">clinical_notes</span>
+          <h2>Método de Registro Clínico</h2>
         </div>
 
-        <!-- Indicador de Minutos de IA Consumidos -->
-        <div class="ai-meter-box">
-          <div class="meter-labels">
-            <span>Uso Mensual de IA</span>
-            <strong>{{ aiMinutesUsed() | number:'1.2-2' }} / {{ aiMinutesLimit }} min</strong>
-          </div>
-          <div class="meter-bar-bg">
-            <div 
-              class="meter-fill" 
-              [style.width.%]="(aiMinutesUsed() / aiMinutesLimit) * 100"
-            ></div>
-          </div>
-        </div>
-
-        <!-- Selector de Modo de Entrada (Voz vs Texto Libre) -->
-        <div class="input-tabs-switcher" style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px;">
+        <!-- Selector de Modo de Entrada (3 Pestañas) -->
+        <div class="input-tabs-switcher" style="display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; overflow-x: auto;">
           <button 
             type="button" 
             class="btn"
-            [class.btn-primary]="activeInputTab() === 'voice'"
-            [class.btn-ghost]="activeInputTab() !== 'voice'"
-            (click)="activeInputTab.set('voice')"
-            style="flex: 1; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;"
+            [class.btn-primary]="activeInputTab() === 'templates'"
+            [class.btn-ghost]="activeInputTab() !== 'templates'"
+            (click)="activeInputTab.set('templates')"
+            style="flex: 1; font-size: 12.5px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; white-space: nowrap;"
           >
-            <span class="material-symbols-outlined" style="font-size: 18px;">mic</span>
-            Dictado de Voz
+            <span class="material-symbols-outlined" style="font-size: 18px;">article</span>
+            Plantillas ({{ allTemplates().length }})
           </button>
           <button 
             type="button" 
@@ -71,68 +57,72 @@
             [class.btn-primary]="activeInputTab() === 'text'"
             [class.btn-ghost]="activeInputTab() !== 'text'"
             (click)="activeInputTab.set('text')"
-            style="flex: 1; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;"
+            style="flex: 1; font-size: 12.5px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; white-space: nowrap;"
           >
             <span class="material-symbols-outlined" style="font-size: 18px;">edit_note</span>
-            Nota Escrita
+            Nota Rápida (IA)
           </button>
-        </div>
-
-        <!-- Área de Control de Micrófono -->
-        <div class="mic-container" [class.recording]="isRecording()" *ngIf="activeInputTab() === 'voice'">
-          <!-- Ondas de sonido animadas si está grabando -->
-          <div class="sound-wave" *ngIf="isRecording()">
-            <span class="wave-bar"></span>
-            <span class="wave-bar"></span>
-            <span class="wave-bar"></span>
-            <span class="wave-bar"></span>
-            <span class="wave-bar"></span>
-          </div>
-
-          <!-- Botón circular del Micrófono -->
           <button 
             type="button" 
-            class="mic-circle-btn" 
-            [class.active]="isRecording()"
-            (click)="isRecording() ? stopRecording() : startRecording()"
-            [disabled]="processing()"
+            class="btn"
+            [class.btn-primary]="activeInputTab() === 'voice'"
+            [class.btn-ghost]="activeInputTab() !== 'voice'"
+            (click)="activeInputTab.set('voice')"
+            style="flex: 1; font-size: 12.5px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; white-space: nowrap;"
           >
-            <span class="material-symbols-outlined wa-mic-icon">
-              {{ isRecording() ? 'stop' : 'mic' }}
-            </span>
+            <span class="material-symbols-outlined" style="font-size: 18px;">mic</span>
+            Dictado de Voz
           </button>
+        </div>
 
-          <!-- Temporizador y Estado -->
-          <div class="recording-timer" *ngIf="isRecording()">{{ recordingTimeStr() }}</div>
-          <p class="recording-status-text">
-            {{ isRecording() ? 'Grabando audio de consulta... Haz clic en STOP para finalizar.' : 'Haz clic en el micrófono para iniciar el dictado clínico.' }}
+        <!-- PESTAÑA A: PLANTILLAS CLÍNICAS -->
+        <div *ngIf="activeInputTab() === 'templates'" style="display: flex; flex-direction: column; gap: 12px;">
+          <p class="section-help" style="font-size: 12px; color: var(--text-color-secondary); margin-bottom: 8px; line-height: 1.4;">
+            Selecciona una plantilla clínica para auto-rellenar el formulario SOAP de forma instantánea. Podrás editar libremente cualquier dato a la derecha.
           </p>
 
-          <!-- Controles de la grabación -->
-          <div class="recording-controls" *ngIf="isRecording() || recordingTime() > 0">
-            <button 
-              type="button" 
-              class="btn btn-primary btn-process"
-              *ngIf="!isRecording() && recordingTime() > 0"
-              (click)="processVoice()"
+          <div class="demo-list">
+            <!-- Plantillas Personalizadas y Demos -->
+            <div 
+              class="demo-item-card" 
+              *ngFor="let dict of allTemplates()"
+              (click)="selectTemplate(dict)"
+              [style.border-color]="dict.isCustom ? 'rgba(16,185,129,0.3)' : ''"
+              style="cursor: pointer; transition: all 0.2s;"
             >
-              <span class="material-symbols-outlined">psychology</span>
-              Procesar con IA
-            </button>
-            <button 
-              type="button" 
-              class="btn btn-ghost btn-cancel-rec"
-              (click)="cancelRecording()"
-            >
-              <span class="material-symbols-outlined">delete</span>
-              Descartar
-            </button>
+              <div class="demo-play-btn" [style.color]="dict.isCustom ? 'var(--primary-color)' : 'var(--text-color-secondary)'">
+                <span class="material-symbols-outlined">
+                  {{ dict.isCustom ? 'bookmark' : 'description' }}
+                </span>
+              </div>
+              <div class="demo-info" style="position: relative;">
+                <h4 style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin: 0; padding-right: 20px;">
+                  <span>{{ dict.title }}</span>
+                </h4>
+                
+                <!-- Botón de borrar si es personalizada (absoluto para no romper el layout) -->
+                <button 
+                  *ngIf="dict.isCustom" 
+                  type="button" 
+                  (click)="deleteCustomTemplate(dict.id, $event)"
+                  style="position: absolute; right: 0; top: 0; background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center;"
+                  title="Eliminar plantilla"
+                >
+                  <span class="material-symbols-outlined" style="font-size: 16px;">delete</span>
+                </button>
+
+                <p>{{ dict.description }}</p>
+                <span class="duration-tag" style="background: rgba(16,185,129,0.1); color: var(--primary-color); font-weight: 500; font-size: 11px; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 4px;">
+                  {{ dict.isCustom ? '⭐ Plantilla Personalizada' : '⚡ Carga Instantánea' }}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- Área de Redacción de Nota Manual para IA -->
+        <!-- PESTAÑA B: NOTA RÁPIDA PARA IA -->
         <div class="manual-notes-container" *ngIf="activeInputTab() === 'text'" style="display: flex; flex-direction: column; gap: 12px; padding: 10px 0;">
-          <p class="section-help" style="font-size: 13px; color: var(--text-secondary); margin-bottom: 5px;">
+          <p class="section-help" style="font-size: 12px; color: var(--text-color-secondary); margin-bottom: 5px; line-height: 1.4;">
             Escribe un párrafo rápido o copia y pega tus apuntes desordenados de la consulta. La IA los estructurará automáticamente en formato SOAP.
           </p>
           <textarea 
@@ -164,91 +154,152 @@
             </button>
           </div>
         </div>
-      </div>
 
-      <!-- Card: Plantillas Clínicas Rápidas -->
-      <div class="card demo-panel-card" *ngIf="!isRecording()">
-        <div class="section-title">
-          <span class="material-symbols-outlined section-icon">article</span>
-          <h2>Plantillas Clínicas Rápidas</h2>
-        </div>
-        <p class="section-help">
-          Selecciona una plantilla de consulta para auto-rellenar el expediente SOAP de forma instantánea. Podrás editar y ajustar libremente todos los campos en la columna derecha.
-        </p>
+        <!-- PESTAÑA C: DICTADO POR VOZ (IA) -->
+        <div class="mic-container" [class.recording]="isRecording()" *ngIf="activeInputTab() === 'voice'">
+          <!-- Ondas de sonido animadas si está grabando -->
+          <div class="sound-wave" *ngIf="isRecording()">
+            <span class="wave-bar"></span>
+            <span class="wave-bar"></span>
+            <span class="wave-bar"></span>
+            <span class="wave-bar"></span>
+            <span class="wave-bar"></span>
+          </div>
 
-        <div class="demo-list">
-          <div 
-            class="demo-item-card" 
-            *ngFor="let dict of demoDictations"
-            (click)="selectDemoDictation(dict)"
-            style="cursor: pointer; transition: all 0.2s;"
+          <!-- Botón circular del Micrófono -->
+          <button 
+            type="button" 
+            class="mic-circle-btn" 
+            [class.active]="isRecording()"
+            (click)="isRecording() ? stopRecording() : startRecording()"
+            [disabled]="processing()"
           >
-            <div class="demo-play-btn" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--primary-color);">
-              <span class="material-symbols-outlined">description</span>
-            </div>
-            <div class="demo-info">
-              <h4>{{ dict.title }}</h4>
-              <p>{{ dict.description }}</p>
-              <span class="duration-tag" style="background: rgba(16,185,129,0.1); color: var(--primary-color); font-weight: 500; font-size: 11px; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 4px;">⚡ Carga Instantánea</span>
-            </div>
+            <span class="material-symbols-outlined wa-mic-icon">
+              {{ isRecording() ? 'stop' : 'mic' }}
+            </span>
+          </button>
+
+          <!-- Temporizador y Estado -->
+          <div class="recording-timer" *ngIf="isRecording()">{{ recordingTimeStr() }}</div>
+          <p class="recording-status-text" style="font-size: 12px; text-align: center; color: var(--text-color-secondary); margin-top: 10px;">
+            {{ isRecording() ? 'Grabando audio de consulta... Haz clic en STOP para finalizar.' : 'Asistente de Voz Opcional (Beta). Haz clic en el micrófono para iniciar el dictado clínico.' }}
+          </p>
+
+          <!-- Controles de la grabación -->
+          <div class="recording-controls" *ngIf="isRecording() || recordingTime() > 0">
+            <button 
+              type="button" 
+              class="btn btn-primary btn-process"
+              *ngIf="!isRecording() && recordingTime() > 0"
+              (click)="processVoice()"
+            >
+              <span class="material-symbols-outlined">psychology</span>
+              Procesar con IA
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-ghost btn-cancel-rec"
+              (click)="cancelRecording()"
+            >
+              <span class="material-symbols-outlined">delete</span>
+              Descartar
+            </button>
+          </div>
+        </div>
+
+        <!-- Indicador de Minutos de IA Consumidos (Solo visible en pestañas de IA) -->
+        <div class="ai-meter-box" *ngIf="activeInputTab() !== 'templates'" style="margin-top: 20px; margin-bottom: 0;">
+          <div class="meter-labels">
+            <span>Uso Mensual de IA</span>
+            <strong>{{ aiMinutesUsed() | number:'1.2-2' }} / {{ aiMinutesLimit }} min</strong>
+          </div>
+          <div class="meter-bar-bg">
+            <div 
+              class="meter-fill" 
+              [style.width.%]="(aiMinutesUsed() / aiMinutesLimit) * 100"
+            ></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Columna Derecha: Resultados de la Inteligencia Artificial -->
+    <!-- Columna Derecha: Formulario SOAP Editable de Historia Clínica -->
     <div class="result-column">
       <!-- Caso A: Procesando Scanner de IA -->
       <div class="card scanner-card" *ngIf="processing()">
         <div class="scanner-container">
           <div class="wa-scanner-bar"></div>
           <div class="spinner spinner-large"></div>
-          <h3>Procesando Consulta Verbal</h3>
-          <p class="pulse-text">Whisper AI transcribiendo audio de voz...</p>
-          <p class="pulse-text-delay">Claude AI estructurando anamnesis, diagnóstico presuntivo y plan terapéutico...</p>
+          <h3>Procesando Datos de Consulta</h3>
+          <p class="pulse-text">Modelos cognitivos transcribiendo notas...</p>
+          <p class="pulse-text-delay">Estructurando anamnesis, examen físico, diagnóstico y plan terapéutico...</p>
         </div>
       </div>
 
-      <!-- Caso B: Resultados Estructurados y Listos -->
+      <!-- Caso B: Formulario SOAP Completo -->
       <div class="card results-card" *ngIf="resultReady() && !processing()">
-        <div class="results-header-badge">
-          <span class="material-symbols-outlined badge-icon">assignment</span>
-          <h4>Expediente Clínico Digital SOAP</h4>
+        <div class="results-header-badge" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="material-symbols-outlined badge-icon">assignment</span>
+            <h4>Expediente Clínico Digital (Formato SOAP)</h4>
+          </div>
         </div>
-        <p class="badge-help">
-          Escribe libremente a mano en las casillas inferiores, usa el dictador por voz o notas de IA en la izquierda, o haz clic en una <strong>Plantilla Clínica</strong> para auto-rellenar.
+        <p class="badge-help" style="margin-bottom: 15px;">
+          Escribe libremente a mano en las casillas inferiores. Puedes modificar, borrar o agregar cualquier detalle.
         </p>
+
+        <!-- Botones de Acción de Formulario Rápida -->
+        <div class="form-actions-inline" style="display: flex; gap: 10px; margin-bottom: 20px;">
+          <button 
+            type="button" 
+            class="btn btn-ghost" 
+            (click)="startManualEntry()"
+            style="flex: 1; justify-content: center; gap: 6px; font-size: 12.5px; border-color: rgba(255,255,255,0.15);"
+          >
+            <span class="material-symbols-outlined" style="font-size: 18px; color: var(--text-color-secondary);">restart_alt</span>
+            Limpiar / Iniciar Vacío
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-ghost" 
+            (click)="openSaveTemplate()"
+            style="flex: 1; justify-content: center; gap: 6px; font-size: 12.5px; border-color: rgba(16,185,129,0.3); color: var(--primary-color);"
+          >
+            <span class="material-symbols-outlined" style="font-size: 18px;">save_as</span>
+            Guardar como Plantilla
+          </button>
+        </div>
 
         <!-- Formulario de Resultados -->
         <div class="results-fields">
           <!-- Título -->
           <div class="field">
             <label>Título / Motivo de la Atención</label>
-            <input type="text" [ngModel]="title()" (ngModelChange)="title.set($event)" placeholder="Ej. Consulta de urgencia, vacunación anual, otitis..." />
+            <input type="text" [ngModel]="title()" (ngModelChange)="title.set($event)" placeholder="Ej. Vacunación Anual de Refuerzo, Gastroenteritis por basura, Otitis..." />
           </div>
 
           <!-- Anamnesis -->
           <div class="field">
-            <label>Anamnesis / Historia Clínica</label>
+            <label>Anamnesis / Historia Clínica (Subjetivo)</label>
             <textarea rows="4" [ngModel]="anamnesis()" (ngModelChange)="anamnesis.set($event)" placeholder="Ingresa los antecedentes e historia clínica reportada por el tutor..."></textarea>
           </div>
 
           <!-- Examen Físico -->
           <div class="field">
-            <label>Examen Físico Completo</label>
+            <label>Examen Físico Completo (Objetivo)</label>
             <textarea rows="4" [ngModel]="physicalExam()" (ngModelChange)="physicalExam.set($event)" placeholder="Constantes fisiológicas, mucosas, palpación, auscultación..."></textarea>
           </div>
 
           <div class="fields-row fields-row-2">
             <!-- Diagnóstico Presuntivo -->
             <div class="field highlight-danger-field">
-              <label>Diagnóstico Presuntivo</label>
+              <label>Diagnóstico Presuntivo (Avalúo)</label>
               <textarea rows="4" [ngModel]="diagnosis()" (ngModelChange)="diagnosis.set($event)" placeholder="Diagnóstico presuntivo o diferencial..."></textarea>
             </div>
 
             <!-- Plan de Tratamiento -->
             <div class="field highlight-primary-field">
-              <label>Tratamiento / Indicaciones</label>
+              <label>Tratamiento / Indicaciones (Plan)</label>
               <textarea rows="4" [ngModel]="treatment()" (ngModelChange)="treatment.set($event)" placeholder="Medicamentos, dosis, frecuencia, dieta y recomendaciones..."></textarea>
             </div>
           </div>
@@ -256,10 +307,58 @@
           <!-- Notas adicionales -->
           <div class="field">
             <label>Observaciones o Recomendaciones al Tutor</label>
-            <textarea rows="2" [ngModel]="notes()" (ngModelChange)="notes.set($event)" placeholder="Notas para la receta impresa o recomendaciones..."></textarea>
+            <textarea rows="2" [ngModel]="notes()" (ngModelChange)="notes.set($event)" placeholder="Notas internas o recomendaciones impresas para el tutor..."></textarea>
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para Guardar Plantilla Personalizada -->
+<div class="modal-overlay" *ngIf="showSaveTemplateModal()" (click)="closeSaveTemplate()">
+  <div class="modal-card card" (click)="$event.stopPropagation()" style="max-width: 450px; width: 90%; background: var(--surface-card); box-shadow: 0 8px 32px rgba(0,0,0,0.4); border: 1px solid var(--surface-border); border-radius: 12px; padding: 24px; color: var(--text-color);">
+    <h3 style="margin-top: 0; margin-bottom: 8px; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; color: var(--text-color);">
+      <span class="material-symbols-outlined" style="color: var(--primary-color);">save_as</span>
+      Guardar como Plantilla Clínica
+    </h3>
+    <p style="font-size: 12px; color: var(--text-color-secondary); margin-bottom: 20px; line-height: 1.4;">
+      Guarda los datos actuales del formulario SOAP para reutilizarlos de forma instantánea en futuras consultas de cualquier paciente.
+    </p>
+
+    <div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 24px;">
+      <div class="field">
+        <label style="font-size: 12px; font-weight: 600; color: var(--text-color);">Nombre de la Plantilla</label>
+        <input 
+          type="text" 
+          [ngModel]="newTemplateName()" 
+          (ngModelChange)="newTemplateName.set($event)" 
+          placeholder="Ej. Control de Vacunación Sano, Otitis Leve..." 
+          style="width: 100%; border: 1px solid var(--surface-border); background: var(--surface-ground); color: var(--text-color); font-size: 13px; padding: 10px; border-radius: 6px; outline: none;"
+        />
+      </div>
+      <div class="field">
+        <label style="font-size: 12px; font-weight: 600; color: var(--text-color);">Descripción Corta</label>
+        <input 
+          type="text" 
+          [ngModel]="newTemplateDescription()" 
+          (ngModelChange)="newTemplateDescription.set($event)" 
+          placeholder="Ej. Aplicación de refuerzos anuales en perros..." 
+          style="width: 100%; border: 1px solid var(--surface-border); background: var(--surface-ground); color: var(--text-color); font-size: 13px; padding: 10px; border-radius: 6px; outline: none;"
+        />
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+      <button type="button" class="btn btn-ghost" (click)="closeSaveTemplate()">Cancelar</button>
+      <button 
+        type="button" 
+        class="btn btn-primary" 
+        (click)="saveCustomTemplate()"
+        [disabled]="!newTemplateName().trim()"
+      >
+        Guardar Plantilla
+      </button>
     </div>
   </div>
 </div>
