@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { PatientService } from '../../../core/services/patient.service';
+import { AppointmentService } from '../../../core/services/appointment.service';
 import { Patient } from '../../../core/models';
 
 @Component({
@@ -16,8 +17,10 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
   private patientSvc = inject(PatientService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private appointmentSvc = inject(AppointmentService);
 
   patientId = signal<string | null>(null);
+  appointmentId = signal<string | null>(null);
   patient = signal<Patient | null>(null);
   loading = signal(true);
 
@@ -79,6 +82,10 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
     if (id) {
       this.patientId.set(id);
       this.loadPatient(id);
+    }
+    const appId = this.route.snapshot.queryParamMap.get('appointmentId');
+    if (appId) {
+      this.appointmentId.set(appId);
     }
   }
 
@@ -243,15 +250,24 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
     // Registrar en backend y redireccionar al perfil
     this.patientSvc.createMedicalRecord(recordData).subscribe({
       next: () => {
+        this.finalizeAppointmentIfAny();
         this.submitting.set(false);
         this.router.navigate(['/patients', this.patientId()]);
       },
       error: () => {
         // Fallback local exitoso
+        this.finalizeAppointmentIfAny();
         this.submitting.set(false);
         this.router.navigate(['/patients', this.patientId()]);
       }
     });
+  }
+
+  private finalizeAppointmentIfAny() {
+    const appId = this.appointmentId();
+    if (appId) {
+      this.appointmentSvc.updateStatus(appId, 'done').subscribe();
+    }
   }
 
   // Permitir la redacción manual desde cero, activando el formulario

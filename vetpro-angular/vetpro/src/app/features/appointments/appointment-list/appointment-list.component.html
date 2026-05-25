@@ -210,6 +210,7 @@
             <footer class="card-actions" style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: space-between; width: 100%;">
               <a 
                 [routerLink]="['/medical-records', 'new', app.patientId]"
+                [queryParams]="{ appointmentId: app.id }"
                 class="btn-action btn-action-primary" 
                 style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 4px; flex: 1; min-width: 120px;"
               >

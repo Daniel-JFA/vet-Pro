@@ -68,14 +68,18 @@ export class AppointmentListComponent implements OnInit {
       next: updated => {
         this.updateLocalStatus(app.id, newStatus);
         if (newStatus === 'in-progress') {
-          this.router.navigate(['/medical-records', 'new', app.patientId]);
+          this.router.navigate(['/medical-records', 'new', app.patientId], {
+            queryParams: { appointmentId: app.id }
+          });
         }
       },
       error: () => {
         // Fallback local offline exitoso
         this.updateLocalStatus(app.id, newStatus);
         if (newStatus === 'in-progress') {
-          this.router.navigate(['/medical-records', 'new', app.patientId]);
+          this.router.navigate(['/medical-records', 'new', app.patientId], {
+            queryParams: { appointmentId: app.id }
+          });
         }
       }
     });
