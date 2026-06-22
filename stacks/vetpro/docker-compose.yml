@@ -37,7 +37,7 @@ services:
       - vetpro-internal
       - proxy
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/health || exit 1"]
+      test: ["CMD-SHELL", "node -e \"const http = require('http'); const req = http.request('http://127.0.0.1:3000/health', { timeout: 2000 }, (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }); req.on('error', () => process.exit(1)); req.end();\""]
       interval: 30s
       timeout: 5s
       retries: 5
