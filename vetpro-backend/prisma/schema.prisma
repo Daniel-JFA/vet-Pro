@@ -56,6 +56,8 @@ model Clinic {
   notificationTemplates NotificationTemplate[]
   notificationLogs      NotificationLog[]
   Appointment           Appointment[]
+  consentForms          ConsentForm[]
+  mobileInventories     MobileInventory[]
 
   @@map("clinics")
 }
@@ -109,10 +111,11 @@ model User {
   updatedAt    DateTime @updatedAt
 
   // Relaciones
-  appointments    Appointment[]   @relation("VetAppointments")
-  medicalRecords  MedicalRecord[]
-  vaccinesApplied Vaccine[]
-  prescriptions   Prescription[]
+  appointments      Appointment[]     @relation("VetAppointments")
+  medicalRecords    MedicalRecord[]
+  vaccinesApplied   Vaccine[]
+  prescriptions     Prescription[]
+  mobileInventories MobileInventory[]
 
   @@index([clinicId])
   @@index([branchId])
@@ -134,8 +137,9 @@ model Tutor {
   documentId String? // CC o NIT en Colombia
   address    String?
   notes      String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   // Relaciones
   patients Patient[]
@@ -187,6 +191,7 @@ model Patient {
   allergies  String?
   notes      String?
   status     PatientStatus  @default(active)
+  deletedAt  DateTime?
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
 
@@ -195,6 +200,7 @@ model Patient {
   medicalRecords MedicalRecord[]
   vaccines       Vaccine[]
   prescriptions  Prescription[]
+  consentForms   ConsentForm[]
 
   @@index([clinicId])
   @@index([tutorId])
@@ -215,6 +221,22 @@ enum AppointmentStatus {
   no_show
 }
 
+enum ServiceModality {
+  clinic
+  home_visit
+  telemedicine
+}
+
+enum TrackingStatus {
+  requested
+  assigned
+  on_the_way
+  arrived
+  in_progress
+  completed
+  cancelled
+}
+
 model Appointment {
   id              String            @id @default(uuid())
   clinicId        String
@@ -223,15 +245,31 @@ model Appointment {
   branch          Branch            @relation(fields: [branchId], references: [id], onDelete: Restrict)
   patientId       String
   patient         Patient           @relation(fields: [patientId], references: [id], onDelete: Restrict)
-  vetId           String
-  vet             User              @relation("VetAppointments", fields: [vetId], references: [id], onDelete: Restrict)
+  vetId           String?
+  vet             User?             @relation("VetAppointments", fields: [vetId], references: [id], onDelete: Restrict)
   serviceType     String // Consulta General, Control, Cirugía, Vacunación, etc.
+  modality        ServiceModality   @default(clinic)
   scheduledAt     DateTime
   durationMinutes Int               @default(30)
   status          AppointmentStatus @default(scheduled)
   reason          String?
   notes           String?
   amountCharged   Float?
+
+  // Datos On-Demand / Domiciliarios
+  address         String?
+  city            String?
+  latitude        Float?
+  longitude       Float?
+  distanceKm      Float?
+  travelFee       Float             @default(0)
+  trackingStatus  TrackingStatus    @default(requested)
+  assignedAt      DateTime?
+  onTheWayAt      DateTime?
+  arrivedAt       DateTime?
+  completedAt     DateTime?
+
+  deletedAt       DateTime?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
@@ -399,14 +437,16 @@ model Product {
   taxRate              Float           @default(0.19) // e.g., 0.19 (19% IVA Colombia)
   expiresAt            DateTime?
   supplierId           String?
-  supplier             Supplier?       @relation(fields: [supplierId], references: [id], onDelete: SetNull)
-  active               Boolean         @default(true)
-  createdAt            DateTime        @default(now())
-  updatedAt            DateTime        @updatedAt
+  supplier             Supplier?           @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  active               Boolean             @default(true)
+  deletedAt            DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
 
   // Relaciones
-  movements  InventoryMovement[]
-  orderItems PurchaseOrderItem[]
+  movements         InventoryMovement[]
+  orderItems        PurchaseOrderItem[]
+  mobileInventories MobileInventory[]
 
   @@unique([clinicId, sku])
   @@index([clinicId])
@@ -547,6 +587,7 @@ model Invoice {
   paidAt        DateTime?
   notes         String?
   electronicId  String? // Reservado para CUFE de la DIAN en la fase final del proyecto
+  deletedAt     DateTime?
 
   // Relaciones
   items InvoiceItem[]
@@ -630,4 +671,53 @@ model NotificationLog {
 
   @@index([clinicId])
   @@map("notification_logs")
+}
+
+// ─────────────────────────────────────────────
+// ✍️ CONSENTIMIENTOS INFORMADOS & FIRMAS
+// ─────────────────────────────────────────────
+
+model ConsentForm {
+  id          String    @id @default(uuid())
+  clinicId    String
+  clinic      Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  patientId   String
+  patient     Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  patientName String?
+  tutorName   String?
+  tutorPhone  String?
+  title       String
+  content     String    @db.Text
+  signed      Boolean   @default(false)
+  signature   String?   @db.Text
+  signedAt    DateTime?
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([clinicId])
+  @@index([patientId])
+  @@map("consent_forms")
+}
+
+// ─────────────────────────────────────────────
+// 🛵 INVENTARIO MÓVIL (MALETÍN DEL VETERINARIO)
+// ─────────────────────────────────────────────
+
+model MobileInventory {
+  id        String   @id @default(uuid())
+  clinicId  String
+  clinic    Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  vetId     String
+  vet       User     @relation(fields: [vetId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Float    @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([vetId, productId])
+  @@index([clinicId])
+  @@index([vetId])
+  @@index([productId])
+  @@map("mobile_inventories")
 }

@@ -148,32 +148,83 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Iniciar grabación real/simulada
-  startRecording() {
+  private mediaRecorder: MediaRecorder | null = null;
+  private audioChunks: Blob[] = [];
+  private mediaStream: MediaStream | null = null;
+  audioBlob = signal<Blob | null>(null);
+
+  // Iniciar grabación de audio real con el micrófono
+  async startRecording() {
     this.isRecording.set(true);
     this.recordingTime.set(0);
     this.resultReady.set(false);
-    
-    // Iniciar temporizador
+    this.audioChunks = [];
+    this.audioBlob.set(null);
+
+    // Iniciar temporizador visual
     this.timerInterval = setInterval(() => {
       this.recordingTime.update(t => t + 1);
     }, 1000);
+
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        this.mediaRecorder = new MediaRecorder(this.mediaStream);
+
+        this.mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            this.audioChunks.push(event.data);
+          }
+        };
+
+        this.mediaRecorder.onstop = () => {
+          const blob = new Blob(this.audioChunks, { type: 'audio/webm' });
+          this.audioBlob.set(blob);
+          if (this.mediaStream) {
+            this.mediaStream.getTracks().forEach(track => track.stop());
+            this.mediaStream = null;
+          }
+        };
+
+        this.mediaRecorder.start(200); // chunks cada 200ms
+      }
+    } catch (err) {
+      console.warn('⚠️ No se pudo acceder al micrófono físico (usando modo simulación):', err);
+    }
   }
 
   stopRecording() {
     this.isRecording.set(false);
     this.stopTimer();
+
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      this.mediaRecorder.stop();
+    }
   }
 
   cancelRecording() {
     this.isRecording.set(false);
     this.stopTimer();
     this.recordingTime.set(0);
+    this.audioChunks = [];
+    this.audioBlob.set(null);
+
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      this.mediaRecorder.stop();
+    }
+    if (this.mediaStream) {
+      this.mediaStream.getTracks().forEach(track => track.stop());
+      this.mediaStream = null;
+    }
   }
 
   private stopTimer() {
     if (this.timerInterval) {
       clearInterval(this.timerInterval);
+    }
+    if (this.mediaStream) {
+      this.mediaStream.getTracks().forEach(track => track.stop());
+      this.mediaStream = null;
     }
   }
 

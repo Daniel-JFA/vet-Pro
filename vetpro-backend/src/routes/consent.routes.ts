@@ -1,147 +1,235 @@
 import { Router, Response } from 'express';
+import { z } from 'zod';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
+import { prisma } from '../config/database.js';
 
 const router = Router();
 
-// Almacén en memoria persistente durante la ejecución del proceso
-interface ConsentForm {
-  id: string;
-  clinicId: string;
-  patientId: string;
-  patientName: string;
-  tutorName: string;
-  tutorPhone: string;
-  title: string;
-  content: string;
-  signed: boolean;
-  signature?: string; // Base64
-  signedAt?: Date;
-  expiresAt: Date;
-  createdAt: Date;
-}
+// ─────────────────────────────────────────────
+// ESQUEMAS DE VALIDACIÓN CON ZOD
+// ─────────────────────────────────────────────
+const CreateConsentSchema = z.object({
+  patientId: z.string().uuid('ID de paciente inválido'),
+  patientName: z.string().min(1, 'El nombre del paciente es requerido').optional(),
+  tutorName: z.string().min(1, 'El nombre del tutor es requerido').optional(),
+  tutorPhone: z.string().min(1, 'El teléfono del tutor es requerido').optional(),
+  title: z.string().min(3, 'El título debe tener al menos 3 caracteres'),
+  content: z.string().min(10, 'El contenido legal del consentimiento es requerido'),
+  expiresInHours: z.number().min(1).max(720).default(72)
+});
 
-const MEMORY_CONSENTS: ConsentForm[] = [
-  {
-    id: 'c-form-1',
-    clinicId: 'c1',
-    patientId: 'p1',
-    patientName: 'Toby',
-    tutorName: 'Carlos Gómez',
-    tutorPhone: '+57 312 456 7890',
-    title: 'Autorización para Anestesia y Cirugía',
-    content: 'Por medio del presente documento, yo Carlos Gómez autorizo a la clínica veterinaria VetPro a realizar el procedimiento de castración bajo anestesia general inhalatoria para mi mascota Toby. Entiendo los riesgos quirúrgicos implícitos...',
-    signed: true,
-    signature: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAACWCAYAAAB...',
-    signedAt: new Date(Date.now() - 1 * 86400000),
-    expiresAt: new Date(Date.now() + 2 * 86400000),
-    createdAt: new Date(Date.now() - 1 * 86400000)
-  },
-  {
-    id: 'c-form-2',
-    clinicId: 'c1',
-    patientId: 'p1',
-    patientName: 'Toby',
-    tutorName: 'Carlos Gómez',
-    tutorPhone: '+57 312 456 7890',
-    title: 'Consentimiento para Hospitalización General',
-    content: 'Por medio del presente documento, yo Carlos Gómez autorizo a la clínica veterinaria VetPro a hospitalizar a mi mascota Toby para administración de terapia de fluidos endovenosos y monitoreo clínico...',
-    signed: false,
-    expiresAt: new Date(Date.now() + 3 * 86400000),
-    createdAt: new Date()
-  }
-];
+const SignConsentSchema = z.object({
+  signature: z.string().min(10, 'La firma gráfica en formato Base64 o SVG es requerida')
+});
 
 // ─────────────────────────────────────────────
-// RUTAS PROTEGIDAS (Para Veterinarios)
+// RUTAS PROTEGIDAS (Para Veterinarios y Staff)
 // ─────────────────────────────────────────────
 
-// GET /api/v1/consent-forms (Lista general en panel vet)
+// GET /api/v1/consent-forms (Lista de consentimientos de la clínica)
 router.get('/', authMiddleware as any, async (req: AuthRequest, res: Response) => {
-  const clinicId = req.user?.clinicId;
-  if (!clinicId) {
-    return res.status(401).json({ error: 'No autorizado.' });
-  }
+  try {
+    const clinicId = req.user?.clinicId;
+    if (!clinicId) {
+      return res.status(401).json({ error: 'No autorizado.' });
+    }
 
-  const list = MEMORY_CONSENTS.filter(c => c.clinicId === clinicId);
-  return res.json(list);
+    const { patientId, signed } = req.query;
+
+    const where: any = { clinicId };
+    if (patientId) where.patientId = String(patientId);
+    if (signed !== undefined) where.signed = signed === 'true';
+
+    const consentForms = await prisma.consentForm.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        patient: {
+          select: {
+            id: true,
+            name: true,
+            species: true,
+            breed: true,
+            tutor: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                phone: true,
+                email: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    return res.json(consentForms);
+  } catch (error: any) {
+    console.error('[ConsentRoutes] Error fetching consent forms:', error);
+    return res.status(500).json({ error: 'Error al consultar los consentimientos informados.' });
+  }
 });
 
-// POST /api/v1/consent-forms (Vets generan nuevo consentimiento)
+// POST /api/v1/consent-forms (Emitir nuevo consentimiento)
 router.post('/', authMiddleware as any, async (req: AuthRequest, res: Response) => {
-  const clinicId = req.user?.clinicId;
-  if (!clinicId) {
-    return res.status(401).json({ error: 'No autorizado.' });
+  try {
+    const clinicId = req.user?.clinicId;
+    if (!clinicId) {
+      return res.status(401).json({ error: 'No autorizado.' });
+    }
+
+    const parsed = CreateConsentSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: 'Datos de consentimiento inválidos',
+        details: parsed.error.format()
+      });
+    }
+
+    const { patientId, title, content, expiresInHours } = parsed.data;
+
+    // Validar que el paciente pertenezca a la clínica (Prevención IDOR)
+    const patient = await prisma.patient.findFirst({
+      where: { id: patientId, clinicId },
+      include: { tutor: true }
+    });
+
+    if (!patient) {
+      return res.status(404).json({ error: 'El paciente no existe o no pertenece a su clínica.' });
+    }
+
+    const patientName = parsed.data.patientName || patient.name;
+    const tutorName = parsed.data.tutorName || `${patient.tutor.firstName} ${patient.tutor.lastName}`.trim();
+    const tutorPhone = parsed.data.tutorPhone || patient.tutor.phone;
+
+    const expiresAt = new Date(Date.now() + (expiresInHours || 72) * 60 * 60 * 1000);
+
+    const newConsent = await prisma.consentForm.create({
+      data: {
+        clinicId,
+        patientId,
+        patientName,
+        tutorName,
+        tutorPhone,
+        title,
+        content,
+        signed: false,
+        expiresAt
+      },
+      include: {
+        patient: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
+    });
+
+    return res.status(201).json(newConsent);
+  } catch (error: any) {
+    console.error('[ConsentRoutes] Error creating consent form:', error);
+    return res.status(500).json({ error: 'Error al emitir el consentimiento informado.' });
   }
-
-  const { patientId, patientName, tutorName, tutorPhone, title, content } = req.body;
-
-  if (!patientId || !patientName || !tutorName || !tutorPhone || !title || !content) {
-    return res.status(400).json({ error: 'Todos los campos son requeridos para emitir un consentimiento.' });
-  }
-
-  const newForm: ConsentForm = {
-    id: `c-form-${Date.now()}`,
-    clinicId,
-    patientId,
-    patientName,
-    tutorName,
-    tutorPhone,
-    title,
-    content,
-    signed: false,
-    expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000), // Expiración en 72h
-    createdAt: new Date()
-  };
-
-  MEMORY_CONSENTS.push(newForm);
-  return res.status(201).json(newForm);
 });
 
 // ─────────────────────────────────────────────
-// RUTAS PÚBLICAS (Para que el Tutor firme desde su celular)
+// RUTAS PÚBLICAS / TOKENIZADAS (Para firma del Tutor en móvil)
 // ─────────────────────────────────────────────
 
-// GET /api/v1/consent-forms/:id (Visualizar el consentimiento)
+// GET /api/v1/consent-forms/:id (Visualizar para firma)
 router.get('/:id', async (req, res) => {
-  const { id } = req.params;
-  const form = MEMORY_CONSENTS.find(c => c.id === id);
+  try {
+    const { id } = req.params;
 
-  if (!form) {
-    return res.status(404).json({ error: 'Documento de consentimiento no encontrado.' });
+    const form = await prisma.consentForm.findUnique({
+      where: { id },
+      include: {
+        clinic: {
+          select: {
+            name: true,
+            logoUrl: true,
+            phone: true,
+            address: true,
+            city: true
+          }
+        },
+        patient: {
+          select: {
+            id: true,
+            name: true,
+            species: true,
+            breed: true
+          }
+        }
+      }
+    });
+
+    if (!form) {
+      return res.status(404).json({ error: 'Documento de consentimiento no encontrado.' });
+    }
+
+    const isExpired = new Date() > new Date(form.expiresAt);
+
+    return res.json({
+      ...form,
+      isExpired
+    });
+  } catch (error: any) {
+    console.error('[ConsentRoutes] Error fetching public consent:', error);
+    return res.status(500).json({ error: 'Error al cargar el consentimiento.' });
   }
-
-  // Verificar si expiró
-  if (new Date() > new Date(form.expiresAt)) {
-    return res.status(410).json({ error: 'Este documento de consentimiento ha expirado (límite de 72 horas excedido).' });
-  }
-
-  return res.json(form);
 });
 
-// PATCH /api/v1/consent-forms/:id/sign (Registrar la firma del tutor)
+// PATCH /api/v1/consent-forms/:id/sign (Registrar firma del tutor)
 router.patch('/:id/sign', async (req, res) => {
-  const { id } = req.params;
-  const { signature } = req.body;
+  try {
+    const { id } = req.params;
 
-  if (!signature) {
-    return res.status(400).json({ error: 'La firma gráfica es obligatoria.' });
+    const parsed = SignConsentSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: 'La firma gráfica es obligatoria.',
+        details: parsed.error.format()
+      });
+    }
+
+    const form = await prisma.consentForm.findUnique({
+      where: { id }
+    });
+
+    if (!form) {
+      return res.status(404).json({ error: 'Documento de consentimiento no encontrado.' });
+    }
+
+    if (form.signed) {
+      return res.status(400).json({ error: 'Este documento ya se encuentra firmado.' });
+    }
+
+    if (new Date() > new Date(form.expiresAt)) {
+      return res.status(410).json({
+        error: 'Este documento de consentimiento ha expirado. Solicite uno nuevo a la clínica.'
+      });
+    }
+
+    const updated = await prisma.consentForm.update({
+      where: { id },
+      data: {
+        signed: true,
+        signature: parsed.data.signature,
+        signedAt: new Date()
+      }
+    });
+
+    return res.json({
+      message: 'Consentimiento firmado exitosamente.',
+      consent: updated
+    });
+  } catch (error: any) {
+    console.error('[ConsentRoutes] Error signing consent form:', error);
+    return res.status(500).json({ error: 'Error al procesar la firma del documento.' });
   }
-
-  const form = MEMORY_CONSENTS.find(c => c.id === id);
-
-  if (!form) {
-    return res.status(404).json({ error: 'Documento no encontrado.' });
-  }
-
-  if (form.signed) {
-    return res.status(400).json({ error: 'Este documento ya se encuentra firmado.' });
-  }
-
-  form.signed = true;
-  form.signature = signature;
-  form.signedAt = new Date();
-
-  return res.json(form);
 });
 
 export const CONSENT_ROUTES = router;

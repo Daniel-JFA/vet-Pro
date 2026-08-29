@@ -32,6 +32,22 @@
           Abonar / Pagar
         </button>
 
+        <!-- Emitir a la DIAN -->
+        <button 
+          class="btn btn-dian" 
+          *ngIf="!isDianIssued() && !invoice()?.electronicId && invoice()?.status !== 'draft'"
+          [disabled]="dianTransmitting()"
+          (click)="transmitToDian()"
+        >
+          <span class="material-symbols-outlined">verified_user</span>
+          {{ dianTransmitting() ? 'Transmitiendo a DIAN...' : 'Emitir Factura DIAN' }}
+        </button>
+
+        <div class="dian-badge-ok" *ngIf="isDianIssued() || invoice()?.electronicId">
+          <span class="material-symbols-outlined">verified</span>
+          FEV Validada DIAN
+        </div>
+
         <!-- Compartir por WhatsApp -->
         <button 
           class="btn btn-ghost" 
@@ -167,6 +183,23 @@
           </div>
         </div>
       </footer>
+
+      <!-- SELLO FISCAL DIAN (CUFE & QR) -->
+      <section class="dian-fiscal-stamp" *ngIf="isDianIssued() || invoice()?.electronicId">
+        <div class="dian-stamp-qr">
+          <span class="material-symbols-outlined">qr_code_2</span>
+        </div>
+        <div class="dian-stamp-content">
+          <div class="dian-stamp-header">
+            <strong>DOCUMENTO FISCAL VALIDADO POR LA DIAN (FEV UBL 2.1)</strong>
+            <span class="dian-valid-chip">ESTADO: APROBADO</span>
+          </div>
+          <p class="dian-cufe-hash">CUFE: {{ cufeCode() || invoice()?.electronicId }}</p>
+          <span class="dian-legal-note">
+            Autorización de Numeración Facturación Electrónica DIAN Res. No. 18764000001 de 2026. Prefijo FAC del 000001 al 100000. Proveedor Tecnológico Autorizado.
+          </span>
+        </div>
+      </section>
     </div>
   </div>
 

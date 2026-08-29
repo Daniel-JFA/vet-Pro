@@ -20,8 +20,8 @@ services:
 
   backend:
     build:
-      context: /home/djfa/Dev/projects/vet-Pro/vetpro-backend
-      dockerfile: /home/djfa/Dev/projects/vet-Pro/vetpro-backend/Dockerfile
+      context: ../../vetpro-backend
+      dockerfile: Dockerfile
     container_name: vetpro-backend
     restart: unless-stopped
     command: ["sh", "-lc", "npx prisma migrate deploy && npm run start"]
@@ -53,8 +53,8 @@ services:
 
   frontend:
     build:
-      context: /home/djfa/Dev/projects/vet-Pro/vetpro-angular/vetpro
-      dockerfile: /home/djfa/Dev/projects/vet-Pro/vetpro-angular/vetpro/Dockerfile
+      context: ../../vetpro-angular/vetpro
+      dockerfile: Dockerfile
     container_name: vetpro-frontend
     restart: unless-stopped
     depends_on:
