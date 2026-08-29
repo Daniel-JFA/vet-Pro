@@ -24,9 +24,57 @@ export interface User {
   firstName: string;
   lastName: string;
   email: string;
-  role: 'admin' | 'vet' | 'assistant' | 'receptionist';
+  role: 'admin' | 'vet' | 'assistant' | 'receptionist' | 'walker';
   avatarUrl?: string;
   active: boolean;
+}
+
+// ── WALKERS (PASEADORES) ───────────────────────
+
+export type WalkStatus = 'requested' | 'assigned' | 'confirmed' | 'on_the_way' | 'walking' | 'completed' | 'cancelled';
+
+export interface Walker {
+  id: string;
+  clinicId: string;
+  userId: string;
+  user?: User;
+  bio?: string;
+  photoUrl?: string;
+  rating: number;
+  totalWalks: number;
+  pricePerHour: number;
+  maxDogs: number;
+  coverageZones: string[];
+  active: boolean;
+  createdAt: Date;
+}
+
+export interface WalkBooking {
+  id: string;
+  clinicId: string;
+  tutorId: string;
+  tutor?: Tutor;
+  walkerId?: string;
+  walker?: Walker;
+  patientIds: string[];
+  scheduledAt: Date;
+  durationMins: number;
+  address: string;
+  latitude?: number;
+  longitude?: number;
+  status: WalkStatus;
+  price: number;
+  notes?: string;
+  startedAt?: Date;
+  completedAt?: Date;
+  distanceKm?: number;
+  photos: string[];
+  walkerNotes?: string;
+  rating?: number;
+  review?: string;
+  cancelledAt?: Date;
+  cancelReason?: string;
+  createdAt: Date;
 }
 
 export interface Tutor {

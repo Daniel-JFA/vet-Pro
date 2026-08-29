@@ -1,0 +1,370 @@
+================================================================================
+  VETPRO — RUNBOOK PARA PUESTA EN PRODUCCIÓN
+  Instrucciones para IA (Claude Code u otro agente)
+  Proyecto: /home/djfa/Dev/projects/Propios/Vet/
+================================================================================
+
+CONTEXTO
+--------
+VetPro es una plataforma SaaS veterinaria (Angular 21 + Node.js/Express + Prisma +
+PostgreSQL). El código ya está limpio y sin datos demo en el sistema real.
+El módulo /demo es independiente y no toca la BD.
+
+Hay 4 tareas de código pendientes antes de producción, más pasos de infraestructura.
+Este archivo describe TODO lo que hay que hacer, en orden.
+
+================================================================================
+PARTE 1 — CAMBIOS DE CÓDIGO (editar archivos del proyecto)
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+TAREA 1: Hacer el docker-compose seguro (falla si falta JWT_SECRET)
+────────────────────────────────────────────────────────────────────────────────
+
+Archivo: /home/djfa/Dev/projects/Propios/Vet/docker-compose.yml
+
+Cambiar la línea:
+  JWT_SECRET: ${JWT_SECRET:-vetpro_super_secret_signing_key_2026_dev}
+
+Por:
+  JWT_SECRET: ${JWT_SECRET:?Error: JWT_SECRET no está definido. Genera uno con: openssl rand -hex 64}
+
+También cambiar:
+  DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@db:5432/vetpro?schema=public}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+
+Por:
+  DATABASE_URL: ${DATABASE_URL:?Error: DATABASE_URL no está definido}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD no está definido}
+
+────────────────────────────────────────────────────────────────────────────────
+TAREA 2: Crear endpoint de registro de clínica en el backend
+────────────────────────────────────────────────────────────────────────────────
+
+Crear archivo nuevo:
+  /home/djfa/Dev/projects/Propios/Vet/vetpro-backend/src/routes/clinic.routes.ts
+
+El endpoint es:
+  POST /api/v1/clinics/register  (público, sin auth)
+
+Body JSON esperado:
+{
+  "clinicName": string (requerido),
+  "nit": string (opcional),
+  "phone": string (requerido),
+  "email": string (requerido),
+  "address": string (requerido),
+  "city": string (requerido),
+  "branchName": string (requerido),
+  "branchAddress": string (requerido),
+  "adminFirstName": string (requerido),
+  "adminLastName": string (requerido),
+  "adminEmail": string (requerido),
+  "adminPassword": string (requerido, mínimo 8 caracteres)
+}
+
+Lógica del endpoint (todo en una transacción Prisma):
+1. Verificar que no exista una clínica con ese email → 409 si ya existe
+2. Verificar que no exista un usuario con ese adminEmail → 409 si ya existe
+3. En una sola transacción:
+   a. Crear Clinic con plan 'starter'
+   b. Crear Branch principal (sede) con los datos de branch
+   c. Hashear adminPassword con bcrypt (rounds: 12)
+   d. Crear User con role 'admin', vinculado a la clinic y branch
+4. Devolver JWT + user + clinic (mismo formato que POST /auth/login)
+
+Usar el mismo patrón de signToken que en auth.routes.ts.
+Importar bcrypt, jwt, prisma.
+JWT_SECRET debe fallar con process.exit(1) si no está definido (igual que auth.routes.ts).
+
+Respuesta exitosa (201):
+{
+  "token": "...",
+  "user": { id, clinicId, branchId, firstName, lastName, email, role, active },
+  "clinic": { id, name, nit, phone, email, address, city, plan, ... }
+}
+
+Errores:
+- 400 si faltan campos requeridos
+- 409 si el email de clínica o el email de admin ya existen
+- 500 si error de BD
+
+Exportar como: export const CLINIC_ROUTES = router;
+
+────────────────────────────────────────────────────────────────────────────────
+TAREA 3: Registrar la ruta de clínica en app.ts
+────────────────────────────────────────────────────────────────────────────────
+
+Archivo: /home/djfa/Dev/projects/Propios/Vet/vetpro-backend/src/app.ts
+
+Agregar import:
+  import { CLINIC_ROUTES } from './routes/clinic.routes.js';
+
+Agregar registro de ruta (SIN authMiddleware, es pública):
+  app.use('/api/v1/clinics', CLINIC_ROUTES);
+
+Ponerlo junto a las demás rutas, antes de errorHandler.
+
+────────────────────────────────────────────────────────────────────────────────
+TAREA 4: Conectar el onboarding del frontend al endpoint real
+────────────────────────────────────────────────────────────────────────────────
+
+Archivo: /home/djfa/Dev/projects/Propios/Vet/vetpro-angular/vetpro/src/app/features/onboarding/onboarding.component.ts
+
+Estado actual del componente (signals existentes):
+  - currentStep = signal(1)
+  - nit = signal('')          ← Paso 1: NIT de la clínica
+  - phone = signal('')        ← Paso 1: teléfono
+  - city = signal('')         ← Paso 1: ciudad
+  - branchName = signal('')   ← Paso 2: nombre de sede
+  - branchAddress = signal('') ← Paso 2: dirección sede
+  - vetName = signal('')      ← Paso 3: nombre del admin (completo)
+  - vetEmail = signal('')     ← Paso 3: email del admin
+
+El método finishOnboarding() actualmente solo guarda en localStorage.
+Hay que reemplazarlo para que llame al API.
+
+Cambios a hacer en el componente:
+
+1. Agregar nuevos signals para los campos que faltan en el Paso 1 y Paso 3:
+   clinicName = signal('')    ← nombre de la clínica (agregar al formulario Paso 1)
+   adminPassword = signal('')  ← contraseña del admin (agregar al formulario Paso 3)
+   saving = signal(false)
+   errorMsg = signal('')
+
+2. Agregar inyecciones al constructor:
+   private api = inject(ApiService)   ← importar de '../../../core/services/api.service'
+   private router = inject(Router)    ← ya existe
+
+3. Agregar campos al template HTML:
+   - En Paso 1: agregar un campo input para clinicName ANTES de nit
+     Label: "Nombre de la clínica"
+     Placeholder: "Ej: Clínica Veterinaria San José"
+     [(ngModel)]="clinicName"
+     Agregar clinicName() al [disabled] del botón de Paso 1
+
+   - En Paso 3: agregar un campo input para adminPassword DESPUÉS de vetEmail
+     Label: "Contraseña de acceso"
+     Placeholder: "Mínimo 8 caracteres"
+     type="password"
+     [(ngModel)]="adminPassword"
+     Agregar adminPassword() al [disabled] del botón de Paso 3
+
+   - En Paso 3: agregar mensaje de error debajo del botón:
+     <p *ngIf="errorMsg()" style="color: red; font-size: 13px; margin-top: 8px">{{ errorMsg() }}</p>
+
+4. Reemplazar finishOnboarding() completo:
+
+  finishOnboarding() {
+    if (this.saving()) return;
+    this.saving.set(true);
+    this.errorMsg.set('');
+
+    // Separar nombre completo del admin en firstName y lastName
+    const nameParts = this.vetName().trim().split(' ');
+    const adminFirstName = nameParts[0] || 'Admin';
+    const adminLastName = nameParts.slice(1).join(' ') || 'VetPro';
+
+    const payload = {
+      clinicName: this.clinicName(),
+      nit: this.nit(),
+      phone: this.phone(),
+      email: this.vetEmail(),       // email de la clínica = email del admin
+      address: this.branchAddress(),
+      city: this.city(),
+      branchName: this.branchName(),
+      branchAddress: this.branchAddress(),
+      adminFirstName,
+      adminLastName,
+      adminEmail: this.vetEmail(),
+      adminPassword: this.adminPassword()
+    };
+
+    this.api.post<{ token: string; user: any; clinic: any }>(
+      '/clinics/register', payload
+    ).subscribe({
+      next: (res) => {
+        localStorage.setItem('vetpro_token', res.token);
+        this.currentStep.set(4);
+        this.saving.set(false);
+      },
+      error: (err) => {
+        const msg = err?.error?.error || 'Error al registrar la clínica. Intenta de nuevo.';
+        this.errorMsg.set(msg);
+        this.saving.set(false);
+      }
+    });
+  }
+
+5. También actualizar navigateToDashboard() para que recargue la sesión:
+  navigateToDashboard() {
+    this.router.navigate(['/']);
+  }
+  (este ya funciona bien, solo asegurarse de que quede igual)
+
+IMPORTANTE: Usar *ngIf para los campos nuevos si el componente ya usa esa sintaxis,
+o @if si usa la nueva sintaxis de Angular 17+. Revisar el template existente y ser
+consistente. El componente actualmente usa *ngIf.
+
+================================================================================
+PARTE 2 — VERIFICACIÓN DE CÓDIGO
+================================================================================
+
+Después de hacer los cambios de código, ejecutar:
+
+En /home/djfa/Dev/projects/Propios/Vet/vetpro-backend/:
+  npx tsc --noEmit
+  → Debe completar sin errores
+
+En /home/djfa/Dev/projects/Propios/Vet/vetpro-angular/vetpro/:
+  npx tsc --noEmit
+  → Debe completar sin errores
+
+================================================================================
+PARTE 3 — CONFIGURACIÓN DEL SERVIDOR (ejecutar en el servidor de producción)
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+3.1 Crear el archivo .env en el servidor
+────────────────────────────────────────────────────────────────────────────────
+
+En el servidor, en el directorio del proyecto, crear el archivo .env:
+
+  # Generar un JWT_SECRET seguro (ejecutar esto en el servidor):
+  openssl rand -hex 64
+
+  # Generar una contraseña segura para PostgreSQL:
+  openssl rand -base64 24
+
+Crear /home/djfa/Dev/projects/Propios/Vet/.env con:
+
+  # Base de datos
+  POSTGRES_USER=vetpro_user
+  POSTGRES_PASSWORD=<contraseña_generada_arriba>
+  POSTGRES_DB=vetpro
+  DATABASE_URL=postgresql://vetpro_user:<contraseña_generada_arriba>@db:5432/vetpro?schema=public
+
+  # JWT (usar el valor generado con openssl rand -hex 64)
+  JWT_SECRET=<jwt_secret_generado>
+
+  # Aplicación
+  NODE_ENV=production
+  PORT=3000
+
+  # CORS — dominio real de la aplicación
+  ALLOWED_ORIGINS=https://vetpro.danielflorez.dev
+
+  # Puertos expuestos
+  VETPRO_BACKEND_PORT=3000
+  VETPRO_FRONTEND_PORT=8080
+
+────────────────────────────────────────────────────────────────────────────────
+3.2 Configurar secretos de GitHub Actions
+────────────────────────────────────────────────────────────────────────────────
+
+En GitHub → Settings → Secrets → Actions, agregar:
+
+  SSH_HOST        → IP o dominio del servidor de producción
+  SSH_USER        → usuario SSH (ej: djfa)
+  SSH_PORT        → puerto SSH (ej: 22)
+  SSH_PRIVATE_KEY → llave privada SSH completa (incluye -----BEGIN/END-----)
+  REGISTRY        → registro de Docker (ej: ghcr.io/daniel-jfa)
+  REGISTRY_USER   → usuario del registro
+  REGISTRY_TOKEN  → token de acceso al registro Docker
+
+────────────────────────────────────────────────────────────────────────────────
+3.3 Primer despliegue
+────────────────────────────────────────────────────────────────────────────────
+
+En el servidor:
+
+  # 1. Clonar el repositorio (si no existe)
+  git clone <repo_url> /home/djfa/Dev/projects/Propios/Vet
+
+  # 2. Ir al directorio
+  cd /home/djfa/Dev/projects/Propios/Vet
+
+  # 3. Asegurarse de que el .env está en su lugar (ver sección 3.1)
+
+  # 4. Construir e iniciar los servicios
+  docker compose up -d --build
+
+  # 5. Esperar que el backend esté listo (30 segundos aprox)
+  sleep 30
+
+  # 6. Correr las migraciones (NO el seed)
+  docker compose exec backend npx prisma migrate deploy
+
+  # 7. Verificar que el sistema está saludable
+  curl http://localhost:3000/api/health
+  # Respuesta esperada: {"status":"ok","service":"VetPro SaaS API",...}
+
+────────────────────────────────────────────────────────────────────────────────
+3.4 Despliegues subsiguientes (automáticos via CI/CD)
+────────────────────────────────────────────────────────────────────────────────
+
+Después del primer deploy, cada push a main dispara GitHub Actions que:
+1. Construye las imágenes Docker
+2. Hace SSH al servidor
+3. Hace git pull + docker compose up -d
+4. Corre prisma migrate deploy automáticamente
+5. Verifica el healthcheck
+
+No es necesario intervención manual en deploys posteriores.
+
+================================================================================
+PARTE 4 — PRIMER USO (después de producción)
+================================================================================
+
+1. Navegar a https://vetpro.danielflorez.dev/onboarding
+   → Completar el formulario de 3 pasos para registrar la primera clínica
+   → Esto crea: la clínica, la sede principal, y el usuario administrador
+   → Al finalizar, el admin queda logueado automáticamente
+
+2. Desde el panel de admin, crear los demás usuarios del equipo:
+   - Veterinarios (role: vet)
+   - Asistentes (role: assistant)
+   - Recepcionistas (role: receptionist)
+   - Paseadores (role: walker)
+
+3. Para los paseadores, después de crear el usuario:
+   - Ir a Gestión → Paseadores → Nuevo paseador
+   - Asociar el usuario recién creado para crear su perfil de paseador
+
+4. El módulo demo está disponible en /demo para prospectos que quieran explorar
+   sin crear cuenta. No tiene conexión a la base de datos.
+
+================================================================================
+PARTE 5 — CHECKLIST FINAL ANTES DE ABRIR AL PÚBLICO
+================================================================================
+
+[ ] docker compose up funciona sin errores
+[ ] GET /api/health responde {"status":"ok"}
+[ ] /onboarding crea una clínica real en la BD
+[ ] Login con el usuario admin creado funciona
+[ ] /demo carga sin login y muestra datos de ejemplo
+[ ] ALLOWED_ORIGINS apunta al dominio real (no localhost)
+[ ] JWT_SECRET es aleatorio y no está en el repositorio
+[ ] .env está en .gitignore (ya lo está)
+[ ] prisma migrate deploy corrió exitosamente (no db:seed)
+[ ] Seed NO fue ejecutado en producción
+
+================================================================================
+NOTAS IMPORTANTES PARA EL AGENTE QUE EJECUTE ESTO
+================================================================================
+
+- Stack: Angular 21 (standalone components, Signals, @if/@for) + Node.js/Express
+  + Prisma v5 + PostgreSQL 15 + Docker
+- Imports de módulos ES usan extensión .js (import from './config/database.js')
+- El frontend usa ApiService (inject(ApiService)) para todas las llamadas HTTP.
+  El base path ya incluye /api/v1, así que las rutas se pasan sin ese prefijo.
+  Ejemplo: this.api.post('/clinics/register', payload) → llama a /api/v1/clinics/register
+- prisma/schema.prisma tiene url = env("DATABASE_URL") en datasource (no en prisma.config.ts)
+- NO usar migrate dev en producción, solo migrate deploy
+- NO correr db:seed en producción (borra todos los datos)
+- El componente onboarding.component.ts usa *ngIf/*ngFor (NO la sintaxis @if/@for)
+  porque fue creado antes de Angular 17. Mantener esa sintaxis.
+
+================================================================================
+FIN DEL RUNBOOK
+================================================================================

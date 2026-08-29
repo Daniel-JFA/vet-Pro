@@ -8,7 +8,9 @@
     "build": "tsc && tsc prisma/seed.ts --outDir dist/prisma --target ES2022 --module NodeNext --moduleResolution NodeNext",
     "start": "node dist/server.js",
     "db:migrate": "npx prisma migrate dev",
-    "db:seed": "node dist/prisma/seed.js"
+    "db:migrate:deploy": "npx prisma migrate deploy",
+    "db:seed": "node dist/prisma/seed.js",
+    "db:seed:dev": "npx prisma db seed"
   },
   "prisma": {
     "seed": "node dist/prisma/seed.js"

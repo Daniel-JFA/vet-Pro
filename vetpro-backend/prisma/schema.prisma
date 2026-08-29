@@ -58,6 +58,8 @@ model Clinic {
   Appointment           Appointment[]
   consentForms          ConsentForm[]
   mobileInventories     MobileInventory[]
+  walkers               Walker[]
+  walkBookings          WalkBooking[]
 
   @@map("clinics")
 }
@@ -92,6 +94,7 @@ enum UserRole {
   vet
   assistant
   receptionist
+  walker
 }
 
 model User {
@@ -116,6 +119,7 @@ model User {
   vaccinesApplied   Vaccine[]
   prescriptions     Prescription[]
   mobileInventories MobileInventory[]
+  walkerProfile     Walker?
 
   @@index([clinicId])
   @@index([branchId])
@@ -142,8 +146,9 @@ model Tutor {
   updatedAt  DateTime  @updatedAt
 
   // Relaciones
-  patients Patient[]
-  invoices Invoice[]
+  patients     Patient[]
+  invoices     Invoice[]
+  walkBookings WalkBooking[]
 
   @@index([clinicId])
   @@index([phone])
@@ -720,4 +725,79 @@ model MobileInventory {
   @@index([vetId])
   @@index([productId])
   @@map("mobile_inventories")
+}
+
+// ─────────────────────────────────────────────
+// 🐕 PASEADORES DE MASCOTAS (WALKER)
+// ─────────────────────────────────────────────
+
+model Walker {
+  id            String   @id @default(uuid())
+  clinicId      String
+  clinic        Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio           String?
+  photoUrl      String?
+  rating        Float    @default(0)
+  totalWalks    Int      @default(0)
+  pricePerHour  Float    @default(25000)
+  maxDogs       Int      @default(3)
+  coverageZones String[] @default([])
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  walkBookings WalkBooking[]
+
+  @@index([clinicId])
+  @@index([userId])
+  @@map("walkers")
+}
+
+enum WalkStatus {
+  requested
+  assigned
+  confirmed
+  on_the_way
+  walking
+  completed
+  cancelled
+}
+
+model WalkBooking {
+  id           String     @id @default(uuid())
+  clinicId     String
+  clinic       Clinic     @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tutorId      String
+  tutor        Tutor      @relation(fields: [tutorId], references: [id], onDelete: Restrict)
+  walkerId     String?
+  walker       Walker?    @relation(fields: [walkerId], references: [id], onDelete: SetNull)
+  patientIds   String[]   @default([])
+  scheduledAt  DateTime
+  durationMins Int        @default(30)
+  address      String
+  latitude     Float?
+  longitude    Float?
+  status       WalkStatus @default(requested)
+  price        Float
+  notes        String?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  distanceKm   Float?
+  photos       String[]   @default([])
+  walkerNotes  String?
+  rating       Int?
+  review       String?
+  cancelledAt  DateTime?
+  cancelReason String?
+  deletedAt    DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([clinicId])
+  @@index([walkerId])
+  @@index([tutorId])
+  @@index([scheduledAt])
+  @@map("walk_bookings")
 }

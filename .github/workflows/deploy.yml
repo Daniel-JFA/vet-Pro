@@ -20,15 +20,16 @@ jobs:
           script: |
             set -euo pipefail
             echo "Deploy started on $(date)"
-            cd /home/djfa/Dev/projects/vet-Pro
+            cd /home/djfa/Dev/projects/Propios/Vet
             git pull origin main
-            cd /home/djfa/Dev/projects/vet-Pro/stacks/vetpro
-            docker-compose pull --ignore-pull-failures
-            docker-compose up -d --build --remove-orphans
-            # healthcheck
+            docker compose pull --ignore-pull-failures
+            docker compose up -d --build --remove-orphans
+            # Run pending migrations safely (no seed)
+            docker compose exec -T backend npx prisma migrate deploy
+            # healthcheck — backend on port 3000
             for i in {1..20}; do
-              if curl -s -H "Host: vetpro.danielflorez.dev" http://127.0.0.1:8090/api/health | grep -q '"status":"ok"'; then
-                echo "Healthy"
+              if curl -sf http://127.0.0.1:3000/api/health | grep -q '"status":"ok"'; then
+                echo "Healthy after ${i} attempts"
                 exit 0
               fi
               sleep 3

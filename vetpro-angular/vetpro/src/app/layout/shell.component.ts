@@ -135,11 +135,18 @@ export class ShellComponent {
       { label: 'Domicilios On-Demand', icon: 'two_wheeler',    path: '/appointments/on-demand' }
     ];
 
-    // Solo roles clínicos ven la opción detallada de historia clínica y hospitalización
+    // Solo roles clínicos ven historia clínica y hospitalización
     if (role === 'admin' || role === 'vet' || role === 'assistant') {
       baseNav.push(
         { label: 'Historia clínica',   icon: 'description',    path: '/medical-records' },
         { label: 'Hospitalización',    icon: 'local_hospital', path: '/medical-records/hospitalization' }
+      );
+    }
+
+    // Paseadores ven su propia agenda de paseos
+    if (role === 'walker') {
+      baseNav.push(
+        { label: 'Mis Paseos',         icon: 'directions_walk', path: '/walkers/mis-paseos' }
       );
     }
 
@@ -170,6 +177,17 @@ export class ShellComponent {
         { label: 'Facturación',     icon: 'receipt_long',    path: '/billing' },
         { label: 'Notificaciones',  icon: 'campaign',        path: '/notifications' }
       );
+    } else if (role === 'walker') {
+      items.push(
+        { label: 'Mi Perfil',       icon: 'account_circle',  path: '/walkers/perfil' }
+      );
+    }
+
+    // Admin ve gestión de paseadores
+    if (role === 'admin') {
+      items.push(
+        { label: 'Paseadores',      icon: 'directions_walk', path: '/walkers' }
+      );
     }
 
     return items;
@@ -194,6 +212,7 @@ export class ShellComponent {
       case 'vet': return 'Médico Vet';
       case 'assistant': return 'Asistente';
       case 'receptionist': return 'Recepción';
+      case 'walker': return 'Paseador';
       default: return role;
     }
   }

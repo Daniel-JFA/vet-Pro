@@ -70,8 +70,17 @@ export const routes: Routes = [
         path: 'reports',
         canActivate: [roleGuard(['admin'])],
         loadComponent: () => import('./features/reports/reports.component').then(m => m.ReportsComponent)
+      },
+      {
+        path: 'walkers',
+        canActivate: [roleGuard(['admin', 'vet', 'walker'])],
+        loadChildren: () => import('./features/walkers/walkers.routes').then(m => m.WALKERS_ROUTES)
       }
     ]
+  },
+  {
+    path: 'demo',
+    loadChildren: () => import('./features/demo/demo.routes').then(m => m.DEMO_ROUTES)
   },
   { path: '**', redirectTo: '' }
 ];

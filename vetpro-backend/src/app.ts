@@ -16,6 +16,7 @@ import { REPORT_ROUTES } from './routes/report.routes.js';
 import { PORTAL_ROUTES } from './routes/portal.routes.js';
 import { BRANCH_ROUTES } from './routes/branch.routes.js';
 import { DOCS_ROUTES } from './routes/docs.routes.js';
+import { WALKER_ROUTES } from './routes/walker.routes.js';
 import { errorHandler } from './middleware/error.js';
 
 dotenv.config();
@@ -118,6 +119,7 @@ app.use('/api/v1/consent-forms', CONSENT_ROUTES);
 app.use('/api/v1/reports', REPORT_ROUTES);
 app.use('/api/v1/portal', PORTAL_ROUTES);
 app.use('/api/v1/branches', BRANCH_ROUTES);
+app.use('/api/v1/walkers', WALKER_ROUTES);
 app.use('/docs', DOCS_ROUTES);
 
 // Manejador global de excepciones
