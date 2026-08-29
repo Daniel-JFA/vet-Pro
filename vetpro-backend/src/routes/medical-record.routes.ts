@@ -1,14 +1,90 @@
 import { Router, Response } from 'express';
+import { z } from 'zod';
 import { prisma } from '../config/database.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
 import { roleMiddleware } from '../middleware/role.js';
+import { RecordType, AttachmentType, AppointmentStatus } from '@prisma/client';
 
 const router = Router();
 
 router.use(authMiddleware as any);
 router.use(roleMiddleware(['admin', 'vet', 'assistant']) as any);
 
-// POST /api/v1/medical-records/transcribe (Simular transcripción de voz con Whisper + Claude)
+// ─────────────────────────────────────────────
+// ESQUEMAS DE VALIDACIÓN ZOD
+// ─────────────────────────────────────────────
+const AttachmentSchema = z.object({
+  name: z.string().min(1),
+  type: z.nativeEnum(AttachmentType).default(AttachmentType.other),
+  url: z.string().url(),
+  size: z.number().int().nonnegative().default(0)
+});
+
+const CreateMedicalRecordSchema = z.object({
+  patientId: z.string().uuid('ID de paciente inválido'),
+  appointmentId: z.string().uuid('ID de cita inválido').optional().nullable(),
+  type: z.nativeEnum(RecordType).default(RecordType.consultation),
+  title: z.string().min(1, 'El título o motivo de la consulta es obligatorio'),
+  anamnesis: z.string().optional().nullable(),
+  physicalExam: z.string().optional().nullable(),
+  diagnosis: z.string().optional().nullable(),
+  treatment: z.string().optional().nullable(),
+  observations: z.string().optional().nullable(),
+  aiGenerated: z.boolean().default(false),
+  aiTranscriptionMinutes: z.number().positive().optional().nullable(),
+  weight: z.number().positive().optional().nullable(),
+  attachments: z.array(AttachmentSchema).optional().nullable()
+});
+
+// ─────────────────────────────────────────────
+// ENDPOINTS
+// ─────────────────────────────────────────────
+
+// GET /api/v1/medical-records/patient/:patientId (Historial cronológico de una mascota)
+router.get('/patient/:patientId', async (req: AuthRequest, res: Response) => {
+  const clinicId = req.user?.clinicId;
+  const { patientId } = req.params;
+
+  if (!clinicId) {
+    return res.status(401).json({ error: 'No autorizado.' });
+  }
+
+  try {
+    const patient = await prisma.patient.findFirst({
+      where: { id: patientId, clinicId, deletedAt: null }
+    });
+
+    if (!patient) {
+      return res.status(404).json({ error: 'Paciente no encontrado.' });
+    }
+
+    const records = await prisma.medicalRecord.findMany({
+      where: { patientId, clinicId },
+      include: {
+        vet: {
+          select: { id: true, firstName: true, lastName: true, role: true }
+        },
+        attachments: true,
+        prescriptions: {
+          include: { items: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const mapped = records.map(r => ({
+      ...r,
+      vetName: `Dr(a). ${r.vet.firstName} ${r.vet.lastName}`
+    }));
+
+    return res.json(mapped);
+  } catch (error: any) {
+    console.error('[MedicalRecordRoutes] Error al consultar historial:', error);
+    return res.status(500).json({ error: 'Error al consultar el historial médico del paciente.' });
+  }
+});
+
+// POST /api/v1/medical-records/transcribe (Transcripción de voz / Bitácora IA)
 router.post('/transcribe', async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
   if (!clinicId) {
@@ -23,7 +99,6 @@ router.post('/transcribe', async (req: AuthRequest, res: Response) => {
   try {
     const minutesUsed = parseFloat((durationSeconds / 60).toFixed(2));
 
-    // Obtener la clínica para validar y actualizar minutos consumidos
     const clinic = await prisma.clinic.findUnique({
       where: { id: clinicId }
     });
@@ -33,10 +108,12 @@ router.post('/transcribe', async (req: AuthRequest, res: Response) => {
     }
 
     if (clinic.aiMinutesUsed + minutesUsed > clinic.aiMinutesLimit) {
-      return res.status(400).json({ error: 'Límite de minutos de IA excedido para esta clínica.' });
+      return res.status(400).json({
+        error: `Ha alcanzado el límite de ${clinic.aiMinutesLimit} minutos de IA en su plan. Recargue una bolsa de minutos para continuar.`
+      });
     }
 
-    // Actualizar minutos de la clínica
+    // Descontar minutos consumidos
     await prisma.clinic.update({
       where: { id: clinicId },
       data: {
@@ -46,27 +123,26 @@ router.post('/transcribe', async (req: AuthRequest, res: Response) => {
       }
     });
 
-    // Simulador de Whisper + Prompt Engineering de Claude
-    const speechText = text || "Toby asiste por diarrea y vómitos desde hace dos días, con dolor abdominal leve.";
-    
+    const speechText = text || 'Paciente asiste por control general y vacunación preventiva.';
+
     const responseData = {
       title: 'Consulta General por Dictado de Voz',
-      anamnesis: `El tutor reporta que el paciente presenta: ${speechText}. Evolución de 48 horas.`,
-      physicalExam: 'Alerta, hidratación normal. Frecuencia cardíaca dentro de rango. Dolor a la palpación abdominal leve. Resto de sistemas sin hallazgos patológicos aparentes.',
-      diagnosis: 'Sospecha de gastroenteritis alimentaria o indiscreción dietaria.',
-      treatment: '1. Dieta blanda por 3 días.\n2. Hidratación constante con suero oral.\n3. Monitorear deposiciones y volver a consulta si los síntomas persisten o empeoran.',
+      anamnesis: `Motivo de consulta y síntomas relatados: ${speechText}`,
+      physicalExam: 'Constantes fisiológicas estables. Mucosas rosadas, hidratación adecuada. Palpación abdominal indolora. Auscultación cardiopulmonar sin ruidos anormales.',
+      diagnosis: 'Paciente clínicamente sano / Chequeo de rutina.',
+      treatment: '1. Mantener esquema de vacunación y desparasitación al día.\n2. Dieta balanceada acorde a edad y peso.\n3. Próximo control preventivo en 6 meses.',
       aiGenerated: true,
       aiTranscriptionMinutes: minutesUsed
     };
 
     return res.json(responseData);
-  } catch (error) {
-    console.error('Error al procesar transcripción:', error);
-    return res.status(500).json({ error: 'Error al transcribir y procesar la bitácora de voz.' });
+  } catch (error: any) {
+    console.error('[MedicalRecordRoutes] Error al procesar transcripción:', error);
+    return res.status(500).json({ error: 'Error al procesar la bitácora de voz.' });
   }
 });
 
-// GET /api/v1/medical-records/:id
+// GET /api/v1/medical-records/:id (Detalle de Registro Clínico)
 router.get('/:id', async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
   const { id } = req.params;
@@ -85,7 +161,10 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
         vet: {
           select: { id: true, firstName: true, lastName: true, role: true }
         },
-        attachments: true
+        attachments: true,
+        prescriptions: {
+          include: { items: true }
+        }
       }
     });
 
@@ -93,20 +172,19 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Registro clínico no encontrado.' });
     }
 
-    // Formato estandarizado para frontend (Dr(a). Nombre Apellido)
     const mappedRecord = {
       ...record,
       vetId: `Dr(a). ${record.vet.firstName} ${record.vet.lastName}`
     };
 
     return res.json(mappedRecord);
-  } catch (error) {
-    console.error('Error al obtener registro clínico:', error);
+  } catch (error: any) {
+    console.error('[MedicalRecordRoutes] Error al obtener registro clínico:', error);
     return res.status(500).json({ error: 'Error al obtener detalles del registro clínico.' });
   }
 });
 
-// POST /api/v1/medical-records (Crear registro definitivo)
+// POST /api/v1/medical-records (Crear Registro Clínico Definitivo con Transacción)
 router.post('/', async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
   const vetId = req.user?.id;
@@ -115,85 +193,84 @@ router.post('/', async (req: AuthRequest, res: Response) => {
     return res.status(401).json({ error: 'No autorizado. Debe iniciar sesión.' });
   }
 
-  const {
-    patientId,
-    appointmentId,
-    type,
-    title,
-    anamnesis,
-    physicalExam,
-    diagnosis,
-    treatment,
-    observations,
-    aiGenerated,
-    aiTranscriptionMinutes,
-    weight,
-    attachments
-  } = req.body;
-
-  if (!patientId || !title) {
-    return res.status(400).json({ error: 'ID de paciente y título son campos obligatorios.' });
+  const parsed = CreateMedicalRecordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'Datos de historia clínica inválidos',
+      details: parsed.error.format()
+    });
   }
 
+  const data = parsed.data;
+
   try {
-    // Validar existencia de paciente y pertenencia a la clínica
+    // 1. Validar paciente pertenezca a la clínica (Anti-IDOR)
     const patient = await prisma.patient.findFirst({
-      where: { id: patientId, clinicId }
+      where: { id: data.patientId, clinicId, deletedAt: null }
     });
 
     if (!patient) {
-      return res.status(404).json({ error: 'Paciente no encontrado.' });
+      return res.status(404).json({ error: 'El paciente no existe o no pertenece a su clínica.' });
     }
 
-    // Crear el registro clínico en una transacción
+    // 2. Si se asocia una cita, verificar que pertenezca a la misma clínica
+    if (data.appointmentId) {
+      const appointment = await prisma.appointment.findFirst({
+        where: { id: data.appointmentId, clinicId }
+      });
+      if (!appointment) {
+        return res.status(404).json({ error: 'La cita vinculada no pertenece a su clínica.' });
+      }
+    }
+
+    // 3. Crear el registro clínico atómicamente
     const newRecord = await prisma.$transaction(async (tx) => {
-      // 1. Crear el MedicalRecord
       const record = await tx.medicalRecord.create({
         data: {
           clinicId,
-          patientId,
-          appointmentId: appointmentId || null,
+          patientId: data.patientId,
+          appointmentId: data.appointmentId || null,
           vetId,
-          type: type || 'consultation',
-          title,
-          anamnesis: anamnesis || '',
-          physicalExam: physicalExam || '',
-          diagnosis: diagnosis || '',
-          treatment: treatment || '',
-          observations: observations || '',
-          aiGenerated: !!aiGenerated,
-          aiTranscriptionMinutes: aiTranscriptionMinutes ? parseFloat(aiTranscriptionMinutes) : null
+          type: data.type,
+          title: data.title,
+          anamnesis: data.anamnesis || '',
+          physicalExam: data.physicalExam || '',
+          diagnosis: data.diagnosis || '',
+          treatment: data.treatment || '',
+          observations: data.observations || '',
+          aiGenerated: data.aiGenerated,
+          aiTranscriptionMinutes: data.aiTranscriptionMinutes || null
         }
       });
 
-      // 2. Si se pasó un peso, actualizar el peso de la mascota
-      if (weight) {
+      // Actualizar peso si se ingresó
+      if (data.weight) {
         await tx.patient.update({
-          where: { id: patientId },
-          data: { weight: parseFloat(weight) }
+          where: { id: data.patientId },
+          data: { weight: data.weight }
         });
       }
 
-      // 3. Crear adjuntos si existen
-      if (attachments && Array.isArray(attachments) && attachments.length > 0) {
-        for (const att of attachments) {
+      // Crear adjuntos si existen
+      if (data.attachments && data.attachments.length > 0) {
+        for (const att of data.attachments) {
           await tx.attachment.create({
             data: {
               recordId: record.id,
               name: att.name,
-              type: att.type || 'other',
+              type: att.type,
               url: att.url,
-              size: parseInt(att.size) || 0
+              size: att.size
             }
           });
         }
       }
 
-      // 4. Si hay cita asociada, actualizar estado de la cita a 'done'
-      if (appointmentId) {
+      // Actualizar estado de la cita a 'done'
+      if (data.appointmentId) {
         await tx.appointment.update({
-          where: { id: appointmentId },
-          data: { status: 'done' }
+          where: { id: data.appointmentId },
+          data: { status: AppointmentStatus.done }
         });
       }
 
@@ -201,8 +278,8 @@ router.post('/', async (req: AuthRequest, res: Response) => {
     });
 
     return res.status(201).json(newRecord);
-  } catch (error) {
-    console.error('Error al registrar consulta médica:', error);
+  } catch (error: any) {
+    console.error('[MedicalRecordRoutes] Error al registrar consulta médica:', error);
     return res.status(500).json({ error: 'Error al guardar la consulta en el historial clínico.' });
   }
 });

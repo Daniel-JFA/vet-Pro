@@ -129,14 +129,18 @@ export class ShellComponent {
   mainNav = computed(() => {
     const role = this.auth.currentUser?.role;
     const baseNav: NavItem[] = [
-      { label: 'Inicio',        icon: 'home',           path: '/dashboard' },
-      { label: 'Pacientes',     icon: 'pets',           path: '/patients' },
-      { label: 'Citas',         icon: 'calendar_month', path: '/appointments', badge: 3 }
+      { label: 'Inicio',               icon: 'home',           path: '/dashboard' },
+      { label: 'Pacientes',            icon: 'pets',           path: '/patients' },
+      { label: 'Citas & Agenda',       icon: 'calendar_month', path: '/appointments', badge: 3 },
+      { label: 'Domicilios On-Demand', icon: 'two_wheeler',    path: '/appointments/on-demand' }
     ];
 
-    // Solo roles clínicos ven la opción detallada de historia clínica
+    // Solo roles clínicos ven la opción detallada de historia clínica y hospitalización
     if (role === 'admin' || role === 'vet' || role === 'assistant') {
-      baseNav.push({ label: 'Historia clínica', icon: 'description', path: '/medical-records' });
+      baseNav.push(
+        { label: 'Historia clínica',   icon: 'description',    path: '/medical-records' },
+        { label: 'Hospitalización',    icon: 'local_hospital', path: '/medical-records/hospitalization' }
+      );
     }
 
     return baseNav;
@@ -174,8 +178,6 @@ export class ShellComponent {
   // Evento de cambio de sucursal en el topbar
   onBranchChange(branchId: string) {
     this.auth.changeActiveBranch(branchId);
-    // Recarga de ventana rápida y limpia para forzar la actualización de todas las vistas activas
-    window.location.reload();
   }
 
   // Obtener nombre de sucursal activa

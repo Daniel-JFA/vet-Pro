@@ -1,32 +1,59 @@
 import { Router, Response } from 'express';
+import { z } from 'zod';
 import { prisma } from '../config/database.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
+import { PatientSpecies, PatientSex, PatientStatus } from '@prisma/client';
 
 const router = Router();
-
-// Activar verificación de token JWT para todas las rutas de pacientes
 router.use(authMiddleware as any);
 
-// GET /patients (Listado de pacientes paginado con filtros)
+// ─────────────────────────────────────────────
+// ESQUEMAS DE VALIDACIÓN ZOD
+// ─────────────────────────────────────────────
+const CreatePatientSchema = z.object({
+  tutorId: z.string().uuid('ID de tutor inválido'),
+  name: z.string().min(1, 'El nombre de la mascota es obligatorio'),
+  species: z.nativeEnum(PatientSpecies),
+  breed: z.string().optional().nullable(),
+  birthDate: z.string().datetime().optional().nullable(),
+  sex: z.nativeEnum(PatientSex),
+  sterilized: z.boolean().default(false),
+  weight: z.number().positive().optional().nullable(),
+  chipId: z.string().optional().nullable(),
+  photoUrl: z.string().url().optional().nullable().or(z.literal('')),
+  allergies: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  status: z.nativeEnum(PatientStatus).default(PatientStatus.active)
+});
+
+const UpdatePatientSchema = CreatePatientSchema.partial();
+
+// ─────────────────────────────────────────────
+// ENDPOINTS DE PACIENTES
+// ─────────────────────────────────────────────
+
+// GET /api/v1/patients (Listado de Pacientes con Búsqueda y Paginación)
 router.get('/', async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
-
   if (!clinicId) {
-    return res.status(401).json({ error: 'No autorizado. ID de clínica no especificado.' });
+    return res.status(401).json({ error: 'No autorizado.' });
   }
 
-  const page = parseInt(req.query.page as string) || 1;
-  const pageSize = parseInt(req.query.pageSize as string) || 20;
+  const page = Math.max(1, parseInt(req.query.page as string) || 1);
+  const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize as string) || 20));
   const skip = (page - 1) * pageSize;
 
-  const search = req.query.search as string;
   const species = req.query.species as string;
   const status = req.query.status as string;
+  const search = req.query.search as string;
 
   try {
-    const whereClause: any = { clinicId };
+    const whereClause: any = {
+      clinicId,
+      deletedAt: null
+    };
 
-    if (species) {
+    if (species && species !== 'all') {
       whereClause.species = species;
     }
 
@@ -49,7 +76,17 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     const [patients, total] = await prisma.$transaction([
       prisma.patient.findMany({
         where: whereClause,
-        include: { tutor: true },
+        include: {
+          tutor: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              phone: true,
+              email: true
+            }
+          }
+        },
         orderBy: { name: 'asc' },
         skip,
         take: pageSize
@@ -63,99 +100,13 @@ router.get('/', async (req: AuthRequest, res: Response) => {
       page,
       pageSize
     });
-  } catch (error) {
-    console.error('Error al listar pacientes:', error);
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn('⚠️ Base de datos no disponible o credenciales inválidas. Retornando Fallback Mock de Pacientes.');
-      const mockPatients = [
-        {
-          id: 'dev-patient-1',
-          clinicId: clinicId,
-          name: 'Toby',
-          species: 'dog',
-          breed: 'Golden Retriever',
-          sex: 'male',
-          sterilized: true,
-          weight: 32.5,
-          chipId: '985112003456789',
-          photoUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&q=80&w=150',
-          status: 'active',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          tutor: {
-            id: 'dev-tutor-1',
-            clinicId: clinicId,
-            firstName: 'Daniel',
-            lastName: 'Flórez Aguirre',
-            email: 'florezaguirredaniel@gmail.com',
-            phone: '3122115299',
-            documentId: '1018234567',
-            address: 'Calle 100 #15-30, Bogotá'
-          }
-        },
-        {
-          id: 'dev-patient-2',
-          clinicId: clinicId,
-          name: 'Kira',
-          species: 'dog',
-          breed: 'Bulldog Francés',
-          sex: 'female',
-          sterilized: false,
-          weight: 11.8,
-          chipId: '985112003456781',
-          photoUrl: null,
-          status: 'active',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          tutor: {
-            id: 'dev-tutor-1',
-            clinicId: clinicId,
-            firstName: 'Daniel',
-            lastName: 'Flórez Aguirre',
-            email: 'florezaguirredaniel@gmail.com',
-            phone: '3122115299',
-            documentId: '1018234567',
-            address: 'Calle 100 #15-30, Bogotá'
-          }
-        },
-        {
-          id: 'dev-patient-3',
-          clinicId: clinicId,
-          name: 'Luna',
-          species: 'cat',
-          breed: 'Siamés',
-          sex: 'female',
-          sterilized: true,
-          weight: 4.2,
-          chipId: '985112003456780',
-          photoUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=150',
-          status: 'active',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          tutor: {
-            id: 'dev-tutor-2',
-            clinicId: clinicId,
-            firstName: 'María',
-            lastName: 'Rodríguez',
-            email: 'maria@outlook.com',
-            phone: '3157891234',
-            documentId: '52345678',
-            address: 'Carrera 7 #45-12, Medellín'
-          }
-        }
-      ];
-      return res.json({
-        data: mockPatients,
-        total: mockPatients.length,
-        page: 1,
-        pageSize: 20
-      });
-    }
-    return res.status(500).json({ error: 'Error al obtener expedientes de pacientes.' });
+  } catch (error: any) {
+    console.error('[PatientRoutes] Error al listar pacientes:', error);
+    return res.status(500).json({ error: 'Error interno al consultar los pacientes.' });
   }
 });
 
-// GET /patients/:id (Ficha completa de mascota)
+// GET /api/v1/patients/:id (Ficha Completa de Mascota)
 router.get('/:id', async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
   const { id } = req.params;
@@ -166,8 +117,22 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 
   try {
     const patient = await prisma.patient.findFirst({
-      where: { id, clinicId },
-      include: { tutor: true }
+      where: { id, clinicId, deletedAt: null },
+      include: {
+        tutor: true,
+        vaccines: {
+          orderBy: { appliedAt: 'desc' },
+          take: 10
+        },
+        appointments: {
+          orderBy: { scheduledAt: 'desc' },
+          take: 5
+        },
+        medicalRecords: {
+          orderBy: { createdAt: 'desc' },
+          take: 5
+        }
+      }
     });
 
     if (!patient) {
@@ -175,64 +140,134 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
     }
 
     return res.json(patient);
-  } catch (error) {
-    console.error('Error al buscar paciente:', error);
+  } catch (error: any) {
+    console.error('[PatientRoutes] Error al buscar paciente:', error);
     return res.status(500).json({ error: 'Error al obtener ficha de mascota.' });
   }
 });
 
-// POST /patients (Crear nueva mascota)
+// POST /api/v1/patients (Crear Nueva Mascota con Protección IDOR)
 router.post('/', async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
-  const {
-    name, species, breed, birthDate, sex, sterilized,
-    weight, chipId, photoUrl, allergies, notes, status, tutorId
-  } = req.body;
-
   if (!clinicId) {
     return res.status(401).json({ error: 'No autorizado.' });
   }
 
-  if (!name || !species || !sex || !tutorId) {
-    return res.status(400).json({ error: 'Nombre, especie, sexo y tutorId son campos obligatorios.' });
+  const parsed = CreatePatientSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'Datos del paciente inválidos',
+      details: parsed.error.format()
+    });
   }
 
+  const data = parsed.data;
+
   try {
+    // Validar que el tutor pertenezca a la clínica (Anti-IDOR)
+    const tutor = await prisma.tutor.findFirst({
+      where: { id: data.tutorId, clinicId, deletedAt: null }
+    });
+
+    if (!tutor) {
+      return res.status(404).json({ error: 'El tutor especificado no existe o no pertenece a su clínica.' });
+    }
+
     const patient = await prisma.patient.create({
       data: {
         clinicId,
-        tutorId,
-        name,
-        species,
-        breed,
-        birthDate: birthDate ? new Date(birthDate) : null,
-        sex,
-        sterilized: !!sterilized,
-        weight: weight ? parseFloat(weight) : null,
-        chipId,
-        photoUrl,
-        allergies,
-        notes,
-        status: status || 'active'
+        tutorId: data.tutorId,
+        name: data.name,
+        species: data.species,
+        breed: data.breed || null,
+        birthDate: data.birthDate ? new Date(data.birthDate) : null,
+        sex: data.sex,
+        sterilized: data.sterilized,
+        weight: data.weight || null,
+        chipId: data.chipId || null,
+        photoUrl: data.photoUrl || null,
+        allergies: data.allergies || null,
+        notes: data.notes || null,
+        status: data.status
       },
       include: { tutor: true }
     });
 
     return res.status(201).json(patient);
-  } catch (error) {
-    console.error('Error al crear paciente:', error);
+  } catch (error: any) {
+    console.error('[PatientRoutes] Error al crear paciente:', error);
     return res.status(500).json({ error: 'Error al registrar expediente de mascota.' });
   }
 });
 
-// PUT /patients/:id (Editar mascota)
+// PUT /api/v1/patients/:id (Editar Mascota)
 router.put('/:id', async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
   const { id } = req.params;
-  const {
-    name, species, breed, birthDate, sex, sterilized,
-    weight, chipId, photoUrl, allergies, notes, status, tutorId
-  } = req.body;
+
+  if (!clinicId) {
+    return res.status(401).json({ error: 'No autorizado.' });
+  }
+
+  const parsed = UpdatePatientSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'Datos de actualización inválidos',
+      details: parsed.error.format()
+    });
+  }
+
+  const data = parsed.data;
+
+  try {
+    const existing = await prisma.patient.findFirst({
+      where: { id, clinicId, deletedAt: null }
+    });
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Expediente de paciente no encontrado.' });
+    }
+
+    if (data.tutorId && data.tutorId !== existing.tutorId) {
+      const tutor = await prisma.tutor.findFirst({
+        where: { id: data.tutorId, clinicId, deletedAt: null }
+      });
+      if (!tutor) {
+        return res.status(404).json({ error: 'El tutor especificado no pertenece a su clínica.' });
+      }
+    }
+
+    const patient = await prisma.patient.update({
+      where: { id },
+      data: {
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.species !== undefined && { species: data.species }),
+        ...(data.breed !== undefined && { breed: data.breed }),
+        ...(data.birthDate !== undefined && { birthDate: data.birthDate ? new Date(data.birthDate) : null }),
+        ...(data.sex !== undefined && { sex: data.sex }),
+        ...(data.sterilized !== undefined && { sterilized: data.sterilized }),
+        ...(data.weight !== undefined && { weight: data.weight }),
+        ...(data.chipId !== undefined && { chipId: data.chipId }),
+        ...(data.photoUrl !== undefined && { photoUrl: data.photoUrl }),
+        ...(data.allergies !== undefined && { allergies: data.allergies }),
+        ...(data.notes !== undefined && { notes: data.notes }),
+        ...(data.status !== undefined && { status: data.status }),
+        ...(data.tutorId !== undefined && { tutorId: data.tutorId })
+      },
+      include: { tutor: true }
+    });
+
+    return res.json(patient);
+  } catch (error: any) {
+    console.error('[PatientRoutes] Error al actualizar paciente:', error);
+    return res.status(500).json({ error: 'Error al actualizar expediente de mascota.' });
+  }
+});
+
+// DELETE /api/v1/patients/:id (Soft Delete de Mascota)
+router.delete('/:id', async (req: AuthRequest, res: Response) => {
+  const clinicId = req.user?.clinicId;
+  const { id } = req.params;
 
   if (!clinicId) {
     return res.status(401).json({ error: 'No autorizado.' });
@@ -240,113 +275,22 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
 
   try {
     const existing = await prisma.patient.findFirst({
-      where: { id, clinicId }
+      where: { id, clinicId, deletedAt: null }
     });
 
     if (!existing) {
-      return res.status(404).json({ error: 'Expediente no encontrado.' });
+      return res.status(404).json({ error: 'Paciente no encontrado.' });
     }
 
-    const patient = await prisma.patient.update({
+    await prisma.patient.update({
       where: { id },
-      data: {
-        tutorId: tutorId || existing.tutorId,
-        name: name || existing.name,
-        species: species || existing.species,
-        breed: breed !== undefined ? breed : existing.breed,
-        birthDate: birthDate ? new Date(birthDate) : existing.birthDate,
-        sex: sex || existing.sex,
-        sterilized: sterilized !== undefined ? !!sterilized : existing.sterilized,
-        weight: weight !== undefined ? (weight ? parseFloat(weight) : null) : existing.weight,
-        chipId: chipId !== undefined ? chipId : existing.chipId,
-        photoUrl: photoUrl !== undefined ? photoUrl : existing.photoUrl,
-        allergies: allergies !== undefined ? allergies : existing.allergies,
-        notes: notes !== undefined ? notes : existing.notes,
-        status: status || existing.status
-      },
-      include: { tutor: true }
+      data: { deletedAt: new Date() }
     });
 
-    return res.json(patient);
-  } catch (error) {
-    console.error('Error al editar paciente:', error);
-    return res.status(500).json({ error: 'Error al actualizar expediente.' });
-  }
-});
-
-// GET /patients/:id/medical-records (Timeline Clínico)
-router.get('/:id/medical-records', async (req: AuthRequest, res: Response) => {
-  const clinicId = req.user?.clinicId;
-  const { id } = req.params;
-
-  if (!clinicId) {
-    return res.status(401).json({ error: 'No autorizado.' });
-  }
-
-  try {
-    const patient = await prisma.patient.findFirst({ where: { id, clinicId } });
-    if (!patient) {
-      return res.status(404).json({ error: 'Paciente no encontrado.' });
-    }
-
-    const records = await prisma.medicalRecord.findMany({
-      where: { patientId: id, clinicId },
-      include: {
-        vet: {
-          select: { firstName: true, lastName: true }
-        },
-        attachments: true
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-
-    // Mapear respuesta para aplanar el nombre del veterinario
-    const mappedRecords = records.map(r => ({
-      ...r,
-      vetId: `Dr(a). ${r.vet.firstName} ${r.vet.lastName}` // Formato estandarizado para frontend
-    }));
-
-    return res.json(mappedRecords);
-  } catch (error) {
-    console.error('Error al listar historias:', error);
-    return res.status(500).json({ error: 'Error al obtener timeline clínico.' });
-  }
-});
-
-// GET /patients/:id/vaccines (Cartilla de vacunas aplicadas)
-router.get('/:id/vaccines', async (req: AuthRequest, res: Response) => {
-  const clinicId = req.user?.clinicId;
-  const { id } = req.params;
-
-  if (!clinicId) {
-    return res.status(401).json({ error: 'No autorizado.' });
-  }
-
-  try {
-    const patient = await prisma.patient.findFirst({ where: { id, clinicId } });
-    if (!patient) {
-      return res.status(404).json({ error: 'Paciente no encontrado.' });
-    }
-
-    const vaccines = await prisma.vaccine.findMany({
-      where: { patientId: id },
-      include: {
-        vet: {
-          select: { firstName: true, lastName: true }
-        }
-      },
-      orderBy: { appliedAt: 'desc' }
-    });
-
-    const mappedVaccines = vaccines.map(v => ({
-      ...v,
-      vetId: `Dr(a). ${v.vet.firstName} ${v.vet.lastName}`
-    }));
-
-    return res.json(mappedVaccines);
-  } catch (error) {
-    console.error('Error al listar vacunas:', error);
-    return res.status(500).json({ error: 'Error al obtener cartilla de vacunas.' });
+    return res.json({ message: 'Paciente eliminado correctamente del sistema.' });
+  } catch (error: any) {
+    console.error('[PatientRoutes] Error al eliminar paciente:', error);
+    return res.status(500).json({ error: 'Error al eliminar el expediente del paciente.' });
   }
 });
 

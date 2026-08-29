@@ -1,22 +1,23 @@
 import { Router, Response } from 'express';
+import { z } from 'zod';
 import { prisma } from '../config/database.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
+import { AppointmentStatus, ServiceModality, TrackingStatus } from '@prisma/client';
 
 const router = Router();
 
-// Mapeadores auxiliares para reconciliar la discrepancia de AppointmentStatus (guión vs guión bajo)
-// El frontend usa 'in-progress' y 'no-show', pero la BD usa 'in_progress' y 'no_show'.
-function toDbStatus(status: any): any {
+// Mapeadores auxiliares para compatibilidad del frontend (in-progress vs in_progress)
+function toDbStatus(status: any): AppointmentStatus | undefined {
   if (!status) return undefined;
-  if (status === 'in-progress') return 'in_progress';
-  if (status === 'no-show') return 'no_show';
-  return status;
+  if (status === 'in-progress') return AppointmentStatus.in_progress;
+  if (status === 'no-show') return AppointmentStatus.no_show;
+  return status as AppointmentStatus;
 }
 
-function toApiStatus(status: any): any {
-  if (!status) return undefined;
-  if (status === 'in_progress') return 'in-progress';
-  if (status === 'no_show') return 'no-show';
+function toApiStatus(status: any): string {
+  if (!status) return status;
+  if (status === AppointmentStatus.in_progress) return 'in-progress';
+  if (status === AppointmentStatus.no_show) return 'no-show';
   return status;
 }
 
@@ -28,35 +29,79 @@ function mapAppointmentToApi(app: any): any {
   };
 }
 
-// Activar verificación de token JWT para todas las rutas de citas
 router.use(authMiddleware as any);
 
-// GET /appointments (Listado de citas con filtros)
+// ─────────────────────────────────────────────
+// ESQUEMAS DE VALIDACIÓN ZOD
+// ─────────────────────────────────────────────
+const CreateAppointmentSchema = z.object({
+  patientId: z.string().uuid('ID de paciente inválido'),
+  vetId: z.string().uuid('ID de veterinario inválido').optional().nullable(),
+  branchId: z.string().uuid('ID de sucursal inválido').optional().nullable(),
+  serviceType: z.string().min(1, 'El tipo de servicio es obligatorio'),
+  modality: z.nativeEnum(ServiceModality).default(ServiceModality.clinic),
+  scheduledAt: z.string().datetime('Fecha de agendamiento inválida'),
+  durationMinutes: z.number().int().positive().default(30),
+  reason: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  amountCharged: z.number().nonnegative().optional().nullable(),
+
+  // Datos On-Demand / Domiciliarios
+  address: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
+  latitude: z.number().optional().nullable(),
+  longitude: z.number().optional().nullable(),
+  travelFee: z.number().nonnegative().default(0)
+});
+
+const UpdateAppointmentSchema = CreateAppointmentSchema.partial().extend({
+  status: z.string().optional(),
+  trackingStatus: z.nativeEnum(TrackingStatus).optional()
+});
+
+// ─────────────────────────────────────────────
+// ENDPOINTS DE CITAS
+// ─────────────────────────────────────────────
+
+// GET /api/v1/appointments (Listado con Filtros)
 router.get('/', async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
-
   if (!clinicId) {
-    return res.status(401).json({ error: 'No autorizado. ID de clínica no especificado.' });
+    return res.status(401).json({ error: 'No autorizado.' });
   }
 
-  const { date, vetId, branchId } = req.query;
+  const { date, vetId, branchId, modality, trackingStatus, status } = req.query;
 
   try {
-    const whereClause: any = { clinicId };
+    const whereClause: any = {
+      clinicId,
+      deletedAt: null
+    };
 
     if (branchId) {
-      whereClause.branchId = branchId as string;
+      whereClause.branchId = String(branchId);
     }
 
     if (vetId && vetId !== 'all') {
-      whereClause.vetId = vetId as string;
+      whereClause.vetId = String(vetId);
     }
 
-    // Filtrar por fecha específica (por ejemplo, citas de hoy)
+    if (modality && modality !== 'all') {
+      whereClause.modality = modality;
+    }
+
+    if (trackingStatus && trackingStatus !== 'all') {
+      whereClause.trackingStatus = trackingStatus;
+    }
+
+    if (status && status !== 'all') {
+      whereClause.status = toDbStatus(status);
+    }
+
     if (date) {
-      const start = new Date(date as string);
+      const start = new Date(String(date));
       start.setHours(0, 0, 0, 0);
-      const end = new Date(date as string);
+      const end = new Date(String(date));
       end.setHours(23, 59, 59, 999);
       whereClause.scheduledAt = {
         gte: start,
@@ -71,17 +116,16 @@ router.get('/', async (req: AuthRequest, res: Response) => {
           include: { tutor: true }
         },
         vet: {
-          select: { firstName: true, lastName: true }
+          select: { firstName: true, lastName: true, email: true }
+        },
+        branch: {
+          select: { id: true, name: true }
         }
       },
       orderBy: { scheduledAt: 'asc' }
     });
 
-    // Aplanar veterinario y normalizar estados para el formato que espera el frontend
-    const mapped = appointments.map(a => ({
-      ...mapAppointmentToApi(a),
-      vetId: a.vetId // Mantiene el ID del vet y añade metadatos si fuera necesario
-    }));
+    const mapped = appointments.map(a => mapAppointmentToApi(a));
 
     return res.json({
       data: mapped,
@@ -89,176 +133,65 @@ router.get('/', async (req: AuthRequest, res: Response) => {
       page: 1,
       pageSize: 100
     });
-  } catch (error) {
-    console.error('Error al listar citas:', error);
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn('⚠️ Base de datos no disponible o credenciales inválidas. Retornando Fallback Mock de Citas.');
-      const mockAppointments = [
-        {
-          id: 'dev-appointment-1',
-          clinicId: clinicId,
-          patientId: 'dev-patient-1',
-          vetId: 'dev-vet',
-          branchId: 'dev-branch',
-          scheduledAt: new Date(new Date().setHours(10, 0, 0, 0)),
-          duration: 30,
-          reason: 'Consulta general de control',
-          status: 'scheduled',
-          patient: {
-            id: 'dev-patient-1',
-            clinicId: clinicId,
-            name: 'Toby',
-            species: 'dog',
-            breed: 'Golden Retriever',
-            tutor: {
-              id: 'dev-tutor-1',
-              firstName: 'Daniel',
-              lastName: 'Flórez Aguirre',
-              phone: '3122115299'
-            }
-          },
-          vet: {
-            firstName: 'Laura',
-            lastName: 'Cardona'
-          }
-        },
-        {
-          id: 'dev-appointment-2',
-          clinicId: clinicId,
-          patientId: 'dev-patient-3',
-          vetId: 'dev-vet',
-          branchId: 'dev-branch',
-          scheduledAt: new Date(new Date().setHours(14, 30, 0, 0)),
-          duration: 45,
-          reason: 'Vacunación y desparasitación',
-          status: 'waiting',
-          patient: {
-            id: 'dev-patient-3',
-            clinicId: clinicId,
-            name: 'Luna',
-            species: 'cat',
-            breed: 'Siamés',
-            tutor: {
-              id: 'dev-tutor-2',
-              firstName: 'María',
-              lastName: 'Rodríguez',
-              phone: '3157891234'
-            }
-          },
-          vet: {
-            firstName: 'Laura',
-            lastName: 'Cardona'
-          }
-        }
-      ];
-      return res.json({
-        data: mockAppointments,
-        total: mockAppointments.length,
-        page: 1,
-        pageSize: 100
-      });
-    }
-    return res.status(500).json({ error: 'Error al obtener agenda de citas.' });
+  } catch (error: any) {
+    console.error('[AppointmentRoutes] Error al listar citas:', error);
+    return res.status(500).json({ error: 'Error interno al consultar las citas.' });
   }
 });
 
-// GET /appointments/today (Citas programadas para hoy - Sala de Espera)
-router.get('/today', async (req: AuthRequest, res: Response) => {
+// GET /api/v1/appointments/waitlist (Sala de Espera Digital)
+router.get('/waitlist', async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
-
   if (!clinicId) {
     return res.status(401).json({ error: 'No autorizado.' });
   }
 
-  try {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const end = new Date();
-    end.setHours(23, 59, 59, 999);
+  const { branchId } = req.query;
 
-    const appointments = await prisma.appointment.findMany({
-      where: {
-        clinicId,
-        scheduledAt: { gte: start, lte: end }
-      },
+  try {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const whereClause: any = {
+      clinicId,
+      deletedAt: null,
+      scheduledAt: { gte: todayStart, lte: todayEnd },
+      status: {
+        in: [
+          AppointmentStatus.waiting,
+          AppointmentStatus.in_progress,
+          AppointmentStatus.scheduled
+        ]
+      }
+    };
+
+    if (branchId) {
+      whereClause.branchId = String(branchId);
+    }
+
+    const waitlist = await prisma.appointment.findMany({
+      where: whereClause,
       include: {
         patient: {
           include: { tutor: true }
+        },
+        vet: {
+          select: { id: true, firstName: true, lastName: true }
         }
       },
       orderBy: { scheduledAt: 'asc' }
     });
 
-    return res.json(appointments.map(a => mapAppointmentToApi(a)));
-  } catch (error) {
-    console.error('Error al listar citas de hoy:', error);
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn('⚠️ Base de datos no disponible o credenciales inválidas. Retornando Fallback Mock de Citas de Hoy.');
-      const mockAppointments = [
-        {
-          id: 'dev-appointment-1',
-          clinicId: clinicId,
-          patientId: 'dev-patient-1',
-          vetId: 'dev-vet',
-          branchId: 'dev-branch',
-          scheduledAt: new Date(new Date().setHours(10, 0, 0, 0)),
-          duration: 30,
-          reason: 'Consulta general de control',
-          status: 'scheduled',
-          patient: {
-            id: 'dev-patient-1',
-            clinicId: clinicId,
-            name: 'Toby',
-            species: 'dog',
-            breed: 'Golden Retriever',
-            tutor: {
-              id: 'dev-tutor-1',
-              firstName: 'Daniel',
-              lastName: 'Flórez Aguirre',
-              phone: '3122115299'
-            }
-          },
-          vet: {
-            firstName: 'Laura',
-            lastName: 'Cardona'
-          }
-        },
-        {
-          id: 'dev-appointment-2',
-          clinicId: clinicId,
-          patientId: 'dev-patient-3',
-          vetId: 'dev-vet',
-          branchId: 'dev-branch',
-          scheduledAt: new Date(new Date().setHours(14, 30, 0, 0)),
-          duration: 45,
-          reason: 'Vacunación y desparasitación',
-          status: 'waiting',
-          patient: {
-            id: 'dev-patient-3',
-            clinicId: clinicId,
-            name: 'Luna',
-            species: 'cat',
-            breed: 'Siamés',
-            tutor: {
-              id: 'dev-tutor-2',
-              firstName: 'María',
-              lastName: 'Rodríguez',
-              phone: '3157891234'
-            }
-          },
-          vet: {
-            firstName: 'Laura',
-            lastName: 'Cardona'
-          }
-        }
-      ];
-      return res.json(mockAppointments);
-    }
-    return res.status(500).json({ error: 'Error al obtener citas del día.' });
+    return res.json(waitlist.map(a => mapAppointmentToApi(a)));
+  } catch (error: any) {
+    console.error('[AppointmentRoutes] Error al consultar sala de espera:', error);
+    return res.status(500).json({ error: 'Error al consultar la sala de espera.' });
   }
 });
 
-// GET /appointments/:id (Obtener cita específica)
+// GET /api/v1/appointments/:id (Detalle de Cita)
 router.get('/:id', async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
   const { id } = req.params;
@@ -269,11 +202,15 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 
   try {
     const appointment = await prisma.appointment.findFirst({
-      where: { id, clinicId },
+      where: { id, clinicId, deletedAt: null },
       include: {
         patient: {
           include: { tutor: true }
-        }
+        },
+        vet: {
+          select: { firstName: true, lastName: true, email: true }
+        },
+        branch: true
       }
     });
 
@@ -282,182 +219,170 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
     }
 
     return res.json(mapAppointmentToApi(appointment));
-  } catch (error) {
-    console.error('Error al buscar cita:', error);
+  } catch (error: any) {
+    console.error('[AppointmentRoutes] Error al buscar cita:', error);
     return res.status(500).json({ error: 'Error al obtener cita.' });
   }
 });
 
-// POST /appointments (Agendar cita)
+// POST /api/v1/appointments (Agendar Cita con Protección IDOR)
 router.post('/', async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
-  const { patientId, vetId, serviceType, scheduledAt, durationMinutes, reason, notes } = req.body;
-
   if (!clinicId) {
     return res.status(401).json({ error: 'No autorizado.' });
   }
 
-  if (!patientId || !vetId || !serviceType || !scheduledAt) {
-    return res.status(400).json({ error: 'Paciente, veterinario, tipo de servicio y horario son campos obligatorios.' });
+  const parsed = CreateAppointmentSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'Datos de la cita inválidos',
+      details: parsed.error.format()
+    });
   }
 
+  const data = parsed.data;
+
   try {
-    // Buscar sucursal por defecto de la clínica para asignar la cita física
-    const branch = await prisma.branch.findFirst({
-      where: { clinicId, active: true }
+    // 1. Validar que el paciente pertenezca a la clínica (Anti-IDOR)
+    const patient = await prisma.patient.findFirst({
+      where: { id: data.patientId, clinicId, deletedAt: null }
     });
 
-    if (!branch) {
-      return res.status(400).json({ error: 'Debe configurar al menos una sucursal en el sistema antes de agendar citas.' });
+    if (!patient) {
+      return res.status(404).json({ error: 'El paciente especificado no existe o no pertenece a su clínica.' });
+    }
+
+    // 2. Validar o determinar la sucursal (Branch)
+    let branchId = data.branchId || req.user?.branchId;
+    if (!branchId) {
+      const defaultBranch = await prisma.branch.findFirst({
+        where: { clinicId, active: true }
+      });
+      if (!defaultBranch) {
+        return res.status(400).json({ error: 'Debe configurar al menos una sucursal activa en el sistema.' });
+      }
+      branchId = defaultBranch.id;
+    } else {
+      const branch = await prisma.branch.findFirst({
+        where: { id: branchId, clinicId }
+      });
+      if (!branch) {
+        return res.status(404).json({ error: 'La sucursal especificada no pertenece a su clínica.' });
+      }
+    }
+
+    // 3. Validar veterinario si fue provisto
+    if (data.vetId) {
+      const vet = await prisma.user.findFirst({
+        where: { id: data.vetId, clinicId }
+      });
+      if (!vet) {
+        return res.status(404).json({ error: 'El veterinario especificado no pertenece a su clínica.' });
+      }
     }
 
     const appointment = await prisma.appointment.create({
       data: {
         clinicId,
-        branchId: branch.id,
-        patientId,
-        vetId,
-        serviceType,
-        scheduledAt: new Date(scheduledAt),
-        durationMinutes: durationMinutes ? parseInt(durationMinutes) : 30,
-        status: 'scheduled',
-        reason,
-        notes
+        branchId,
+        patientId: data.patientId,
+        vetId: data.vetId || null,
+        serviceType: data.serviceType,
+        modality: data.modality,
+        scheduledAt: new Date(data.scheduledAt),
+        durationMinutes: data.durationMinutes,
+        status: AppointmentStatus.scheduled,
+        reason: data.reason || null,
+        notes: data.notes || null,
+        amountCharged: data.amountCharged || null,
+        address: data.address || null,
+        city: data.city || null,
+        latitude: data.latitude || null,
+        longitude: data.longitude || null,
+        travelFee: data.travelFee,
+        trackingStatus: data.modality === ServiceModality.home_visit ? TrackingStatus.requested : TrackingStatus.requested
       },
       include: {
         patient: {
           include: { tutor: true }
+        },
+        vet: {
+          select: { firstName: true, lastName: true }
         }
       }
     });
 
-    return res.status(201).json(appointment);
-  } catch (error) {
-    console.error('Error al agendar cita:', error);
+    return res.status(201).json(mapAppointmentToApi(appointment));
+  } catch (error: any) {
+    console.error('[AppointmentRoutes] Error al agendar cita:', error);
     return res.status(500).json({ error: 'Error al registrar cita en la agenda.' });
   }
 });
 
-// PUT /appointments/:id (Editar cita)
-router.put('/:id', async (req: AuthRequest, res: Response) => {
-  const clinicId = req.user?.clinicId;
-  const { id } = req.params;
-  const { patientId, vetId, serviceType, scheduledAt, durationMinutes, reason, notes, status } = req.body;
-
-  if (!clinicId) {
-    return res.status(401).json({ error: 'No autorizado.' });
-  }
-
-  try {
-    const existing = await prisma.appointment.findFirst({ where: { id, clinicId } });
-    if (!existing) {
-      return res.status(404).json({ error: 'Cita no encontrada.' });
-    }
-
-    const updated = await prisma.appointment.update({
-      where: { id },
-      data: {
-        patientId: patientId || existing.patientId,
-        vetId: vetId || existing.vetId,
-        serviceType: serviceType || existing.serviceType,
-        scheduledAt: scheduledAt ? new Date(scheduledAt) : existing.scheduledAt,
-        durationMinutes: durationMinutes ? parseInt(durationMinutes) : existing.durationMinutes,
-        reason: reason !== undefined ? reason : existing.reason,
-        notes: notes !== undefined ? notes : existing.notes,
-        status: status ? toDbStatus(status) : existing.status
-      },
-      include: {
-        patient: {
-          include: { tutor: true }
-        }
-      }
-    });
-
-    return res.json(mapAppointmentToApi(updated));
-  } catch (error) {
-    console.error('Error al editar cita:', error);
-    return res.status(500).json({ error: 'Error al actualizar cita.' });
-  }
-});
-
-// PATCH /appointments/:id/status (Actualizar estado - Sala de Espera Digital Board)
+// PATCH /api/v1/appointments/:id/status (Cambiar Estado de Cita / Sala de Espera)
 router.patch('/:id/status', async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
   const { id } = req.params;
-  const { status } = req.body;
+  const { status, trackingStatus } = req.body;
 
   if (!clinicId) {
     return res.status(401).json({ error: 'No autorizado.' });
   }
 
-  if (!status) {
-    return res.status(400).json({ error: 'El estado es un parámetro requerido.' });
-  }
-
   try {
-    const existing = await prisma.appointment.findFirst({ where: { id, clinicId } });
+    const existing = await prisma.appointment.findFirst({
+      where: { id, clinicId, deletedAt: null }
+    });
+
     if (!existing) {
       return res.status(404).json({ error: 'Cita no encontrada.' });
     }
 
+    const dbStatus = toDbStatus(status);
+
+    const updateData: any = {};
+    if (dbStatus) updateData.status = dbStatus;
+    if (trackingStatus) {
+      updateData.trackingStatus = trackingStatus;
+      if (trackingStatus === TrackingStatus.on_the_way) updateData.onTheWayAt = new Date();
+      if (trackingStatus === TrackingStatus.arrived) updateData.arrivedAt = new Date();
+      if (trackingStatus === TrackingStatus.completed) updateData.completedAt = new Date();
+    }
+
     const updated = await prisma.appointment.update({
       where: { id },
-      data: { status: toDbStatus(status) },
+      data: updateData,
       include: {
         patient: {
           include: { tutor: true }
+        },
+        vet: {
+          select: { firstName: true, lastName: true }
         }
       }
     });
 
-    // [OPCIONAL WHATSAPP TRIGER LOGIC]
-    // Si pasa a 'waiting' o 'done' se dispararía la cola BullMQ en producción
-
     return res.json(mapAppointmentToApi(updated));
-  } catch (error) {
-    console.error('Error al cambiar estado de cita:', error);
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn('⚠️ Servidor en desarrollo y base de datos desconectada. Retornando Fallback Mock de actualización.');
-      const mockApp = {
-        id,
-        clinicId,
-        patientId: id === 'a1' ? 'p1' : (id === 'a2' ? 'p2' : (id === 'a3' ? 'p1' : 'p3')),
-        status,
-        scheduledAt: new Date(),
-        serviceType: 'Consulta General',
-        reason: 'Motivo de consulta de prueba.',
-        patient: {
-          id: id === 'a2' ? 'p2' : 'p1',
-          name: id === 'a2' ? 'Luna' : 'Toby',
-          species: id === 'a2' ? 'cat' : 'dog',
-          breed: id === 'a2' ? 'Siamés' : 'Golden Retriever',
-          tutor: {
-            id: 't1',
-            firstName: 'Daniel',
-            lastName: 'Flórez Aguirre',
-            phone: '3122115299',
-            email: 'florezaguirredaniel@gmail.com'
-          }
-        }
-      };
-      return res.json(mockApp);
-    }
-    return res.status(500).json({ error: 'Error al registrar cambio en la sala de espera.' });
+  } catch (error: any) {
+    console.error('[AppointmentRoutes] Error al actualizar estado de cita:', error);
+    return res.status(500).json({ error: 'Error al actualizar el estado de la cita.' });
   }
 });
 
-// PATCH /appointments/:id/cancel (Cancelar cita con motivo)
-router.patch('/:id/cancel', async (req: AuthRequest, res: Response) => {
+// DELETE /api/v1/appointments/:id (Soft Delete / Cancelar)
+router.delete('/:id', async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
   const { id } = req.params;
-  const { reason } = req.body;
 
   if (!clinicId) {
     return res.status(401).json({ error: 'No autorizado.' });
   }
 
   try {
-    const existing = await prisma.appointment.findFirst({ where: { id, clinicId } });
+    const existing = await prisma.appointment.findFirst({
+      where: { id, clinicId, deletedAt: null }
+    });
+
     if (!existing) {
       return res.status(404).json({ error: 'Cita no encontrada.' });
     }
@@ -465,15 +390,15 @@ router.patch('/:id/cancel', async (req: AuthRequest, res: Response) => {
     await prisma.appointment.update({
       where: { id },
       data: {
-        status: 'cancelled',
-        notes: reason ? `Cancelación: ${reason}. ${existing.notes || ''}` : existing.notes
+        deletedAt: new Date(),
+        status: AppointmentStatus.cancelled
       }
     });
 
-    return res.status(204).send();
-  } catch (error) {
-    console.error('Error al cancelar cita:', error);
-    return res.status(500).json({ error: 'Error al registrar cancelación.' });
+    return res.json({ message: 'Cita cancelada y eliminada de la agenda.' });
+  } catch (error: any) {
+    console.error('[AppointmentRoutes] Error al cancelar cita:', error);
+    return res.status(500).json({ error: 'Error al cancelar la cita.' });
   }
 });
 

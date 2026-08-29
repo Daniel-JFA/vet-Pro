@@ -29,6 +29,12 @@ export class BillingReceiptComponent implements OnInit {
   showWhatsAppModal = signal(false);
   whatsappMessage = signal('');
 
+  // DIAN Electronic Invoice State
+  isDianIssued = signal(false);
+  dianStatus = signal<'pending' | 'accepted' | 'rejected'>('pending');
+  cufeCode = signal<string | null>(null);
+  dianTransmitting = signal(false);
+
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
@@ -66,6 +72,24 @@ export class BillingReceiptComponent implements OnInit {
         this.invoice.update(current => current ? { ...current, status: 'issued', issuedAt: new Date() } : null);
       }
     });
+  }
+
+  transmitToDian() {
+    const inv = this.invoice();
+    if (!inv) return;
+
+    this.dianTransmitting.set(true);
+
+    // Simulación de firma digital UBL 2.1 y transmisión a la DIAN
+    setTimeout(() => {
+      const generatedCufe = '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08d27ecbb2776c5b96791e8470559f5f0e';
+      this.cufeCode.set(generatedCufe);
+      this.isDianIssued.set(true);
+      this.dianStatus.set('accepted');
+      this.dianTransmitting.set(false);
+
+      this.invoice.update(curr => curr ? { ...curr, electronicId: generatedCufe } : null);
+    }, 1500);
   }
 
   openPaymentModal() {
