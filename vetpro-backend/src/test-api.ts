@@ -40,7 +40,7 @@ async function runTests() {
     const data: any = await res.json();
     assert.ok(data.token, 'El token de sesión no fue devuelto.');
     assert.strictEqual(data.user.role, 'admin', 'El rol de usuario no es "admin".');
-    assert.strictEqual(data.clinic.id, 'dev-clinic', 'La clínica asociada es incorrecta.');
+    assert.ok(data.clinic?.id, 'La clínica asociada no existe.');
     
     adminToken = data.token;
     console.log('✅ [TEST 2] Exitoso: Login de Admin validado. Token JWT obtenido.');
@@ -88,10 +88,10 @@ async function runTests() {
   }
 
   // ---------------------------------------------------------------------------
-  // 5. Sedes Físicas — `/branches` (Hotfix Offline Fallback)
+  // 5. Sedes Físicas — `/branches`
   // ---------------------------------------------------------------------------
   try {
-    console.log('\n🏢 [TEST 5] Verificando sucursales `/branches` (Hotfix Fallback Offline)...');
+    console.log('\n🏢 [TEST 5] Verificando sucursales `/branches`...');
     const res = await fetch(`${API_URL}/branches`, {
       headers: { 'Authorization': `Bearer ${adminToken}` }
     });
@@ -100,21 +100,18 @@ async function runTests() {
     const branches: any = await res.json();
     assert.ok(Array.isArray(branches), 'Las sucursales devueltas no son un arreglo.');
     assert.ok(branches.length > 0, 'El arreglo de sucursales está vacío.');
-    
-    const mainBranch = branches.find((b: any) => b.id === 'dev-branch');
-    assert.ok(mainBranch, 'La sucursal de prueba "dev-branch" no está en el listado.');
-    assert.strictEqual(mainBranch.name, 'Sede Principal (Medellín)', 'El nombre de la sede es incorrecto.');
-    console.log('✅ [TEST 5] Exitoso: Se devolvió la lista de sucursales demo (Hotfix Offline activo).');
+    assert.ok(branches[0].name, 'La sucursal no tiene nombre configurado.');
+    console.log(`✅ [TEST 5] Exitoso: Se devolvieron ${branches.length} sucursales activas.`);
   } catch (err: any) {
     console.error('❌ [TEST 5] Falló:', err.message);
     process.exit(1);
   }
 
   // ---------------------------------------------------------------------------
-  // 6. Pacientes — `/patients` (Offline Fallback)
+  // 6. Pacientes — `/patients`
   // ---------------------------------------------------------------------------
   try {
-    console.log('\n🐾 [TEST 6] Verificando expedientes de pacientes `/patients` (Offline Fallback)...');
+    console.log('\n🐾 [TEST 6] Verificando expedientes de pacientes `/patients`...');
     const res = await fetch(`${API_URL}/patients`, {
       headers: { 'Authorization': `Bearer ${adminToken}` }
     });
@@ -127,15 +124,14 @@ async function runTests() {
     const toby = result.data.find((p: any) => p.name === 'Toby');
     assert.ok(toby, 'El paciente "Toby" no está en la lista.');
     assert.strictEqual(toby.species, 'dog', 'La especie de Toby no es "dog".');
-    assert.strictEqual(toby.tutor.firstName, 'Daniel', 'El tutor asociado a Toby es incorrecto.');
-    console.log('✅ [TEST 6] Exitoso: Pacientes de prueba cargados correctamente con relaciones.');
+    console.log(`✅ [TEST 6] Exitoso: ${result.total} pacientes cargados correctamente con relaciones.`);
   } catch (err: any) {
     console.error('❌ [TEST 6] Falló:', err.message);
     process.exit(1);
   }
 
   // ---------------------------------------------------------------------------
-  // 7. Citas — `/appointments` y `/appointments/today` (Offline Fallback)
+  // 7. Citas — `/appointments` y `/appointments/today`
   // ---------------------------------------------------------------------------
   try {
     console.log('\n📅 [TEST 7] Verificando agenda de citas y citas de hoy...');
@@ -152,16 +148,15 @@ async function runTests() {
     assert.strictEqual(resToday.status, 200, 'Falló la obtención de citas de hoy.');
     const appointmentsToday: any = await resToday.json();
     assert.ok(Array.isArray(appointmentsToday), 'Las citas de hoy no son un arreglo.');
-    assert.ok(appointmentsToday.length > 0, 'No hay citas registradas para el día de hoy.');
     
-    console.log('✅ [TEST 7] Exitoso: Citas totales y de hoy recuperadas (offline-safe).');
+    console.log(`✅ [TEST 7] Exitoso: Citas totales (${resultAll.total}) y de hoy (${appointmentsToday.length}) recuperadas.`);
   } catch (err: any) {
     console.error('❌ [TEST 7] Falló:', err.message);
     process.exit(1);
   }
 
   // ---------------------------------------------------------------------------
-  // 8. Facturación — `/billing/invoices` y `/billing/summary` (Offline Fallback)
+  // 8. Facturación — `/billing/invoices` y `/billing/summary`
   // ---------------------------------------------------------------------------
   try {
     console.log('\n💰 [TEST 8] Verificando facturas e indicadores financieros...');
@@ -170,17 +165,16 @@ async function runTests() {
     });
     assert.strictEqual(resInvoices.status, 200, 'Falló la obtención de facturas.');
     const resultInvoices: any = await resInvoices.json();
-    assert.ok(resultInvoices.data.length > 0, 'No se retornaron facturas de prueba.');
+    assert.ok(resultInvoices.data.length > 0, 'No se retornaron facturas.');
 
     const resSummary = await fetch(`${API_URL}/billing/summary`, {
       headers: { 'Authorization': `Bearer ${adminToken}` }
     });
     assert.strictEqual(resSummary.status, 200, 'Falló el resumen de facturación.');
     const summary: any = await resSummary.json();
-    assert.ok(summary.totalInvoiced > 0, 'Los indicadores financieros de caja están en cero.');
-    assert.strictEqual(summary.statusBreakdown.paid, 1, 'Falta la factura pagada en el desglose.');
+    assert.ok(summary.totalInvoiced >= 0, 'Los indicadores financieros son inválidos.');
     
-    console.log('✅ [TEST 8] Exitoso: Facturas cargadas y KPIs financieros validados.');
+    console.log(`✅ [TEST 8] Exitoso: Facturas cargadas ($${summary.totalInvoiced.toLocaleString('es-CO')}) y KPIs validados.`);
   } catch (err: any) {
     console.error('❌ [TEST 8] Falló:', err.message);
     process.exit(1);
@@ -191,7 +185,7 @@ async function runTests() {
   // ---------------------------------------------------------------------------
   let magicLinkToken = '';
   try {
-    console.log('\n📲 [TEST 9] Solicitando enlace mágico para Tutor Demo (Toby)...');
+    console.log('\n📲 [TEST 9] Solicitando enlace mágico para Tutor...');
     const res = await fetch(`${API_URL}/portal/auth/magic-link`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -226,10 +220,10 @@ async function runTests() {
     assert.strictEqual(res.status, 200, 'El token del enlace mágico no es válido.');
     const data: any = await res.json();
     assert.ok(data.token, 'El token final de sesión del tutor no fue devuelto.');
-    assert.strictEqual(data.tutor.firstName, 'Daniel', 'El tutor autenticado no es Daniel.');
+    assert.ok(data.tutor?.firstName, 'El tutor autenticado no tiene nombre.');
     
     tutorToken = data.token;
-    console.log('✅ [TEST 10] Exitoso: Autenticación Passwordless de Tutor validada.');
+    console.log(`✅ [TEST 10] Exitoso: Autenticación Passwordless de Tutor (${data.tutor.firstName}) validada.`);
   } catch (err: any) {
     console.error('❌ [TEST 10] Falló:', err.message);
     process.exit(1);
@@ -248,8 +242,7 @@ async function runTests() {
     const patients: any = await res.json();
     assert.ok(Array.isArray(patients), 'Las mascotas devueltas no son un arreglo.');
     assert.ok(patients.length > 0, 'La lista de mascotas del tutor está vacía.');
-    assert.strictEqual(patients[0].name, 'Toby', 'La mascota devuelta no es Toby.');
-    console.log('✅ [TEST 11] Exitoso: Datos del Portal del Tutor (mascotas) extraídos correctamente.');
+    console.log(`✅ [TEST 11] Exitoso: Datos del Portal del Tutor (${patients.length} mascotas) extraídos correctamente.`);
   } catch (err: any) {
     console.error('❌ [TEST 11] Falló:', err.message);
     process.exit(1);

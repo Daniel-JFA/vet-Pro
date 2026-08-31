@@ -87,10 +87,10 @@ interface LocalBooking {
             @for (walker of demoData.walkers; track walker.id) {
               <div class="walker-card">
                 <div class="walker-card__avatar">
-                  {{ walker.user?.firstName?.charAt(0) }}{{ walker.user?.lastName?.charAt(0) }}
+                  {{ walker.user.firstName.charAt(0) }}{{ walker.user.lastName.charAt(0) }}
                 </div>
                 <div class="walker-card__body">
-                  <div class="walker-card__name">{{ walker.user?.firstName }} {{ walker.user?.lastName }}</div>
+                  <div class="walker-card__name">{{ walker.user.firstName }} {{ walker.user.lastName }}</div>
                   <div class="walker-card__bio">{{ walker.bio }}</div>
                   <div class="walker-card__stats">
                     <div class="walker-stat">

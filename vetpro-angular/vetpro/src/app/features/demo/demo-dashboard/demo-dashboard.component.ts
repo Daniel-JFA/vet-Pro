@@ -53,10 +53,10 @@ import { DemoDataService } from '../demo-data.service';
           @for (appt of demoData.appointments; track appt.id) {
             <div class="appt-row">
               <div class="appt-row__patient">
-                <span class="appt-row__species">{{ appt.patient?.species === 'dog' ? '🐕' : '🐈' }}</span>
+                <span class="appt-row__species">{{ appt.patient.species === 'dog' ? '🐕' : '🐈' }}</span>
                 <div>
-                  <div class="appt-row__name">{{ appt.patient?.name }}</div>
-                  <div class="appt-row__tutor">{{ appt.patient?.tutor?.firstName }} {{ appt.patient?.tutor?.lastName }}</div>
+                  <div class="appt-row__name">{{ appt.patient.name }}</div>
+                  <div class="appt-row__tutor">{{ appt.patient.tutor.firstName }} {{ appt.patient.tutor.lastName }}</div>
                 </div>
               </div>
               <div class="appt-row__service">{{ appt.serviceType }}</div>

@@ -139,6 +139,47 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// GET /api/v1/appointments/today (Citas del Día)
+router.get('/today', async (req: AuthRequest, res: Response) => {
+  const clinicId = req.user?.clinicId;
+  if (!clinicId) {
+    return res.status(401).json({ error: 'No autorizado.' });
+  }
+
+  try {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const appointments = await prisma.appointment.findMany({
+      where: {
+        clinicId,
+        deletedAt: null,
+        scheduledAt: { gte: todayStart, lte: todayEnd }
+      },
+      include: {
+        patient: {
+          include: { tutor: true }
+        },
+        vet: {
+          select: { firstName: true, lastName: true, email: true }
+        },
+        branch: {
+          select: { id: true, name: true }
+        }
+      },
+      orderBy: { scheduledAt: 'asc' }
+    });
+
+    const mapped = appointments.map(a => mapAppointmentToApi(a));
+    return res.json(mapped);
+  } catch (error: any) {
+    console.error('[AppointmentRoutes] Error al obtener citas de hoy:', error);
+    return res.status(500).json({ error: 'Error interno al consultar las citas de hoy.' });
+  }
+});
+
 // GET /api/v1/appointments/waitlist (Sala de Espera Digital)
 router.get('/waitlist', async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;

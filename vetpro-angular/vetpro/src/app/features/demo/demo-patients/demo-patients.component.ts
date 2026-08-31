@@ -64,8 +64,8 @@ import { DemoDataService } from '../demo-data.service';
 
             <div class="patient-card__footer">
               <span class="patient-card__owner-icon">👤</span>
-              <span class="patient-card__owner">{{ patient.tutor?.firstName }} {{ patient.tutor?.lastName }}</span>
-              <span class="patient-card__owner-phone">{{ patient.tutor?.phone }}</span>
+              <span class="patient-card__owner">{{ patient.tutor.firstName }} {{ patient.tutor.lastName }}</span>
+              <span class="patient-card__owner-phone">{{ patient.tutor.phone }}</span>
             </div>
           </div>
         }

@@ -1,12 +1,17 @@
 name: CD - deploy to prod
 
 on:
-  push:
-    branches: [ main ]
+  workflow_run:
+    workflows: ["CI - build & push"]
+    branches: [main]
+    types:
+      - completed
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     steps:
       - uses: actions/checkout@v4
 

@@ -1,0 +1,126 @@
+================================================================================
+  GUÍA DE DESPLIEGUE — VetPro
+  Fecha: 2026-08-31
+  Rama: main
+================================================================================
+
+RESUMEN DE CAMBIOS
+------------------
+Este despliegue incluye correcciones de estabilidad y dos nuevos endpoints de API:
+
+  1. CI/CD — deploy.yml
+  2. Backend — appointment.routes.ts   → nuevo endpoint /today
+  3. Backend — billing.routes.ts       → nuevo endpoint /summary
+  4. Backend — inventory.routes.ts     → corrección de filtros de stock
+  5. Backend — portal.routes.ts        → hardening del flujo demo/auth
+  6. Backend — test-api.ts             → aserciones más robustas
+  7. Frontend — módulo Demo            → eliminación de optional chaining
+
+--------------------------------------------------------------------------------
+DETALLE DE CAMBIOS
+--------------------------------------------------------------------------------
+
+1. CI/CD (.github/workflows/deploy.yml)
+   - El workflow de CD (deploy) ya NO se dispara directamente en push a main.
+   - Ahora espera a que el workflow "CI - build & push" termine con éxito.
+   - Se agregó `workflow_dispatch` para ejecutar el despliegue manualmente.
+   - IMPACTO: el pipeline queda encadenado: CI pasa → CD ejecuta.
+
+2. GET /api/v1/appointments/today (appointment.routes.ts)
+   - Nuevo endpoint que devuelve las citas del día en curso (00:00 – 23:59).
+   - Filtra por `clinicId` del JWT, ordena por hora ascendente.
+   - Incluye relaciones: patient → tutor, vet, branch.
+
+3. GET /api/v1/billing/summary (billing.routes.ts)
+   - Nuevo endpoint con resumen financiero de la clínica:
+       totalInvoiced, totalCollected, totalPending, statusBreakdown
+   - El desglose de estados cubre: paid, partial, issued, draft, void.
+   - Las facturas anuladas (void) se excluyen de los totales monetarios.
+
+4. Corrección filtros de inventario (inventory.routes.ts)
+   - Los filtros `stockFilter=low` y `stockFilter=ok` usaban
+     `prisma.product.fields.minStock` (referencia inválida en tiempo de ejecución).
+   - Se reemplazaron por consultas `$queryRaw` que comparan columnas directamente:
+       low → currentStock > 0 AND currentStock <= minStock
+       ok  → currentStock > minStock
+   - El endpoint /products/low-stock también migró a $queryRaw por la misma razón.
+   - Se corrigió el fallback de branchId: si el usuario no tiene sucursal asignada
+     se busca la primera sucursal de la clínica en lugar de insertar cadena vacía.
+
+5. Hardening portal demo/auth (portal.routes.ts)
+   - Se eliminaron los IDs fijos 'dev-clinic', 'dev-branch', 'dev-vet';
+     el sistema ahora usa las entidades reales de la DB.
+   - Búsqueda de tutores por teléfono ahora limpia el input (quita +, espacios,
+     guiones) y hace búsqueda parcial por los últimos 7 dígitos.
+   - auth/verify recupera la clínica desde `tutor.clinicId` (no del token).
+   - Fallback demo: si el token tiene `phone` y el tutor no existe, se recrea.
+
+6. test-api.ts
+   - Se eliminaron aserciones que dependían de IDs y nombres hardcodeados
+     ('dev-clinic', 'dev-branch', 'Daniel', 'Toby').
+   - Las validaciones ahora comprueban presencia de datos, no valores exactos.
+
+7. Demo components — optional chaining (Angular)
+   - demo-dashboard, demo-patients, demo-walkers:
+     Se eliminó el operador `?.` en templates donde los datos siempre están
+     presentes (objetos garantizados por DemoDataService).
+   - Evita advertencias de compilación y aclara el contrato de los datos.
+
+--------------------------------------------------------------------------------
+PASOS DE DESPLIEGUE
+--------------------------------------------------------------------------------
+
+PRE-REQUISITOS
+  - Docker en el servidor de producción corriendo.
+  - Variables de entorno configuradas (DATABASE_URL, JWT_SECRET, etc.).
+  - Secrets de GitHub configurados: SSH_HOST, SSH_USER, SSH_KEY.
+
+PASO 1 — Verificar que CI pase
+  - Hacer push a main (o merge de PR).
+  - Esperar a que el workflow "CI - build & push" complete en verde.
+  - El workflow "CD - deploy to prod" se disparará automáticamente.
+
+PASO 2 — (Opcional) Disparo manual
+  - En GitHub → Actions → "CD - deploy to prod" → Run workflow → Branch: main.
+
+PASO 3 — Verificar el despliegue
+  Ejecutar el script de pruebas de integración desde el servidor o localmente:
+
+    cd vetpro-backend
+    npx ts-node src/test-api.ts
+
+  Los 11 tests deben pasar (✅). Prestar especial atención a:
+    - TEST 7: /appointments/today → debe devolver array (puede estar vacío hoy)
+    - TEST 8: /billing/summary   → totalInvoiced >= 0
+
+PASO 4 — Verificar filtros de inventario
+  Hacer GET a los siguientes endpoints con un JWT de admin:
+
+    GET /api/v1/inventory/products?stockFilter=low
+    GET /api/v1/inventory/products?stockFilter=ok
+    GET /api/v1/inventory/products/low-stock
+
+  Antes de este fix, estos endpoints devolvían error 500.
+
+PASO 5 — Verificar portal de tutores (demo/producción)
+  Flujo: POST /portal/auth/magic-link → POST /portal/auth/verify
+  - En desarrollo: funciona con números de prueba (ej. 3122115299).
+  - El token de sesión debe incluir tutor.firstName y clinic.name.
+
+--------------------------------------------------------------------------------
+ROLLBACK
+--------------------------------------------------------------------------------
+En caso de error crítico en producción:
+
+  1. En GitHub → Actions → último deploy exitoso → Re-run jobs.
+  O bien:
+  2. En el servidor:
+       docker compose pull && docker compose up -d  (imagen anterior)
+     (Si el CI no ha sobreescrito la imagen tagged 'previous').
+
+  Los cambios de base de datos en este PR son NINGUNO (sin migraciones).
+  El rollback no requiere reversión de schema.
+
+--------------------------------------------------------------------------------
+CONTACTO
+================================================================================

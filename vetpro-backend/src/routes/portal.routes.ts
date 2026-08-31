@@ -11,15 +11,12 @@ const isDevelopment = process.env.NODE_ENV !== 'production';
 async function ensureDemoTutor(phone: string) {
   if (!isDevelopment) return null;
 
-  // 1. Obtener o crear clínica demo
-  let clinic = await prisma.clinic.findFirst({
-    where: { id: 'dev-clinic' }
-  });
+  // 1. Obtener clínica existente o crear una nueva
+  let clinic = await prisma.clinic.findFirst();
 
   if (!clinic) {
     clinic = await prisma.clinic.create({
       data: {
-        id: 'dev-clinic',
         name: 'Clínica Veterinaria San José',
         nit: '900.123.456-7',
         phone: '+57 1 601 2345',
@@ -41,7 +38,6 @@ async function ensureDemoTutor(phone: string) {
   if (!branch) {
     branch = await prisma.branch.create({
       data: {
-        id: 'dev-branch',
         clinicId: clinic.id,
         name: 'Sede Principal',
         address: 'Calle 100 #15-30',
@@ -51,28 +47,13 @@ async function ensureDemoTutor(phone: string) {
     });
   }
 
-  // 3. Crear veterinarios demo si no existen (para agendamiento)
+  // 3. Obtener veterinario existente
   const defaultVet = await prisma.user.findFirst({
     where: { role: 'vet', clinicId: clinic.id }
-  });
-
-  if (!defaultVet) {
-    await prisma.user.create({
-      data: {
-        id: 'dev-vet',
-        clinicId: clinic.id,
-        branchId: branch.id,
-        firstName: 'Laura',
-        lastName: 'Cardona',
-        email: 'vet@vetpro.co',
-        passwordHash: 'vet123_hash_placeholder',
-        role: 'vet',
-        active: true
-      }
-    });
-  }
+  }) || await prisma.user.findFirst({ where: { clinicId: clinic.id } });
 
   // 4. Mapear datos demo de tutores y mascotas basándonos en el teléfono
+  const cleanPhone = phone.replace(/[\s\+\-]/g, '');
   const demoData: Record<string, { tutor: any, patients: any[] }> = {
     '3122115299': {
       tutor: { firstName: 'Daniel', lastName: 'Flórez Aguirre', email: 'florezaguirredaniel@gmail.com', phone: '3122115299', documentId: '1018234567', address: 'Calle 100 #15-30, Bogotá' },
@@ -96,18 +77,26 @@ async function ensureDemoTutor(phone: string) {
     }
   };
 
-  const selectedDemo = demoData[phone];
+  const selectedDemo = demoData[cleanPhone] || demoData['3122115299'];
   if (!selectedDemo) return null;
 
   // 5. Upsert del tutor
   let tutor = await prisma.tutor.findFirst({
-    where: { phone, clinicId: clinic.id }
+    where: {
+      OR: [
+        { phone },
+        { phone: cleanPhone },
+        { phone: { contains: cleanPhone.slice(-7) } }
+      ],
+      clinicId: clinic.id
+    }
   });
 
   if (!tutor) {
     tutor = await prisma.tutor.create({
       data: {
         ...selectedDemo.tutor,
+        phone,
         clinicId: clinic.id
       }
     });
@@ -179,9 +168,16 @@ router.post('/auth/magic-link', async (req, res) => {
   }
 
   try {
-    // 1. Buscar tutor
+    // 1. Buscar tutor con búsqueda flexible
+    const cleanPhone = phone.replace(/[\s\+\-]/g, '');
     let tutor = await prisma.tutor.findFirst({
-      where: { phone }
+      where: {
+        OR: [
+          { phone },
+          { phone: { contains: cleanPhone } },
+          { phone: { contains: cleanPhone.slice(-7) } }
+        ]
+      }
     });
 
     // 2. Si no existe, intentar asegurar demo en desarrollo
@@ -270,18 +266,22 @@ router.post('/auth/verify', async (req, res) => {
     }
 
     // 2. Buscar tutor y clínica
-    const tutor = await prisma.tutor.findUnique({
+    let tutor = await prisma.tutor.findUnique({
       where: { id: decoded.id }
     });
 
-    const clinic = await prisma.clinic.findUnique({
-      where: { id: decoded.clinicId },
-      select: { name: true, phone: true, email: true, address: true, city: true, logoUrl: true }
-    });
+    if (!tutor && isDevelopment && decoded.phone) {
+      tutor = await ensureDemoTutor(decoded.phone);
+    }
 
     if (!tutor) {
       return res.status(404).json({ error: 'Tutor ya no existe en el sistema.' });
     }
+
+    const clinic = await prisma.clinic.findUnique({
+      where: { id: tutor.clinicId },
+      select: { name: true, phone: true, email: true, address: true, city: true, logoUrl: true }
+    });
 
     // 3. Generar JWT de sesión prolongado (7 días)
     const sessionToken = jwt.sign(

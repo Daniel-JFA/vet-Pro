@@ -191,6 +191,43 @@ router.get('/stats', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// GET /api/v1/billing/summary (Resumen Financiero y desglose)
+router.get('/summary', async (req: AuthRequest, res: Response) => {
+  const clinicId = req.user?.clinicId;
+  if (!clinicId) {
+    return res.status(401).json({ error: 'No autorizado.' });
+  }
+
+  try {
+    const invoices = await prisma.invoice.findMany({
+      where: { clinicId, deletedAt: null },
+      select: { total: true, amountPaid: true, balance: true, status: true }
+    });
+
+    const totalInvoiced = invoices.filter(i => i.status !== 'void').reduce((acc, curr) => acc + curr.total, 0);
+    const totalCollected = invoices.filter(i => i.status !== 'void').reduce((acc, curr) => acc + curr.amountPaid, 0);
+    const totalPending = invoices.filter(i => i.status !== 'void').reduce((acc, curr) => acc + curr.balance, 0);
+
+    const statusBreakdown = {
+      paid: invoices.filter(i => i.status === 'paid').length,
+      partial: invoices.filter(i => i.status === 'partial').length,
+      issued: invoices.filter(i => i.status === 'issued').length,
+      draft: invoices.filter(i => i.status === 'draft').length,
+      void: invoices.filter(i => i.status === 'void').length
+    };
+
+    return res.json({
+      totalInvoiced: parseFloat(totalInvoiced.toFixed(2)),
+      totalCollected: parseFloat(totalCollected.toFixed(2)),
+      totalPending: parseFloat(totalPending.toFixed(2)),
+      statusBreakdown
+    });
+  } catch (error: any) {
+    console.error('[BillingRoutes] Error al calcular resumen:', error);
+    return res.status(500).json({ error: 'Error al calcular resumen de facturación.' });
+  }
+});
+
 // GET /api/v1/billing/invoices/:id (Detalle de Factura)
 router.get('/invoices/:id', async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;

@@ -50,15 +50,58 @@ router.get('/products', async (req: AuthRequest, res: Response) => {
     // Filtrados de stock reactivos
     if (stockFilter === 'out') {
       whereClause.currentStock = 0;
-    } else if (stockFilter === 'low') {
-      whereClause.currentStock = {
-        gt: 0,
-        lte: prisma.product.fields.minStock // stock bajo: > 0 y <= minStock
-      };
-    } else if (stockFilter === 'ok') {
-      whereClause.currentStock = {
-        gt: prisma.product.fields.minStock // stock ok: > minStock
-      };
+    }
+
+    if (stockFilter === 'low') {
+      const [products, countResult] = await Promise.all([
+        prisma.$queryRaw<any[]>`
+          SELECT p.*, 
+                 json_build_object('id', s.id, 'name', s.name) as supplier
+          FROM products p
+          LEFT JOIN suppliers s ON p."supplierId" = s.id
+          WHERE p."clinicId" = ${clinicId}
+            AND p.active = true
+            AND p."currentStock" > 0
+            AND p."currentStock" <= p."minStock"
+          ORDER BY p.name ASC
+          LIMIT ${pageSize} OFFSET ${skip}
+        `,
+        prisma.$queryRaw<{ count: bigint }[]>`
+          SELECT COUNT(*)::bigint as count
+          FROM products p
+          WHERE p."clinicId" = ${clinicId}
+            AND p.active = true
+            AND p."currentStock" > 0
+            AND p."currentStock" <= p."minStock"
+        `
+      ]);
+      const total = Number(countResult[0]?.count || 0);
+      return res.json({ data: products, page, pageSize, total });
+    }
+
+    if (stockFilter === 'ok') {
+      const [products, countResult] = await Promise.all([
+        prisma.$queryRaw<any[]>`
+          SELECT p.*, 
+                 json_build_object('id', s.id, 'name', s.name) as supplier
+          FROM products p
+          LEFT JOIN suppliers s ON p."supplierId" = s.id
+          WHERE p."clinicId" = ${clinicId}
+            AND p.active = true
+            AND p."currentStock" > p."minStock"
+          ORDER BY p.name ASC
+          LIMIT ${pageSize} OFFSET ${skip}
+        `,
+        prisma.$queryRaw<{ count: bigint }[]>`
+          SELECT COUNT(*)::bigint as count
+          FROM products p
+          WHERE p."clinicId" = ${clinicId}
+            AND p.active = true
+            AND p."currentStock" > p."minStock"
+        `
+      ]);
+      const total = Number(countResult[0]?.count || 0);
+      return res.json({ data: products, page, pageSize, total });
     }
 
     const [products, total] = await Promise.all([
@@ -92,17 +135,16 @@ router.get('/products/low-stock', async (req: AuthRequest, res: Response) => {
   }
 
   try {
-    const products = await prisma.product.findMany({
-      where: {
-        clinicId,
-        active: true,
-        currentStock: {
-          lte: prisma.product.fields.minStock
-        }
-      },
-      include: { supplier: true },
-      orderBy: { currentStock: 'asc' }
-    });
+    const products = await prisma.$queryRaw<any[]>`
+      SELECT p.*, 
+             json_build_object('id', s.id, 'name', s.name, 'phone', s.phone, 'email', s.email) as supplier
+      FROM products p
+      LEFT JOIN suppliers s ON p."supplierId" = s.id
+      WHERE p."clinicId" = ${clinicId}
+        AND p.active = true
+        AND p."currentStock" <= p."minStock"
+      ORDER BY p."currentStock" ASC
+    `;
     return res.json(products);
   } catch (error) {
     console.error('Error al obtener stock bajo:', error);
@@ -219,10 +261,16 @@ router.post('/products', async (req: AuthRequest, res: Response) => {
 
       // Crear movimiento inicial si hay existencias
       if (product.currentStock > 0) {
+        let movementBranchId = req.user?.branchId;
+        if (!movementBranchId) {
+          const defaultBranch = await tx.branch.findFirst({ where: { clinicId } });
+          movementBranchId = defaultBranch?.id || '';
+        }
+
         await tx.inventoryMovement.create({
           data: {
             clinicId,
-            branchId: req.user?.branchId || '',
+            branchId: movementBranchId,
             productId: product.id,
             type: MovementType.in,
             quantity: product.currentStock,
@@ -414,10 +462,16 @@ router.post('/movements', async (req: AuthRequest, res: Response) => {
 
     // Registrar el movimiento y actualizar el producto
     const result = await prisma.$transaction(async (tx) => {
+      let movementBranchId = req.user?.branchId;
+      if (!movementBranchId) {
+        const defaultBranch = await tx.branch.findFirst({ where: { clinicId } });
+        movementBranchId = defaultBranch?.id || '';
+      }
+
       const movement = await tx.inventoryMovement.create({
         data: {
           clinicId,
-          branchId: req.user?.branchId || '',
+          branchId: movementBranchId,
           productId,
           type: movType,
           quantity: parseFloat(quantity),
