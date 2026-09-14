@@ -107,7 +107,58 @@ export class AuthService {
   changeActiveBranch(branchId: string): void {
     localStorage.setItem('vetpro_active_branch_id', branchId);
     this.activeBranchId.set(branchId);
-    // Disparar recargas en componentes o avisos según sea necesario
     console.log(`🏢 Sucursal activa cambiada a: ${branchId}`);
+  }
+
+  // Gestión de usuarios y equipo (Admin)
+  getUsers(): Observable<any[]> {
+    return this.api.get<any[]>('/auth/users');
+  }
+
+  createUser(data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+    role: string;
+    branchId?: string | null;
+  }): Observable<any> {
+    return this.api.post<any>('/auth/users', data);
+  }
+
+  updateUser(id: string, data: {
+    firstName?: string;
+    lastName?: string;
+    role?: string;
+    branchId?: string | null;
+    active?: boolean;
+  }): Observable<any> {
+    return this.api.patch<any>(`/auth/users/${id}`, data);
+  }
+
+  resetUserPassword(id: string, newPassword: string): Observable<any> {
+    return this.api.patch<any>(`/auth/users/${id}/reset-password`, { newPassword });
+  }
+
+  // Consulta y actualización de configuración de empresa (Clínica vs Vet Independiente)
+  getClinic(): Observable<Clinic> {
+    return this.api.get<Clinic>('/auth/clinic');
+  }
+
+  updateClinic(data: {
+    name?: string;
+    businessType?: 'clinic' | 'independent_vet';
+    nit?: string;
+    phone?: string;
+    address?: string;
+    city?: string;
+  }): Observable<{ message: string; clinic: Clinic }> {
+    return this.api.patch<{ message: string; clinic: Clinic }>('/auth/clinic', data).pipe(
+      tap(res => {
+        if (res.clinic) {
+          this.state.update(s => ({ ...s, clinic: res.clinic }));
+        }
+      })
+    );
   }
 }

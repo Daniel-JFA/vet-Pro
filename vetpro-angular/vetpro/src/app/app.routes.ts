@@ -75,6 +75,31 @@ export const routes: Routes = [
         path: 'walkers',
         canActivate: [roleGuard(['admin', 'vet', 'walker'])],
         loadChildren: () => import('./features/walkers/walkers.routes').then(m => m.WALKERS_ROUTES)
+      },
+      {
+        path: 'hospitalization',
+        canActivate: [roleGuard(['admin', 'vet', 'assistant'])],
+        loadComponent: () => import('./features/medical-records/hospitalization-kardex/hospitalization-kardex.component').then(m => m.HospitalizationKardexComponent)
+      },
+      {
+        path: 'labs',
+        canActivate: [roleGuard(['admin', 'vet', 'assistant'])],
+        loadComponent: () => import('./features/labs/lab-orders/lab-orders.component').then(m => m.LabOrdersComponent)
+      },
+      {
+        path: 'grooming',
+        canActivate: [roleGuard(['admin', 'vet', 'assistant', 'receptionist'])],
+        loadComponent: () => import('./features/grooming/grooming-kanban/grooming-kanban.component').then(m => m.GroomingKanbanComponent)
+      },
+      {
+        path: 'crm',
+        canActivate: [roleGuard(['admin', 'receptionist'])],
+        loadComponent: () => import('./features/notifications/crm-reactivation/crm-reactivation.component').then(m => m.CrmReactivationComponent)
+      },
+      {
+        path: 'users',
+        canActivate: [roleGuard(['admin'])],
+        loadComponent: () => import('./features/users/user-list/user-list.component').then(m => m.UserListComponent)
       }
     ]
   },

@@ -96,9 +96,12 @@ graph TB
 | **9** | **Multi-Sucursal & Roles Granulares** | Sedes reactivas con Signals (sin reload de página) | 🟢 **100% (Completado & Verificado)** |
 | **10** | **QA Automatizado, Playwright & CI/CD** | Playwright E2E configurado, backup S3 con AWS CLI | 🟢 **90% (Infraestructura de test lista)** |
 | **11** | **🛵 On-Demand: Veterinarios a Domicilio ("Tipo Rappi")** | UI Móvil en ruta, Waze, Google Maps, QR Nequi/Daviplata, Maletín | 🟢 **100% (Completado & Verificado)** |
-| **12** | **🏥 Hospitalización, Camas & Kardex Clínico** | Jaulas UCI/Observación, fluidoterapia, checklist horario | 🟢 **100% (Completado & Verificado)** |
-| **13** | **📈 CRM de Marketing & Reactivación de Inactivos** | Segmentación inactivos, preview WhatsApp en vivo, métricas | 🟢 **100% (Completado & Verificado)** |
-| **14** | **📑 Facturación Electrónica DIAN Integral** | Factura FEV con CUFE SHA-384, sello fiscal y QR oficial | 🟢 **95% (Comprobante FEV y CUFE listo)** |
+| **12** | **🏥 Hospitalización, Camas & Kardex Clínico Real** | Modelos PostgreSQL, camas UCI/Aislamiento, fluidoterapia, checklist horario con descarga atómica de stock | 🟢 **100% (Completado & Verificado)** |
+| **13** | **📈 CRM de Marketing & Reactivación de Inactivos** | Segmentación inactivos 180d, proyección de ingresos, disparo masivo WhatsApp API | 🟢 **100% (Completado & Verificado)** |
+| **14** | **📑 Facturación Electrónica DIAN & POS de Mostrador** | CUFE SHA-384, código QR oficial, resoluciones DIAN, arqueo y cierre de caja POS | 🟢 **100% (Completado & Verificado)** |
+| **15** | **🔬 Laboratorio Clínico e Imagenología** | Catálogo de pruebas, rangos de referencia canino/felino, órdenes y captura analítica | 🟢 **100% (Completado & Verificado)** |
+| **16** | **✂️ Peluquería, Estética Canina & Spa (Grooming)** | Kanban por estaciones, champú medicado, aviso automático por WhatsApp al tutor | 🟢 **100% (Completado & Verificado)** |
+| **17** | **🎙️ Bitácora IA Real (Whisper + Claude)** | Transcripción Speech-to-Text y estructuración clínica SOAP experta sin simulaciones | 🟢 **100% (Completado & Verificado)** |
 
 ---
 

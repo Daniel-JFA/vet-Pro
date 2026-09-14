@@ -75,8 +75,13 @@ interface NavItem {
           </div>
           
           <div class="topbar-actions">
-            <!-- Selector de Sucursales / Sedes Dinámico -->
-            <div class="topbar-branch" *ngIf="auth.clinicBranches().length > 0">
+            <!-- Selector de Sucursales / Sedes Dinámico (Estilo OkVet) -->
+            <div class="topbar-branch independent" *ngIf="auth.currentClinic?.businessType === 'independent_vet'">
+              <span class="material-symbols-outlined branch-icon">two_wheeler</span>
+              <span class="branch-name">Atención Domiciliaria / Móvil</span>
+            </div>
+
+            <div class="topbar-branch" *ngIf="auth.currentClinic?.businessType !== 'independent_vet' && auth.clinicBranches().length > 0">
               <span class="material-symbols-outlined branch-icon">location_on</span>
               <!-- Dropdown editable para Administradores -->
               <select 
@@ -85,6 +90,7 @@ interface NavItem {
                 (ngModelChange)="onBranchChange($event)"
                 class="branch-select"
               >
+                <option [value]="'all'">🏢 Todas las sedes (Multicentro)</option>
                 <option *ngFor="let b of auth.clinicBranches()" [value]="b.id">{{ b.name }}</option>
               </select>
               <!-- Nombre fijo para Staff sin permisos admin -->
@@ -135,11 +141,19 @@ export class ShellComponent {
       { label: 'Domicilios On-Demand', icon: 'two_wheeler',    path: '/appointments/on-demand' }
     ];
 
-    // Solo roles clínicos ven historia clínica y hospitalización
+    // Solo roles clínicos ven historia clínica, hospitalización y laboratorio
     if (role === 'admin' || role === 'vet' || role === 'assistant') {
       baseNav.push(
         { label: 'Historia clínica',   icon: 'description',    path: '/medical-records' },
-        { label: 'Hospitalización',    icon: 'local_hospital', path: '/medical-records/hospitalization' }
+        { label: 'Hospitalización',    icon: 'local_hospital', path: '/hospitalization' },
+        { label: 'Laboratorio',        icon: 'biotech',        path: '/labs' }
+      );
+    }
+
+    // Peluquería y Spa
+    if (role === 'admin' || role === 'vet' || role === 'assistant' || role === 'receptionist' || role === 'groomer') {
+      baseNav.push(
+        { label: 'Peluquería & Spa',   icon: 'content_cut',    path: '/grooming' }
       );
     }
 
@@ -160,21 +174,24 @@ export class ShellComponent {
 
     if (role === 'admin') {
       items.push(
+        { label: 'Equipo & Usuarios', icon: 'manage_accounts', path: '/users' },
         { label: 'Inventario',      icon: 'inventory_2',     path: '/inventory' },
-        { label: 'Facturación',     icon: 'receipt_long',    path: '/billing' },
+        { label: 'Facturación & POS', icon: 'receipt_long',   path: '/billing' },
         { label: 'Consentimientos', icon: 'draw',            path: '/consent' },
+        { label: 'CRM Reactivación', icon: 'contact_phone',   path: '/crm' },
         { label: 'Notificaciones',  icon: 'campaign',        path: '/notifications' },
         { label: 'Reportes',        icon: 'bar_chart',       path: '/reports' }
       );
     } else if (role === 'vet') {
       items.push(
         { label: 'Inventario',      icon: 'inventory_2',     path: '/inventory' },
-        { label: 'Facturación',     icon: 'receipt_long',    path: '/billing' },
+        { label: 'Facturación & POS', icon: 'receipt_long',   path: '/billing' },
         { label: 'Consentimientos', icon: 'draw',            path: '/consent' }
       );
     } else if (role === 'receptionist') {
       items.push(
-        { label: 'Facturación',     icon: 'receipt_long',    path: '/billing' },
+        { label: 'Facturación & POS', icon: 'receipt_long',   path: '/billing' },
+        { label: 'CRM Reactivación', icon: 'contact_phone',   path: '/crm' },
         { label: 'Notificaciones',  icon: 'campaign',        path: '/notifications' }
       );
     } else if (role === 'walker') {
@@ -201,6 +218,7 @@ export class ShellComponent {
   // Obtener nombre de sucursal activa
   getActiveBranchName(): string {
     const activeId = this.auth.activeBranchId();
+    if (activeId === 'all') return 'Todas las sedes (Multicentro)';
     const branch = this.auth.clinicBranches().find(b => b.id === activeId);
     return branch ? branch.name : 'Sede única';
   }

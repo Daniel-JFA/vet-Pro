@@ -4,6 +4,7 @@ import { prisma } from '../config/database.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
 import { roleMiddleware } from '../middleware/role.js';
 import { RecordType, AttachmentType, AppointmentStatus } from '@prisma/client';
+import { AiService } from '../services/ai.service.js';
 
 const router = Router();
 
@@ -123,14 +124,18 @@ router.post('/transcribe', async (req: AuthRequest, res: Response) => {
       }
     });
 
-    const speechText = text || 'Paciente asiste por control general y vacunación preventiva.';
+    const speechText = text || 'Paciente canino acude a control general y vacunación.';
+
+    // Procesamiento real con AiService (Whisper / Claude / Engine clínico)
+    const structuredSoap = await AiService.structureSoap(speechText);
 
     const responseData = {
-      title: 'Consulta General por Dictado de Voz',
-      anamnesis: `Motivo de consulta y síntomas relatados: ${speechText}`,
-      physicalExam: 'Constantes fisiológicas estables. Mucosas rosadas, hidratación adecuada. Palpación abdominal indolora. Auscultación cardiopulmonar sin ruidos anormales.',
-      diagnosis: 'Paciente clínicamente sano / Chequeo de rutina.',
-      treatment: '1. Mantener esquema de vacunación y desparasitación al día.\n2. Dieta balanceada acorde a edad y peso.\n3. Próximo control preventivo en 6 meses.',
+      title: structuredSoap.title,
+      anamnesis: structuredSoap.anamnesis,
+      physicalExam: structuredSoap.physicalExam,
+      diagnosis: structuredSoap.diagnosis,
+      treatment: structuredSoap.treatment,
+      observations: structuredSoap.observations,
       aiGenerated: true,
       aiTranscriptionMinutes: minutesUsed
     };
@@ -138,7 +143,7 @@ router.post('/transcribe', async (req: AuthRequest, res: Response) => {
     return res.json(responseData);
   } catch (error: any) {
     console.error('[MedicalRecordRoutes] Error al procesar transcripción:', error);
-    return res.status(500).json({ error: 'Error al procesar la bitácora de voz.' });
+    return res.status(500).json({ error: 'Error al procesar la bitácora de voz con IA.' });
   }
 });
 

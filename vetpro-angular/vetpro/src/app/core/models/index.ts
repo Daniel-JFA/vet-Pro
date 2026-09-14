@@ -5,6 +5,7 @@
 export interface Clinic {
   id: string;
   name: string;
+  businessType?: 'clinic' | 'independent_vet';
   logoUrl?: string;
   nit?: string;
   phone: string;
@@ -24,7 +25,7 @@ export interface User {
   firstName: string;
   lastName: string;
   email: string;
-  role: 'admin' | 'vet' | 'assistant' | 'receptionist' | 'walker';
+  role: 'admin' | 'vet' | 'assistant' | 'receptionist' | 'walker' | 'groomer';
   avatarUrl?: string;
   active: boolean;
 }

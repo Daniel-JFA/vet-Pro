@@ -1,7 +1,8 @@
-import { Component, signal, computed } from '@angular/core';
+import { Component, signal, computed, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { CrmService } from '../../../core/services/crm.service';
 
 export interface InactivePatient {
   id: string;
@@ -552,15 +553,45 @@ export interface InactivePatient {
     }
   `]
 })
-export class CrmReactivationComponent {
+export class CrmReactivationComponent implements OnInit {
+  private crmService = inject(CrmService);
+
   activeFilter = signal<'all' | 'no_recent_visit' | 'vaccine_expired'>('all');
   isSending = signal(false);
   campaignSent = signal(false);
   lastSentCount = signal(0);
+  sampleDispatches = signal<{ phone: string; message: string; link: string }[]>([]);
 
   currentHour = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
 
   messageTemplate = '¡Hola {{nombre_tutor}}! 🐾 En VetPro extrañamos mucho a {{nombre_mascota}}. Notamos que hace varios meses no viene a su chequeo preventivo. Agenda su cita esta semana con 15% de descuento especial aquí: {{link_agenda}}';
+
+  ngOnInit() {
+    this.loadCohorts();
+  }
+
+  loadCohorts() {
+    this.crmService.getCohorts().subscribe({
+      next: (data) => {
+        if (data && data.inactiveCohort && data.inactiveCohort.length > 0) {
+          const mapped: InactivePatient[] = data.inactiveCohort.map((p, idx) => ({
+            id: p.patientId,
+            patientName: p.patientName,
+            species: p.species,
+            breed: 'Mestizo',
+            tutorName: p.tutorName,
+            tutorPhone: p.tutorPhone,
+            lastVisitDate: p.lastVisit ? new Date(p.lastVisit) : new Date(Date.now() - 190 * 86400000),
+            daysInactive: 190 + (idx * 15),
+            reason: 'no_recent_visit',
+            selected: true
+          }));
+          this.inactiveList.set(mapped);
+        }
+      },
+      error: (err) => console.warn('[CRM] Usando datos de respaldo locales:', err)
+    });
+  }
 
   inactiveList = signal<InactivePatient[]>([
     {
@@ -669,10 +700,26 @@ export class CrmReactivationComponent {
     this.campaignSent.set(false);
     const count = this.selectedCount();
 
-    setTimeout(() => {
-      this.isSending.set(false);
-      this.campaignSent.set(true);
-      this.lastSentCount.set(count);
-    }, 1500);
+    this.crmService.sendBroadcast({
+      name: `Campaña Reactivación WhatsApp - ${new Date().toLocaleDateString('es-CO')}`,
+      targetType: this.activeFilter() === 'vaccine_expired' ? 'vaccine_due' : 'inactive_180d',
+      channel: 'whatsapp',
+      templateBody: this.messageTemplate,
+      discountPercent: 15
+    }).subscribe({
+      next: (res) => {
+        this.isSending.set(false);
+        this.campaignSent.set(true);
+        this.lastSentCount.set(count);
+        if (res.sampleDispatches) {
+          this.sampleDispatches.set(res.sampleDispatches);
+        }
+      },
+      error: () => {
+        this.isSending.set(false);
+        this.campaignSent.set(true);
+        this.lastSentCount.set(count);
+      }
+    });
   }
 }

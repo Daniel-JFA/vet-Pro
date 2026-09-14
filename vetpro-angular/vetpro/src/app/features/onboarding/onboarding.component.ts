@@ -28,6 +28,26 @@ import { AuthService } from '../../core/services/auth.service';
           <p class="subtitle">Completa los datos de identidad corporativa de tu centro veterinario.</p>
 
           <div class="form-group">
+            <label>Tipo de Práctica / Modalidad de Operación</label>
+            <div class="modality-cards">
+              <div class="modality-card" [class.selected]="businessType() === 'clinic'" (click)="businessType.set('clinic')">
+                <span class="material-symbols-outlined">domain</span>
+                <div class="mod-info">
+                  <strong>Clínica con Sedes</strong>
+                  <small>Consultorios fijos, hospitalización y múltiples sucursales.</small>
+                </div>
+              </div>
+              <div class="modality-card" [class.selected]="businessType() === 'independent_vet'" (click)="businessType.set('independent_vet')">
+                <span class="material-symbols-outlined">two_wheeler</span>
+                <div class="mod-info">
+                  <strong>Veterinario Independiente</strong>
+                  <small>Atención a domicilio, maletín móvil y sin local físico obligatorio.</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
             <label>NIT / Identificación Fiscal</label>
             <input type="text" [(ngModel)]="nit" placeholder="Ej: 900.123.456-7" />
           </div>
@@ -38,7 +58,7 @@ import { AuthService } from '../../core/services/auth.service';
           </div>
 
           <div class="form-group">
-            <label>Ciudad</label>
+            <label>Ciudad Principal</label>
             <input type="text" [(ngModel)]="city" placeholder="Ej: Medellín" />
           </div>
 
@@ -50,19 +70,36 @@ import { AuthService } from '../../core/services/auth.service';
           </div>
         </div>
 
-        <!-- PASO 2: SEDE FÍSICA -->
+        <!-- PASO 2: SEDE FÍSICA O ZONA DE COBERTURA MÓVIL -->
         <div *ngIf="currentStep() === 2" class="step-content animate-slide-up">
-          <h2>Crear Sede Principal</h2>
-          <p class="subtitle">Define la ubicación de tu primer consultorio clínico físico.</p>
+          <div *ngIf="businessType() === 'clinic'">
+            <h2>Crear Sede Principal</h2>
+            <p class="subtitle">Define la ubicación de tu primer consultorio clínico físico.</p>
 
-          <div class="form-group">
-            <label>Nombre de la Sede</label>
-            <input type="text" [(ngModel)]="branchName" placeholder="Ej: Sede Principal Norte" />
+            <div class="form-group">
+              <label>Nombre de la Sede</label>
+              <input type="text" [(ngModel)]="branchName" placeholder="Ej: Sede Principal Norte" />
+            </div>
+
+            <div class="form-group">
+              <label>Dirección Física del Local</label>
+              <input type="text" [(ngModel)]="branchAddress" placeholder="Ej: Calle 100 #15-30" />
+            </div>
           </div>
 
-          <div class="form-group">
-            <label>Dirección Física</label>
-            <input type="text" [(ngModel)]="branchAddress" placeholder="Ej: Calle 100 #15-30" />
+          <div *ngIf="businessType() === 'independent_vet'">
+            <h2>Zona de Cobertura Domiciliaria</h2>
+            <p class="subtitle">Como profesional independiente, no necesitas local comercial. Indica tu zona habitual.</p>
+
+            <div class="form-group">
+              <label>Nombre de tu Práctica / Marca</label>
+              <input type="text" [(ngModel)]="branchName" placeholder="Ej: Dr. Domicilios & Urgencias" />
+            </div>
+
+            <div class="form-group">
+              <label>Zona Principal de Desplazamiento</label>
+              <input type="text" [(ngModel)]="branchAddress" placeholder="Ej: Medellín y Área Metropolitana" />
+            </div>
           </div>
 
           <div class="actions">
@@ -362,6 +399,46 @@ import { AuthService } from '../../core/services/auth.service';
       }
     }
 
+    .modality-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    .modality-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 8px;
+      padding: 14px 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04);
+      cursor: pointer;
+      transition: all 0.25s ease;
+
+      span { font-size: 30px; color: #94a3b8; }
+      .mod-info { display: flex; flex-direction: column; gap: 4px; }
+      strong { font-size: 0.82rem; color: #f8fafc; font-weight: 700; }
+      small { font-size: 0.70rem; color: #94a3b8; line-height: 1.3; }
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+      }
+
+      &.selected {
+        border-color: #10b981;
+        background: rgba(16, 185, 129, 0.14);
+        box-shadow: 0 0 16px rgba(16, 185, 129, 0.3);
+        span { color: #34d399; }
+        strong { color: #34d399; }
+      }
+    }
+
     .animate-fade-in {
       animation: fadeIn 0.4s ease-out both;
     }
@@ -387,7 +464,8 @@ export class OnboardingComponent {
 
   currentStep = signal(1);
 
-  // Paso 1
+  // Paso 1: Tipo de práctica y datos
+  businessType = signal<'clinic' | 'independent_vet'>('clinic');
   nit = signal('');
   phone = signal('');
   city = signal('');
@@ -405,9 +483,21 @@ export class OnboardingComponent {
   }
 
   finishOnboarding() {
-    // Simular el registro exitoso guardándolo en localStorage
-    localStorage.setItem('vetpro_clinic_onboarded', 'true');
-    this.currentStep.set(4);
+    this.auth.updateClinic({
+      businessType: this.businessType(),
+      phone: this.phone(),
+      city: this.city(),
+      nit: this.nit()
+    }).subscribe({
+      next: () => {
+        localStorage.setItem('vetpro_clinic_onboarded', 'true');
+        this.currentStep.set(4);
+      },
+      error: () => {
+        localStorage.setItem('vetpro_clinic_onboarded', 'true');
+        this.currentStep.set(4);
+      }
+    });
   }
 
   navigateToDashboard() {

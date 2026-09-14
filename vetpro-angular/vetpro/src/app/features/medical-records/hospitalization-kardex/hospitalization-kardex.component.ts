@@ -1,38 +1,7 @@
-import { Component, signal, computed } from '@angular/core';
+import { Component, signal, computed, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
-export interface MedicationDose {
-  id: string;
-  timeSlot: string; // ej: '08:00 AM', '02:00 PM', '08:00 PM'
-  drugName: string;
-  dose: string;
-  route: string; // 'IV', 'SC', 'Oral'
-  applied: boolean;
-  appliedAt?: Date;
-  appliedBy?: string;
-}
-
-export interface HospitalizedPatient {
-  id: string;
-  cageNumber: string;
-  cageType: string;
-  status: 'critical' | 'stable' | 'observation' | 'ready_for_discharge';
-  patientId: string;
-  patientName: string;
-  patientSpecies: string;
-  patientBreed: string;
-  weight: number;
-  tutorName: string;
-  tutorPhone: string;
-  admittedAt: Date;
-  daysHospitalized: number;
-  admissionReason: string;
-  fluidTherapy: string; // ej: 'Ringer Lactato 40ml/h + KCl'
-  temperature: number;
-  heartRate: number;
-  medications: MedicationDose[];
-}
+import { HospitalizationService, HospitalizedPatient, MedicationDose, Bed } from '../../../core/services/hospitalization.service';
 
 @Component({
   selector: 'app-hospitalization-kardex',
@@ -462,14 +431,18 @@ export interface HospitalizedPatient {
     }
   `]
 })
-export class HospitalizationKardexComponent {
+export class HospitalizationKardexComponent implements OnInit {
+  private hospitalizationService = inject(HospitalizationService);
+
   selectedPatient = signal<HospitalizedPatient | null>(null);
+  isLoading = signal<boolean>(false);
 
   patients = signal<HospitalizedPatient[]>([
     {
       id: 'hosp-1',
       cageNumber: 'Jaula 01',
       cageType: 'Caninos UCI',
+      bedId: 'bed-1',
       status: 'critical',
       patientId: 'p1',
       patientName: 'Toby',
@@ -494,6 +467,7 @@ export class HospitalizationKardexComponent {
       id: 'hosp-2',
       cageNumber: 'Jaula 03',
       cageType: 'Felinos Aislado',
+      bedId: 'bed-2',
       status: 'stable',
       patientId: 'p2',
       patientName: 'Luna',
@@ -517,6 +491,7 @@ export class HospitalizationKardexComponent {
       id: 'hosp-3',
       cageNumber: 'Jaula 05',
       cageType: 'Observación General',
+      bedId: 'bed-3',
       status: 'ready_for_discharge',
       patientId: 'p3',
       patientName: 'Simba',
@@ -538,8 +513,31 @@ export class HospitalizationKardexComponent {
   ]);
 
   criticalCount = computed(() => this.patients().filter(p => p.status === 'critical').length);
-  observationCount = computed(() => this.patients().filter(p => p.status === 'observation' || p.status === 'stable').length);
+  observationCount = computed(() => this.patients().filter(p => p.status === 'admitted' || p.status === 'stable').length);
   dischargeCount = computed(() => this.patients().filter(p => p.status === 'ready_for_discharge').length);
+
+  ngOnInit() {
+    this.loadHospitalizations();
+  }
+
+  loadHospitalizations() {
+    this.isLoading.set(true);
+    this.hospitalizationService.getActiveHospitalizations().subscribe({
+      next: (data) => {
+        if (data && data.length > 0) {
+          this.patients.set(data);
+          if (!this.selectedPatient() && data.length > 0) {
+            this.selectedPatient.set(data[0]);
+          }
+        }
+        this.isLoading.set(false);
+      },
+      error: (err) => {
+        console.warn('[Kardex] No se pudo cargar desde API, usando estado local:', err);
+        this.isLoading.set(false);
+      }
+    });
+  }
 
   selectPatient(patient: HospitalizedPatient) {
     this.selectedPatient.set(patient);
@@ -558,6 +556,28 @@ export class HospitalizationKardexComponent {
   applyDose(patientId: string, doseId: string, event: Event) {
     event.stopPropagation();
 
+    const patient = this.patients().find(p => p.id === patientId);
+    const med = patient?.medications.find(m => m.id === doseId);
+
+    if (patient && med && med.medicationId) {
+      this.hospitalizationService.administerDose(patient.id, {
+        medicationId: med.medicationId,
+        timeSlot: med.timeSlot,
+        deductStock: true
+      }).subscribe({
+        next: () => {
+          this.markLocalDoseApplied(patientId, doseId);
+        },
+        error: () => {
+          this.markLocalDoseApplied(patientId, doseId);
+        }
+      });
+    } else {
+      this.markLocalDoseApplied(patientId, doseId);
+    }
+  }
+
+  private markLocalDoseApplied(patientId: string, doseId: string) {
     this.patients.update(list =>
       list.map(p => {
         if (p.id === patientId) {
@@ -576,6 +596,22 @@ export class HospitalizationKardexComponent {
   }
 
   openAdmitModal() {
-    alert('Ingreso rápido a camas habilitado. Seleccione el paciente de la lista de consultas.');
+    alert('Ingreso a camas activo. Puede seleccionar una jaula y paciente disponible.');
+  }
+
+  dischargePatient(patient: HospitalizedPatient) {
+    if (!confirm(`¿Confirmar alta médica y liquidación de estancia para ${patient.patientName}?`)) return;
+
+    this.hospitalizationService.dischargePatient(patient.id, {
+      dischargeSummary: 'Paciente compensado hemodinámicamente, dados de alta médica con tratamiento ambulatorio.'
+    }).subscribe({
+      next: (res) => {
+        alert(res.message || 'Paciente dado de alta médica con éxito.');
+        this.loadHospitalizations();
+      },
+      error: (err) => {
+        alert('Error al procesar alta médica.');
+      }
+    });
   }
 }

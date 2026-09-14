@@ -27,9 +27,15 @@ enum PlanType {
   enterprise
 }
 
+enum BusinessType {
+  clinic
+  independent_vet
+}
+
 model Clinic {
-  id             String   @id @default(uuid())
+  id             String       @id @default(uuid())
   name           String
+  businessType   BusinessType @default(clinic)
   logoUrl        String?
   nit            String? // NIT en Colombia (Número de Identificación Tributaria)
   phone          String
@@ -60,6 +66,14 @@ model Clinic {
   mobileInventories     MobileInventory[]
   walkers               Walker[]
   walkBookings          WalkBooking[]
+  hospitalizations      Hospitalization[]
+  hospitalBeds          HospitalBed[]
+  dianResolutions       DianResolution[]
+  cashRegisterShifts    CashRegisterShift[]
+  labOrders             LabOrder[]
+  labTestCatalogs       LabTestCatalog[]
+  groomingServices      GroomingService[]
+  crmCampaigns          CrmCampaign[]
 
   @@map("clinics")
 }
@@ -80,6 +94,10 @@ model Branch {
   users              User[]
   appointments       Appointment[]
   inventoryMovements InventoryMovement[]
+  hospitalBeds       HospitalBed[]
+  hospitalizations   Hospitalization[]
+  cashRegisterShifts CashRegisterShift[]
+  groomingServices   GroomingService[]
 
   @@index([clinicId])
   @@map("branches")
@@ -95,6 +113,7 @@ enum UserRole {
   assistant
   receptionist
   walker
+  groomer
 }
 
 model User {
@@ -114,12 +133,16 @@ model User {
   updatedAt    DateTime @updatedAt
 
   // Relaciones
-  appointments      Appointment[]     @relation("VetAppointments")
-  medicalRecords    MedicalRecord[]
-  vaccinesApplied   Vaccine[]
-  prescriptions     Prescription[]
-  mobileInventories MobileInventory[]
-  walkerProfile     Walker?
+  appointments       Appointment[]        @relation("VetAppointments")
+  medicalRecords     MedicalRecord[]
+  vaccinesApplied    Vaccine[]
+  prescriptions      Prescription[]
+  mobileInventories  MobileInventory[]
+  walkerProfile      Walker?
+  hospitalEvolutions HospitalEvolution[]
+  labOrders          LabOrder[]
+  groomingServices   GroomingService[]
+  cashRegisterShifts CashRegisterShift[]
 
   @@index([clinicId])
   @@index([branchId])
@@ -201,11 +224,14 @@ model Patient {
   updatedAt  DateTime       @updatedAt
 
   // Relaciones
-  appointments   Appointment[]
-  medicalRecords MedicalRecord[]
-  vaccines       Vaccine[]
-  prescriptions  Prescription[]
-  consentForms   ConsentForm[]
+  appointments     Appointment[]
+  medicalRecords   MedicalRecord[]
+  vaccines         Vaccine[]
+  prescriptions    Prescription[]
+  consentForms     ConsentForm[]
+  hospitalizations Hospitalization[]
+  labOrders        LabOrder[]
+  groomingServices GroomingService[]
 
   @@index([clinicId])
   @@index([tutorId])
@@ -591,8 +617,15 @@ model Invoice {
   dueAt         DateTime?
   paidAt        DateTime?
   notes         String?
-  electronicId  String? // Reservado para CUFE de la DIAN en la fase final del proyecto
-  deletedAt     DateTime?
+  electronicId     String? // Reservado para CUFE de la DIAN en la fase final del proyecto
+  cufe             String? // Código Único de Factura Electrónica (SHA-384)
+  qrCodeUrl        String? // URL o datos para código QR fiscal
+  xmlUblUrl        String? // Enlace a XML firmado UBL 2.1
+  dianStatus       String        @default("not_applicable") // not_applicable, pending, validated, rejected
+  dianErrors       String?
+  dianResolutionId String?
+  dianResolution   DianResolution? @relation(fields: [dianResolutionId], references: [id], onDelete: SetNull)
+  deletedAt        DateTime?
 
   // Relaciones
   items InvoiceItem[]
@@ -600,6 +633,7 @@ model Invoice {
   @@unique([clinicId, invoiceNumber])
   @@index([clinicId])
   @@index([tutorId])
+  @@index([dianResolutionId])
   @@map("invoices")
 }
 
@@ -800,4 +834,375 @@ model WalkBooking {
   @@index([tutorId])
   @@index([scheduledAt])
   @@map("walk_bookings")
+}
+
+// ─────────────────────────────────────────────
+// 🏥 HOSPITALIZACIÓN & KARDEX DE ENFERMERÍA
+// ─────────────────────────────────────────────
+
+enum BedType {
+  dog_standard
+  dog_uci
+  cat_ward
+  isolation
+}
+
+enum BedStatus {
+  available
+  occupied
+  maintenance
+  cleaning
+}
+
+model HospitalBed {
+  id               String            @id @default(uuid())
+  clinicId         String
+  clinic           Clinic            @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  branchId         String
+  branch           Branch            @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  code             String            // Ej: "UCI-01", "CAN-03", "FEL-02"
+  name             String            // Ej: "Jaula UCI Caninos Grande"
+  type             BedType           @default(dog_standard)
+  status           BedStatus         @default(available)
+  dailyRate        Float             @default(50000)
+  notes            String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  hospitalizations Hospitalization[]
+
+  @@unique([clinicId, branchId, code])
+  @@index([clinicId])
+  @@index([branchId])
+  @@map("hospital_beds")
+}
+
+enum HospitalizationStatus {
+  admitted
+  critical
+  stable
+  ready_for_discharge
+  discharged
+}
+
+model Hospitalization {
+  id                   String                 @id @default(uuid())
+  clinicId             String
+  clinic               Clinic                 @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  branchId             String
+  branch               Branch                 @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  patientId            String
+  patient              Patient                @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  bedId                String
+  bed                  HospitalBed            @relation(fields: [bedId], references: [id], onDelete: Restrict)
+  admittedAt           DateTime               @default(now())
+  dischargedAt         DateTime?
+  status               HospitalizationStatus  @default(admitted)
+  admissionReason      String                 @db.Text
+  diagnosis            String?                @db.Text
+  fluidTherapy         String?                // Ej: "Ringer Lactato 40ml/h + KCl"
+  dischargeSummary     String?                @db.Text
+  dailyRateCharged     Float                  @default(50000)
+  totalCharged         Float                  @default(0)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+
+  evolutions           HospitalEvolution[]
+  medications          HospitalMedication[]
+  doseRecords          HospitalDoseRecord[]
+
+  @@index([clinicId])
+  @@index([patientId])
+  @@index([bedId])
+  @@map("hospitalizations")
+}
+
+model HospitalEvolution {
+  id                   String          @id @default(uuid())
+  hospitalizationId    String
+  hospitalization      Hospitalization @relation(fields: [hospitalizationId], references: [id], onDelete: Cascade)
+  vetId                String
+  vet                  User            @relation(fields: [vetId], references: [id], onDelete: Restrict)
+  temperature          Float?          // Grados Celsius
+  heartRate            Int?            // Latidos por minuto (FC)
+  respiratoryRate      Int?            // Respiraciones por minuto (FR)
+  capillaryRefillTime  Float?          // Segundos (TLLC)
+  bloodGlucose         Float?          // mg/dL
+  fluidTherapyRate     String?
+  notes                String          @db.Text
+  createdAt            DateTime        @default(now())
+
+  @@index([hospitalizationId])
+  @@index([vetId])
+  @@map("hospital_evolutions")
+}
+
+model HospitalMedication {
+  id                String               @id @default(uuid())
+  hospitalizationId String
+  hospitalization   Hospitalization      @relation(fields: [hospitalizationId], references: [id], onDelete: Cascade)
+  productId         String?              // Vinculado a producto en inventario si aplica
+  drugName          String
+  dose              String               // Ej: "1.5 ml" o "250 mg"
+  route             String               // "IV", "SC", "IM", "Oral", "Tópica"
+  frequencyHours    Int                  @default(8) // Cada 8, 12, 24 horas
+  timeSlots         String[]             @default([]) // ["08:00 AM", "02:00 PM", "08:00 PM"]
+  active            Boolean              @default(true)
+  instructions      String?
+  createdAt         DateTime             @default(now())
+
+  doses             HospitalDoseRecord[]
+
+  @@index([hospitalizationId])
+  @@map("hospital_medications")
+}
+
+model HospitalDoseRecord {
+  id                   String             @id @default(uuid())
+  hospitalizationId    String
+  hospitalization      Hospitalization    @relation(fields: [hospitalizationId], references: [id], onDelete: Cascade)
+  medicationId         String
+  medication           HospitalMedication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+  timeSlot             String             // Ej: "08:00 AM"
+  scheduledFor         DateTime           @default(now())
+  administeredAt       DateTime?
+  administeredBy       String?            // Nombre o ID del auxiliar/vet
+  applied              Boolean            @default(false)
+  notes                String?
+  inventoryMovementId  String?            // ID de salida atómica si descontó stock
+
+  @@index([hospitalizationId])
+  @@index([medicationId])
+  @@map("hospital_dose_records")
+}
+
+// ─────────────────────────────────────────────
+// 📑 FACTURACIÓN ELECTRÓNICA DIAN & POS
+// ─────────────────────────────────────────────
+
+model DianResolution {
+  id               String    @id @default(uuid())
+  clinicId         String
+  clinic           Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  prefix           String    @default("SETP") // Prefijo autorizado ej: FEV, SETP
+  resolutionNumber String    // Número de resolución DIAN
+  fromNumber       Int       // Consecutivo inicial
+  toNumber         Int       // Consecutivo final
+  currentNumber    Int       // Último emitido
+  startDate        DateTime
+  endDate          DateTime
+  technicalKey     String    // Clave técnica DIAN para hash SHA-384
+  environment      String    @default("test") // "test" o "production"
+  active           Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  invoices         Invoice[]
+
+  @@index([clinicId])
+  @@map("dian_resolutions")
+}
+
+model CashRegisterShift {
+  id               String    @id @default(uuid())
+  clinicId         String
+  clinic           Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  branchId         String
+  branch           Branch    @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  openedAt         DateTime  @default(now())
+  closedAt         DateTime?
+  openingBalance   Float     @default(0) // Base de caja en efectivo
+  cashSales        Float     @default(0)
+  electronicSales  Float     @default(0)
+  expectedBalance  Float     @default(0)
+  actualBalance    Float?
+  difference       Float?
+  status           String    @default("open") // "open" o "closed"
+  notes            String?
+
+  @@index([clinicId])
+  @@index([branchId])
+  @@index([userId])
+  @@map("cash_register_shifts")
+}
+
+// ─────────────────────────────────────────────
+// 🔬 LABORATORIO CLÍNICO E IMAGENOLOGÍA
+// ─────────────────────────────────────────────
+
+enum LabCategory {
+  hematology
+  biochemistry
+  urinalysis
+  parasitology
+  imaging
+  cytology
+  other
+}
+
+model LabTestCatalog {
+  id             String        @id @default(uuid())
+  clinicId       String
+  clinic         Clinic        @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  code           String        // Ej: "HEM-001", "BIO-CREA"
+  name           String        // Ej: "Hemograma Automatizado", "Creatinina Sérica"
+  category       LabCategory   @default(hematology)
+  unit           String?       // Ej: "mg/dL", "x10^3/uL", "%"
+  canineRefMin   Float?
+  canineRefMax   Float?
+  canineRefText  String?       // Para valores no numéricos
+  felineRefMin   Float?
+  felineRefMax   Float?
+  felineRefText  String?
+  costPrice      Float         @default(0)
+  salePrice      Float         @default(35000)
+  active         Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  resultItems    LabResultItem[]
+
+  @@unique([clinicId, code])
+  @@index([clinicId])
+  @@map("lab_test_catalogs")
+}
+
+enum LabOrderStatus {
+  pending
+  sample_taken
+  in_analysis
+  completed
+  cancelled
+}
+
+model LabOrder {
+  id             String          @id @default(uuid())
+  clinicId       String
+  clinic         Clinic          @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  patientId      String
+  patient        Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  vetId          String
+  vet            User            @relation(fields: [vetId], references: [id], onDelete: Restrict)
+  appointmentId  String?
+  orderNumber    String          // Ej: "LAB-2026-0001"
+  status         LabOrderStatus  @default(pending)
+  sampleType     String?         // "Sangre entera EDTA", "Suero", "Orina cistocentesis", "Heces"
+  clinicalNotes  String?         @db.Text
+  orderedAt      DateTime        @default(now())
+  completedAt    DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  results        LabResultItem[]
+  attachments    LabAttachment[]
+
+  @@unique([clinicId, orderNumber])
+  @@index([clinicId])
+  @@index([patientId])
+  @@index([vetId])
+  @@map("lab_orders")
+}
+
+model LabResultItem {
+  id               String          @id @default(uuid())
+  labOrderId       String
+  labOrder         LabOrder        @relation(fields: [labOrderId], references: [id], onDelete: Cascade)
+  labTestCatalogId String?
+  labTestCatalog   LabTestCatalog? @relation(fields: [labTestCatalogId], references: [id], onDelete: SetNull)
+  testName         String
+  valueMeasured    String          // Permite valores numéricos o cualitativos ej: "12.4" o "Negativo"
+  unit             String?
+  refRangeText     String?         // Ej: "10.0 - 18.0"
+  flag             String          @default("normal") // "normal", "low", "high", "critical"
+  interpretation   String?
+  createdAt        DateTime        @default(now())
+
+  @@index([labOrderId])
+  @@map("lab_result_items")
+}
+
+model LabAttachment {
+  id         String    @id @default(uuid())
+  labOrderId String
+  labOrder   LabOrder  @relation(fields: [labOrderId], references: [id], onDelete: Cascade)
+  name       String
+  url        String
+  type       String    @default("pdf") // "pdf", "image", "dicom"
+  size       Int       @default(0)
+  uploadedAt DateTime  @default(now())
+
+  @@index([labOrderId])
+  @@map("lab_attachments")
+}
+
+// ─────────────────────────────────────────────
+// ✂️ PELUQUERÍA, ESTÉTICA CANINA & SPA (GROOMING)
+// ─────────────────────────────────────────────
+
+enum GroomingStatus {
+  checked_in
+  bathing
+  drying_styling
+  ready_for_pickup
+  delivered
+  cancelled
+}
+
+model GroomingService {
+  id               String         @id @default(uuid())
+  clinicId         String
+  clinic           Clinic         @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  branchId         String
+  branch           Branch         @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  patientId        String
+  patient          Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  groomerId        String?
+  groomer          User?          @relation(fields: [groomerId], references: [id], onDelete: SetNull)
+  serviceType      String         // Ej: "Baño Completo + Corte de Raza", "Baño Medicado Dermatológico"
+  coatCondition    String?        // "Bueno", "Nudos leves", "Rastas severas", "Húmedo"
+  skinObservations String?        // "Sin lesiones", "Eritema ventral", "Pulgas observadas"
+  medicatedShampoo String?        // Ej: "Clorhexidina 3% + Ketoconazol"
+  behaviorNotes    String?        // "Tranquilo", "Nervioso con secador", "Usa bozal"
+  status           GroomingStatus @default(checked_in)
+  price            Float          @default(45000)
+  checkedInAt      DateTime       @default(now())
+  readyAt          DateTime?
+  deliveredAt      DateTime?
+  tutorNotifiedAt  DateTime?
+  notes            String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([clinicId])
+  @@index([branchId])
+  @@index([patientId])
+  @@index([groomerId])
+  @@map("grooming_services")
+}
+
+// ─────────────────────────────────────────────
+// 📈 CRM DE MARKETING & REACTIVACIÓN POR WHATSAPP
+// ─────────────────────────────────────────────
+
+model CrmCampaign {
+  id                 String    @id @default(uuid())
+  clinicId           String
+  clinic             Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  name               String    // Ej: "Reactivación Pacientes Inactivos 6M - Septiembre"
+  targetType         String    // "inactive_180d", "vaccine_due", "deworming_due", "birthday"
+  channel            String    @default("whatsapp") // "whatsapp", "email", "sms"
+  templateBody       String    @db.Text
+  potentialRevenue   Float     @default(0)
+  patientsTargeted   Int       @default(0)
+  messagesSent       Int       @default(0)
+  messagesDelivered  Int       @default(0)
+  responsesReceived  Int       @default(0)
+  appointmentsBooked Int       @default(0)
+  sentAt             DateTime  @default(now())
+  createdAt          DateTime  @default(now())
+
+  @@index([clinicId])
+  @@map("crm_campaigns")
 }

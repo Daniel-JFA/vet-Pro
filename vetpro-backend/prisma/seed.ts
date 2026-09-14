@@ -7,6 +7,23 @@ async function main() {
   console.log('🌱 Iniciando la siembra masiva e histórica (3 meses) de VetPro...');
 
   // 1. Limpieza de tablas existentes (en orden inverso de dependencia)
+  await prisma.hospitalDoseRecord.deleteMany();
+  await prisma.hospitalMedication.deleteMany();
+  await prisma.hospitalEvolution.deleteMany();
+  await prisma.hospitalization.deleteMany();
+  await prisma.hospitalBed.deleteMany();
+  await prisma.labAttachment.deleteMany();
+  await prisma.labResultItem.deleteMany();
+  await prisma.labOrder.deleteMany();
+  await prisma.labTestCatalog.deleteMany();
+  await prisma.groomingService.deleteMany();
+  await prisma.crmCampaign.deleteMany();
+  await prisma.cashRegisterShift.deleteMany();
+  await prisma.dianResolution.deleteMany();
+  await prisma.walkBooking.deleteMany();
+  await prisma.walker.deleteMany();
+  await prisma.mobileInventory.deleteMany();
+  await prisma.consentForm.deleteMany();
   await prisma.notificationLog.deleteMany();
   await prisma.notificationTemplate.deleteMany();
   await prisma.invoiceItem.deleteMany();

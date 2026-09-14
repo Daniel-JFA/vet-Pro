@@ -17,6 +17,11 @@ import { PORTAL_ROUTES } from './routes/portal.routes.js';
 import { BRANCH_ROUTES } from './routes/branch.routes.js';
 import { DOCS_ROUTES } from './routes/docs.routes.js';
 import { WALKER_ROUTES } from './routes/walker.routes.js';
+import { HOSPITALIZATION_ROUTES } from './routes/hospitalization.routes.js';
+import { DIAN_ROUTES } from './routes/dian.routes.js';
+import { LAB_ROUTES } from './routes/lab.routes.js';
+import { GROOMING_ROUTES } from './routes/grooming.routes.js';
+import { CRM_ROUTES } from './routes/crm.routes.js';
 import { errorHandler } from './middleware/error.js';
 
 dotenv.config();
@@ -120,6 +125,11 @@ app.use('/api/v1/reports', REPORT_ROUTES);
 app.use('/api/v1/portal', PORTAL_ROUTES);
 app.use('/api/v1/branches', BRANCH_ROUTES);
 app.use('/api/v1/walkers', WALKER_ROUTES);
+app.use('/api/v1/hospitalizations', HOSPITALIZATION_ROUTES);
+app.use('/api/v1/billing/dian', DIAN_ROUTES);
+app.use('/api/v1/labs', LAB_ROUTES);
+app.use('/api/v1/grooming', GROOMING_ROUTES);
+app.use('/api/v1/crm', CRM_ROUTES);
 app.use('/docs', DOCS_ROUTES);
 
 // Manejador global de excepciones
