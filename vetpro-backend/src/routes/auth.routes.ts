@@ -57,6 +57,94 @@ function signToken(user: {
   );
 }
 
+// POST /auth/register (Registro de nueva clínica o veterinario independiente)
+router.post('/register', async (req, res) => {
+  const { clinicName, businessType, firstName, lastName, email, password, phone, city, nit } = req.body;
+
+  if (!clinicName || !firstName || !lastName || !email || !password) {
+    return res.status(400).json({ error: 'Todos los campos obligatorios deben ser completados.' });
+  }
+
+  try {
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      return res.status(409).json({ error: 'El correo electrónico ya está registrado.' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+
+    const bType = businessType === 'independent_vet' ? 'independent_vet' : 'clinic';
+
+    // Crear clínica, sede base y usuario administrador en una transacción atómica
+    const result = await prisma.$transaction(async (tx) => {
+      const clinic = await tx.clinic.create({
+        data: {
+          name: clinicName,
+          businessType: bType,
+          email,
+          phone: phone || '+57 300 000 0000',
+          address: bType === 'independent_vet' ? 'Atención Domiciliaria / Móvil' : 'Sede Principal',
+          city: city || 'Medellín',
+          nit: nit || null,
+          plan: 'pro'
+        }
+      });
+
+      const branch = await tx.branch.create({
+        data: {
+          clinicId: clinic.id,
+          name: bType === 'independent_vet' ? 'Operación Móvil' : 'Sede Principal',
+          address: bType === 'independent_vet' ? 'Cobertura Móvil' : 'Calle Principal #1',
+          phone: phone || '+57 300 000 0000',
+          email
+        }
+      });
+
+      const user = await tx.user.create({
+        data: {
+          clinicId: clinic.id,
+          branchId: bType === 'independent_vet' ? null : branch.id,
+          firstName,
+          lastName,
+          email,
+          passwordHash,
+          role: 'admin',
+          active: true
+        }
+      });
+
+      // Crear catálogo básico de laboratorio para la nueva clínica
+      const defaultTests = [
+        { code: 'HEM-LEU', name: 'Leucocitos Totales', category: 'hematology', unit: 'x10^3/uL', canineRefMin: 6.0, canineRefMax: 17.0, felineRefMin: 5.5, felineRefMax: 19.5, salePrice: 15000 },
+        { code: 'HEM-HCT', name: 'Hematocrito (PCV)', category: 'hematology', unit: '%', canineRefMin: 37.0, canineRefMax: 55.0, felineRefMin: 24.0, felineRefMax: 45.0, salePrice: 15000 },
+        { code: 'BIO-CREA', name: 'Creatinina Sérica', category: 'biochemistry', unit: 'mg/dL', canineRefMin: 0.5, canineRefMax: 1.5, felineRefMin: 0.8, felineRefMax: 2.1, salePrice: 22000 },
+        { code: 'BIO-ALT', name: 'ALT / GPT Hepática', category: 'biochemistry', unit: 'U/L', canineRefMin: 10.0, canineRefMax: 100.0, felineRefMin: 12.0, felineRefMax: 130.0, salePrice: 25000 }
+      ];
+
+      for (const t of defaultTests) {
+        await tx.labTestCatalog.create({
+          data: { ...t, category: t.category as any, clinicId: clinic.id }
+        });
+      }
+
+      return { clinic, user };
+    });
+
+    const token = signToken(result.user);
+
+    return res.status(201).json({
+      message: 'Cuenta creada exitosamente.',
+      token,
+      user: toUserResponse(result.user),
+      clinic: result.clinic
+    });
+  } catch (error: any) {
+    console.error('Error en /auth/register:', error);
+    return res.status(500).json({ error: 'Error al registrar la cuenta.' });
+  }
+});
+
 // POST /auth/login
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;

@@ -103,9 +103,5 @@ export const routes: Routes = [
       }
     ]
   },
-  {
-    path: 'demo',
-    loadChildren: () => import('./features/demo/demo.routes').then(m => m.DEMO_ROUTES)
-  },
   { path: '**', redirectTo: '' }
 ];

@@ -65,6 +65,38 @@ export class AuthService {
     );
   }
 
+  register(data: {
+    clinicName: string;
+    businessType: 'clinic' | 'independent_vet';
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+    phone?: string;
+    city?: string;
+    nit?: string;
+  }): Observable<{ token: string; user: User; clinic: Clinic }> {
+    return this.api.post<{ token: string; user: User; clinic: Clinic }>(
+      '/auth/register', data
+    ).pipe(
+      tap(res => {
+        localStorage.setItem('vetpro_token', res.token);
+        this.state.set({ token: res.token, user: res.user, clinic: res.clinic });
+      }),
+      switchMap(res => {
+        return this.loadBranches().pipe(
+          tap(branches => {
+            const defaultBranch = res.user.branchId || (branches.length > 0 ? branches[0].id : null);
+            if (defaultBranch && !this.activeBranchId()) {
+              this.changeActiveBranch(defaultBranch);
+            }
+          }),
+          switchMap(() => of(res))
+        );
+      })
+    );
+  }
+
   logout(): void {
     localStorage.removeItem('vetpro_token');
     localStorage.removeItem('vetpro_active_branch_id');

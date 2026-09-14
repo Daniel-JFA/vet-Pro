@@ -25,33 +25,6 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     return res.json(branches);
   } catch (error) {
     console.error('Error al listar sucursales:', error);
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn('⚠️ Base de datos no disponible o credenciales inválidas. Retornando Fallback Mock de Sucursales.');
-      return res.json([
-        {
-          id: 'dev-branch',
-          clinicId: clinicId,
-          name: 'Sede Principal (Medellín)',
-          address: 'Av. El Poblado #3-45',
-          phone: '+57 4 604 9876',
-          email: 'principal@veterinariasanjose.co',
-          active: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: 'dev-branch-bogota',
-          clinicId: clinicId,
-          name: 'Sede Chapinero (Bogotá)',
-          address: 'Calle 100 #15-30',
-          phone: '+57 1 601 2345',
-          email: 'chapinero@veterinariasanjose.co',
-          active: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      ]);
-    }
     return res.status(500).json({ error: 'Error al obtener las sedes físicas de la clínica.' });
   }
 });

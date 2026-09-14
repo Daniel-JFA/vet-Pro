@@ -1,20 +1,14 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../core/services/auth.service';
 import { PrivacyModalComponent } from '../../../shared/components/privacy-modal/privacy-modal.component';
 
-interface DemoAccount {
-  label: string;
-  email: string;
-  password: string;
-}
-
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PrivacyModalComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, PrivacyModalComponent],
   template: `
     <div class="login-page">
       <div class="login-card">
@@ -23,17 +17,9 @@ interface DemoAccount {
           <span class="logo-name">VetPro</span>
         </div>
         <h2>Iniciar sesión</h2>
+        <p class="subtitle">Ingresa tus credenciales para acceder a tu centro veterinario</p>
+
         <form [formGroup]="form" (ngSubmit)="submit()">
-          <div class="demo-switch" aria-label="Credenciales de desarrollo">
-            <button
-              *ngFor="let account of demoAccounts"
-              type="button"
-              [class.active]="selectedDemo() === account.email"
-              (click)="selectDemoAccount(account)"
-            >
-              {{ account.label }}
-            </button>
-          </div>
           <div class="field">
             <label>Correo electrónico</label>
             <input type="email" formControlName="email" placeholder="vet@clinica.com" autocomplete="username" />
@@ -43,11 +29,15 @@ interface DemoAccount {
             <input type="password" formControlName="password" placeholder="••••••••" autocomplete="current-password" />
           </div>
           
-          <button type="submit" class="btn-login" [disabled]="loading()">
+          <button type="submit" class="btn-login" [disabled]="loading() || form.invalid">
             {{ loading() ? 'Entrando…' : 'Ingresar' }}
           </button>
           
           <p class="error" *ngIf="error()">{{ error() }}</p>
+
+          <div class="register-link">
+            ¿No tienes una cuenta aún? <a routerLink="/auth/register">Crea tu clínica o perfil independiente aquí</a>
+          </div>
 
           <div class="privacy-legal-text">
             Al ingresar, aceptas nuestra <a href="javascript:void(0)" (click)="isPrivacyOpen.set(true)">Política de Privacidad & Habeas Data (Ley 1581/2012)</a>.
@@ -99,32 +89,12 @@ interface DemoAccount {
     }
     h2 {
       font-size: 18px;
+      margin: 0 0 6px;
+    }
+    .subtitle {
+      font-size: 12.5px;
+      color: var(--text-color-secondary, #64748b);
       margin: 0 0 20px;
-    }
-    .demo-switch {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-      background: var(--surface-hover);
-      border: 1px solid var(--surface-border);
-      border-radius: 8px;
-      padding: 4px;
-      margin-bottom: 16px;
-    }
-    .demo-switch button {
-      border: 0;
-      border-radius: 6px;
-      background: transparent;
-      color: var(--text-color-secondary);
-      font-size: 12px;
-      font-weight: 600;
-      padding: 8px 10px;
-      cursor: pointer;
-    }
-    .demo-switch button.active {
-      background: var(--surface-card);
-      color: var(--primary-color);
-      box-shadow: 0 1px 2px rgba(15, 23, 42, .08);
     }
     .field {
       display: flex;
@@ -167,6 +137,21 @@ interface DemoAccount {
       margin-top: 8px;
       text-align: center;
     }
+    .register-link {
+      font-size: 12.5px;
+      text-align: center;
+      margin-top: 16px;
+      color: var(--text-color-secondary, #64748b);
+      line-height: 1.4;
+      a {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 600;
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
     .privacy-legal-text {
       font-size: 10.5px;
       color: var(--text-color-secondary);
@@ -192,25 +177,12 @@ export class LoginComponent {
   private router = inject(Router);
 
   isPrivacyOpen = signal(false);
-
-  demoAccounts: DemoAccount[] = [
-    { label: 'Admin', email: 'admin@vetpro.co', password: 'admin123' },
-    { label: 'Veterinario', email: 'vet@vetpro.co', password: 'vet123' }
-  ];
-
-  selectedDemo = signal(this.demoAccounts[0].email);
   loading = signal(false);
   error = signal('');
   form = this.fb.group({
-    email: [this.demoAccounts[0].email, [Validators.required, Validators.email]],
-    password: [this.demoAccounts[0].password, Validators.required]
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', Validators.required]
   });
-
-  selectDemoAccount(account: DemoAccount) {
-    this.selectedDemo.set(account.email);
-    this.form.setValue({ email: account.email, password: account.password });
-    this.error.set('');
-  }
 
   submit() {
     if (this.form.invalid) return;
@@ -219,7 +191,7 @@ export class LoginComponent {
     
     this.auth.login(this.form.value.email!, this.form.value.password!).subscribe({
       next: (res) => {
-        // Redirigir al Onboarding si es la clínica demo y no está configurada, o al Dashboard directo
+        // Si el usuario no ha completado el onboarding básico y es admin, llevarlo a Onboarding
         const isOnboarded = localStorage.getItem('vetpro_clinic_onboarded') === 'true';
         if (res.user.role === 'admin' && !isOnboarded) {
           this.router.navigate(['/onboarding']);

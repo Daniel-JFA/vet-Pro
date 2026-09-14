@@ -197,69 +197,22 @@ router.get('/dashboard', async (req: AuthRequest, res: Response) => {
           ]
         }
       },
-      inventoryRotation: [
-        { sku: 'V-RAB26', name: 'Vacuna Antirrábica Nobivac', category: 'Vacuna', stock: 8, minStock: 15, salesCount: 52 },
-        { sku: 'M-AMX50', name: 'Amoxicilina 500mg (Tablet)', category: 'Medicación', stock: 45, minStock: 50, salesCount: 38 },
-        { sku: 'S-GXP05', name: 'Suero Fisiológico 500ml', category: 'Consumible', stock: 12, minStock: 20, salesCount: 31 },
-        { sku: 'M-METCL', name: 'Metoclopramida Ampollas', category: 'Medicación', stock: 3, minStock: 10, salesCount: 22 }
-      ]
+      inventoryRotation: await prisma.product.findMany({
+        where: { clinicId, active: true },
+        orderBy: { currentStock: 'asc' },
+        take: 5
+      }).then(prods => prods.map(p => ({
+        sku: p.sku,
+        name: p.name,
+        category: p.category,
+        stock: p.currentStock,
+        minStock: p.minStock,
+        salesCount: 0
+      })))
     });
   } catch (dbError) {
-    // FALLBACK OFFLINE MOCK - Servir datos analíticos realistas si falla la BD / Prisma
-    console.warn('⚠️ Base de datos no disponible o credenciales inválidas. Retornando Fallback Mock de Reportes.');
-
-    const mockRevenueThisMonth = 2450000;
-    const mockRevenueLastMonth = 2180000;
-    const mockRevenueGrowth = parseFloat(((mockRevenueThisMonth - mockRevenueLastMonth) / mockRevenueLastMonth * 100).toFixed(1));
-
-    return res.json({
-      kpis: {
-        revenue: {
-          current: mockRevenueThisMonth,
-          previous: mockRevenueLastMonth,
-          growth: mockRevenueGrowth
-        },
-        consultations: {
-          current: 158,
-          previous: 146,
-          growth: 8.2
-        },
-        newPatients: {
-          current: 42,
-          previous: 36,
-          growth: 16.7
-        },
-        retentionRate: {
-          current: 84.5,
-          previous: 82.4,
-          growth: 2.1
-        }
-      },
-      charts: {
-        revenueHistory: {
-          labels: ['Dic', 'Ene', 'Feb', 'Mar', 'Abr', 'May'],
-          data: [1850000, 1980000, 2100000, 2180000, 2300000, 2450000]
-        },
-        serviceRentability: {
-          labels: ['Consultas', 'Cirugías', 'Vacunación', 'Laboratorios/Ecografías', 'Otros Insumos'],
-          data: [980000, 735000, 367500, 245000, 122500]
-        },
-        appointmentStatus: {
-          labels: ['Completadas', 'Agendadas', 'En Espera', 'Canceladas'],
-          data: [120, 24, 8, 6]
-        },
-        speciesDistribution: {
-          labels: ['Perros', 'Gatos', 'Conejos', 'Otros'],
-          data: [84, 52, 14, 8]
-        }
-      },
-      inventoryRotation: [
-        { sku: 'V-RAB26', name: 'Vacuna Antirrábica Nobivac', category: 'Vacuna', stock: 8, minStock: 15, salesCount: 52 },
-        { sku: 'M-AMX50', name: 'Amoxicilina 500mg (Tablet)', category: 'Medicación', stock: 45, minStock: 50, salesCount: 38 },
-        { sku: 'S-GXP05', name: 'Suero Fisiológico 500ml', category: 'Consumible', stock: 12, minStock: 20, salesCount: 31 },
-        { sku: 'M-METCL', name: 'Metoclopramida Ampollas', category: 'Medicación', stock: 3, minStock: 10, salesCount: 22 }
-      ]
-    });
+    console.error('Error al calcular métricas de reporte:', dbError);
+    return res.status(500).json({ error: 'Error al consultar las métricas del dashboard.' });
   }
 });
 
@@ -271,23 +224,12 @@ router.get('/export/excel', async (req: AuthRequest, res: Response) => {
   }
 
   try {
-    // 1. Obtener la información consolidada en base de datos o usar mock en su defecto
-    let invoicesList = [];
-    try {
-      invoicesList = await prisma.invoice.findMany({
-        where: { clinicId, status: { not: 'void' } },
-        include: { tutor: true },
-        orderBy: { issuedAt: 'desc' }
-      });
-    } catch {
-      // Mock Invoices
-      invoicesList = [
-        { invoiceNumber: 'FAC-000001', tutor: { firstName: 'Carlos', lastName: 'Gómez', phone: '+57 312 456' }, total: 178500, amountPaid: 178500, balance: 0, status: 'paid', issuedAt: new Date(Date.now() - 2 * 86400000) },
-        { invoiceNumber: 'FAC-000002', tutor: { firstName: 'Diana', lastName: 'Pérez', phone: '+57 300 987' }, total: 380800, amountPaid: 200000, balance: 180800, status: 'partial', issuedAt: new Date(Date.now() - 5 * 86400000) },
-        { invoiceNumber: 'FAC-000003', tutor: { firstName: 'Carlos', lastName: 'Gómez', phone: '+57 312 456' }, total: 95200, amountPaid: 0, balance: 95200, status: 'issued', issuedAt: new Date(Date.now() - 1 * 86400000) },
-        { invoiceNumber: 'FAC-000004', tutor: { firstName: 'Marta', lastName: 'Castro', phone: '+57 315 111' }, total: 53550, amountPaid: 0, balance: 53550, status: 'draft', issuedAt: new Date() }
-      ];
-    }
+    // 1. Obtener la información consolidada en base de datos
+    const invoicesList = await prisma.invoice.findMany({
+      where: { clinicId, status: { not: 'void' } },
+      include: { tutor: true },
+      orderBy: { issuedAt: 'desc' }
+    });
 
     // 2. Generar el string de datos CSV compatible con Microsoft Excel (separador ';' regional y BOM UTF-8)
     const BOM = '\uFEFF';
