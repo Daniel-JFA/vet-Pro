@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../config/database.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
 import { roleMiddleware } from '../middleware/role.js';
+import { MailerService } from '../services/mailer.service.js';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET!;
@@ -362,8 +363,32 @@ router.post('/users', authMiddleware as any, roleMiddleware(['admin']) as any, a
       }
     });
 
+    // Consultar datos de la clínica para el correo de bienvenida
+    const clinic = await prisma.clinic.findUnique({
+      where: { id: clinicId }
+    });
+
+    // Enviar correo con credenciales de acceso de forma asíncrona / segura
+    let emailSent = false;
+    try {
+      emailSent = await MailerService.sendNewUserCredentials({
+        to: newUser.email,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        clinicName: clinic?.name || 'VetPro Cloud',
+        role: newUser.role,
+        branchName: newUser.branch?.name || null,
+        passwordPlain: password
+      });
+    } catch (mailError) {
+      console.error('Error al enviar correo de bienvenida con credenciales:', mailError);
+    }
+
     return res.status(201).json({
-      message: 'Usuario creado exitosamente.',
+      message: emailSent
+        ? 'Usuario creado exitosamente. Se ha enviado un correo con las credenciales de acceso.'
+        : 'Usuario creado exitosamente.',
+      emailSent,
       user: {
         id: newUser.id,
         clinicId: newUser.clinicId,
@@ -463,10 +488,82 @@ router.patch('/users/:id/reset-password', authMiddleware as any, roleMiddleware(
       data: { passwordHash }
     });
 
-    return res.json({ message: 'Contraseña actualizada exitosamente.' });
+    // Enviar correo de notificación de restablecimiento
+    const clinic = await prisma.clinic.findUnique({
+      where: { id: clinicId }
+    });
+
+    let emailSent = false;
+    try {
+      emailSent = await MailerService.sendPasswordResetEmail({
+        to: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        clinicName: clinic?.name || 'VetPro Cloud',
+        newPasswordPlain: newPassword
+      });
+    } catch (mailError) {
+      console.error('Error al enviar correo de restablecimiento de contraseña:', mailError);
+    }
+
+    return res.json({
+      message: emailSent
+        ? 'Contraseña actualizada exitosamente y enviada al correo del usuario.'
+        : 'Contraseña actualizada exitosamente.',
+      emailSent
+    });
   } catch (error: any) {
     console.error('Error al restablecer contraseña:', error);
     return res.status(500).json({ error: 'Error al cambiar la contraseña del usuario.' });
+  }
+});
+
+// GET /auth/smtp-status (Consultar estado del servidor de correos)
+router.get('/smtp-status', authMiddleware as any, roleMiddleware(['admin']) as any, async (req: AuthRequest, res: Response) => {
+  const result = await MailerService.verifyConnection();
+  return res.json({
+    smtpConfigured: Boolean(process.env.SMTP_USER && process.env.SMTP_PASS),
+    smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
+    smtpUser: process.env.SMTP_USER || null,
+    verified: result.ok,
+    message: result.message
+  });
+});
+
+// POST /auth/smtp-test (Probar envío de correo de prueba)
+router.post('/smtp-test', authMiddleware as any, roleMiddleware(['admin']) as any, async (req: AuthRequest, res: Response) => {
+  const { recipient } = req.body;
+  const target = recipient || req.user?.email;
+
+  if (!target) {
+    return res.status(400).json({ error: 'Correo de destinatario requerido.' });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: req.user!.id }
+  });
+
+  const clinic = await prisma.clinic.findUnique({
+    where: { id: req.user!.clinicId }
+  });
+
+  const success = await MailerService.sendNewUserCredentials({
+    to: target,
+    firstName: user?.firstName || 'Usuario',
+    lastName: user?.lastName || 'Administrador',
+    clinicName: clinic?.name || 'VetPro Cloud',
+    role: 'admin',
+    branchName: 'Sede Principal',
+    passwordPlain: 'Prueba123*'
+  });
+
+  if (success) {
+    return res.json({ success: true, message: `Correo de prueba enviado exitosamente a: ${target}` });
+  } else {
+    return res.status(500).json({
+      success: false,
+      error: 'No se pudo enviar el correo de prueba. Verifica las credenciales SMTP en el archivo .env.'
+    });
   }
 });
 

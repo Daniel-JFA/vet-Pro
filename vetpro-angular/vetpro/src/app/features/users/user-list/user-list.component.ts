@@ -33,6 +33,10 @@ export interface UserItem {
         </div>
 
         <div class="header-actions">
+          <button class="btn btn-outline" (click)="openSmtpModal()" title="Diagnóstico de Correo SMTP">
+            <span class="material-symbols-outlined">forward_to_inbox</span>
+            Servidor SMTP
+          </button>
           <button class="btn btn-primary" (click)="openCreateModal()">
             <span class="material-symbols-outlined">person_add</span>
             Nuevo Usuario
@@ -287,6 +291,14 @@ export interface UserItem {
                 </div>
               </div>
             </div>
+
+            <div class="smtp-alert-badge">
+              <span class="material-symbols-outlined">forward_to_inbox</span>
+              <div>
+                <strong>Envío Automático de Credenciales</strong>
+                <p>Al guardar, el sistema enviará un correo con el usuario, contraseña inicial y enlace de acceso al email registrado.</p>
+              </div>
+            </div>
           </div>
 
           <div class="modal-footer">
@@ -350,6 +362,60 @@ export interface UserItem {
           <div class="modal-footer">
             <button class="btn btn-secondary" (click)="editingUser.set(null)">Cancelar</button>
             <button class="btn btn-primary" (click)="submitEditUser()">Guardar Cambios</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL: DIAGNÓSTICO SMTP -->
+      <div *ngIf="showSmtpModal()" class="modal-backdrop">
+        <div class="modal-box">
+          <div class="modal-header">
+            <h3>⚙️ Servidor SMTP & Notificaciones</h3>
+            <button class="close-btn" (click)="showSmtpModal.set(false)">✕</button>
+          </div>
+
+          <div class="modal-body">
+            <p class="smtp-desc">
+              VetPro envía automáticamente las credenciales de acceso a cada nuevo usuario registrado por la administración.
+            </p>
+
+            <div *ngIf="loadingSmtp()" class="smtp-loading">
+              <span class="material-symbols-outlined spin">sync</span>
+              Consultando estado del servidor SMTP...
+            </div>
+
+            <div *ngIf="!loadingSmtp() && smtpInfo()" class="smtp-card" [class.verified]="smtpInfo()?.verified" [class.error]="!smtpInfo()?.verified">
+              <div class="smtp-status-title">
+                <span class="material-symbols-outlined">{{ smtpInfo()?.verified ? 'check_circle' : 'warning' }}</span>
+                <strong>{{ smtpInfo()?.verified ? 'Servidor de Correo Conectado y Listo' : 'Atención: Credenciales Pendientes de Configuración' }}</strong>
+              </div>
+
+              <div class="smtp-rows">
+                <div class="smtp-row"><span>Host SMTP:</span> <strong>{{ smtpInfo()?.smtpHost }}</strong></div>
+                <div class="smtp-row"><span>Cuenta Emisora:</span> <strong>{{ smtpInfo()?.smtpUser || 'No configurada' }}</strong></div>
+                <div class="smtp-row" *ngIf="smtpInfo()?.message">
+                  <span>Diagnóstico:</span> 
+                  <code class="smtp-code">{{ smtpInfo()?.message }}</code>
+                </div>
+              </div>
+            </div>
+
+            <div class="test-email-section">
+              <label>Enviar correo de prueba a:</label>
+              <div class="test-input-group">
+                <input type="email" [(ngModel)]="testRecipient" placeholder="correo@ejemplo.com" class="form-input" />
+                <button class="btn btn-primary" [disabled]="testingSmtp() || !testRecipient" (click)="sendTestEmail()">
+                  {{ testingSmtp() ? 'Enviando...' : 'Enviar Prueba' }}
+                </button>
+              </div>
+              <p *ngIf="testResult()" class="test-msg" [class.success]="testResultSuccess()" [class.error]="!testResultSuccess()">
+                {{ testResult() }}
+              </p>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn btn-secondary" (click)="showSmtpModal.set(false)">Cerrar</button>
           </div>
         </div>
       </div>
@@ -519,6 +585,56 @@ export interface UserItem {
     }
 
     .close-btn { background: none; border: none; font-size: 18px; cursor: pointer; color: #64748b; }
+
+    .smtp-alert-badge {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-top: 14px;
+      span { font-size: 22px; color: #2563eb; }
+      strong { font-size: 12px; color: #1e40af; display: block; }
+      p { font-size: 11px; color: #475569; margin: 2px 0 0; line-height: 1.4; }
+    }
+
+    .smtp-desc { font-size: 13px; color: #64748b; margin: 0 0 16px; line-height: 1.45; }
+    .smtp-loading { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #2563eb; padding: 20px; justify-content: center; }
+    .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    .smtp-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+      background: #f8fafc;
+      &.verified { border-color: #86efac; background: #f0fdf4; .smtp-status-title { color: #166534; } }
+      &.error { border-color: #fca5a5; background: #fef2f2; .smtp-status-title { color: #991b1b; } }
+    }
+    .smtp-status-title { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 700; margin-bottom: 12px; span { font-size: 20px; } }
+    .smtp-rows { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: #334155; }
+    .smtp-row span { color: #64748b; margin-right: 6px; }
+    .smtp-code { display: block; font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.04); padding: 6px 8px; border-radius: 4px; margin-top: 4px; word-break: break-all; }
+
+    .test-email-section {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 14px;
+      label { font-size: 12.5px; font-weight: 600; color: #334155; display: block; margin-bottom: 8px; }
+    }
+    .test-input-group { display: flex; gap: 8px; }
+    .test-msg {
+      margin: 10px 0 0;
+      font-size: 12px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      &.success { background: #dcfce7; color: #166534; }
+      &.error { background: #fee2e2; color: #991b1b; }
+    }
   `]
 })
 export class UserListComponent implements OnInit {
@@ -533,6 +649,15 @@ export class UserListComponent implements OnInit {
 
   showCreateModal = signal(false);
   editingUser = signal<UserItem | null>(null);
+
+  // Estado del modal de diagnóstico SMTP
+  showSmtpModal = signal(false);
+  loadingSmtp = signal(false);
+  smtpInfo = signal<any>(null);
+  testRecipient = '';
+  testingSmtp = signal(false);
+  testResult = signal('');
+  testResultSuccess = signal(false);
 
   newForm = {
     firstName: '',
@@ -707,8 +832,45 @@ export class UserListComponent implements OnInit {
     }
 
     this.auth.resetUserPassword(user.id, newPass).subscribe({
-      next: () => alert('Contraseña actualizada con éxito.'),
+      next: (res) => alert(res.message || 'Contraseña actualizada con éxito.'),
       error: (err) => alert(err.error?.error || 'Error al restablecer contraseña.')
+    });
+  }
+
+  openSmtpModal() {
+    this.showSmtpModal.set(true);
+    this.loadingSmtp.set(true);
+    this.testResult.set('');
+    this.testRecipient = this.auth.currentUser?.email || '';
+
+    this.auth.getSmtpStatus().subscribe({
+      next: (res) => {
+        this.smtpInfo.set(res);
+        this.loadingSmtp.set(false);
+      },
+      error: (err) => {
+        this.smtpInfo.set({ verified: false, message: err.error?.message || 'Error al verificar conexión SMTP' });
+        this.loadingSmtp.set(false);
+      }
+    });
+  }
+
+  sendTestEmail() {
+    if (!this.testRecipient) return;
+    this.testingSmtp.set(true);
+    this.testResult.set('');
+
+    this.auth.testSmtp(this.testRecipient).subscribe({
+      next: (res) => {
+        this.testResult.set(res.message || 'Correo de prueba enviado con éxito.');
+        this.testResultSuccess.set(true);
+        this.testingSmtp.set(false);
+      },
+      error: (err) => {
+        this.testResult.set(err.error?.error || 'No se pudo enviar el correo de prueba. Verifica el servidor SMTP.');
+        this.testResultSuccess.set(false);
+        this.testingSmtp.set(false);
+      }
     });
   }
 }

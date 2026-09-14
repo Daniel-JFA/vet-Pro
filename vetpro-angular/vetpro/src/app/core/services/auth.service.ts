@@ -193,4 +193,25 @@ export class AuthService {
       })
     );
   }
+
+  // Diagnóstico y pruebas de correo SMTP (Credenciales automáticas de usuarios)
+  getSmtpStatus(): Observable<{
+    smtpConfigured: boolean;
+    smtpHost: string;
+    smtpUser: string | null;
+    verified: boolean;
+    message?: string;
+  }> {
+    return this.api.get<{
+      smtpConfigured: boolean;
+      smtpHost: string;
+      smtpUser: string | null;
+      verified: boolean;
+      message?: string;
+    }>('/auth/smtp-status');
+  }
+
+  testSmtp(recipient?: string): Observable<{ success: boolean; message: string }> {
+    return this.api.post<{ success: boolean; message: string }>('/auth/smtp-test', { recipient });
+  }
 }
