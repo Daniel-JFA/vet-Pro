@@ -2,11 +2,21 @@ import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
 import { profileCompleteGuard } from './core/guards/profile-complete.guard';
+import { platformAuthGuard } from './core/guards/platform-auth.guard';
 
 export const routes: Routes = [
   {
     path: 'auth',
     loadChildren: () => import('./features/auth/auth.routes').then(m => m.AUTH_ROUTES)
+  },
+  {
+    path: 'platform/login',
+    loadComponent: () => import('./features/platform/platform-login.component').then(m => m.PlatformLoginComponent)
+  },
+  {
+    path: 'platform/dashboard',
+    canActivate: [platformAuthGuard],
+    loadComponent: () => import('./features/platform/platform-dashboard.component').then(m => m.PlatformDashboardComponent)
   },
   {
     path: 'complete-profile',

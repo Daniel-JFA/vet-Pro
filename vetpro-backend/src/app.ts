@@ -22,6 +22,7 @@ import { DIAN_ROUTES } from './routes/dian.routes.js';
 import { LAB_ROUTES } from './routes/lab.routes.js';
 import { GROOMING_ROUTES } from './routes/grooming.routes.js';
 import { CRM_ROUTES } from './routes/crm.routes.js';
+import { PLATFORM_ROUTES } from './routes/platform.routes.js';
 import { errorHandler } from './middleware/error.js';
 
 dotenv.config();
@@ -97,6 +98,7 @@ const authLimiter = rateLimit({
 app.use('/api/', globalLimiter);
 app.use('/api/v1/auth/login', authLimiter);
 app.use('/api/v1/portal/auth/magic-link', authLimiter);
+app.use('/api/v1/platform/auth/login', authLimiter);
 
 // ─────────────────────────────────────────────
 // RUTAS DE SALUD & DIAGNÓSTICO
@@ -130,6 +132,7 @@ app.use('/api/v1/billing/dian', DIAN_ROUTES);
 app.use('/api/v1/labs', LAB_ROUTES);
 app.use('/api/v1/grooming', GROOMING_ROUTES);
 app.use('/api/v1/crm', CRM_ROUTES);
+app.use('/api/v1/platform', PLATFORM_ROUTES);
 app.use('/docs', DOCS_ROUTES);
 
 // Manejador global de excepciones

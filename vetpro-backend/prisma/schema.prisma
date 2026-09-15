@@ -17,6 +17,25 @@ generator client {
 }
 
 // ─────────────────────────────────────────────
+// 🛡️ SUPER-ADMIN DE PLATAFORMA (fuera del esquema multi-tenant)
+// ─────────────────────────────────────────────
+// No pertenece a ningún clinicId — ve totales agregados de todos los tenants
+// (usuarios y pacientes por clínica) sin acceso a los datos clínicos de cada una.
+
+model PlatformAdmin {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("platform_admins")
+}
+
+// ─────────────────────────────────────────────
 // 💎 MODELOS CORE DE LA CLÍNICA (SaaS)
 // ─────────────────────────────────────────────
 
