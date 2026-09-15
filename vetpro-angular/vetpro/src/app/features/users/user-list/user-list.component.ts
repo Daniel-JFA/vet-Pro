@@ -254,11 +254,7 @@ export interface UserItem {
             <div class="form-group">
               <label>Correo Electrónico *</label>
               <input type="email" [(ngModel)]="newForm.email" placeholder="correo@vetpro.co" class="form-input" />
-            </div>
-
-            <div class="form-group">
-              <label>Contraseña Inicial *</label>
-              <input type="password" [(ngModel)]="newForm.password" placeholder="Mínimo 6 caracteres" class="form-input" />
+              <small class="field-hint">Se generará una contraseña temporal segura y se enviará a este correo.</small>
             </div>
 
             <div class="form-group">
@@ -663,7 +659,6 @@ export class UserListComponent implements OnInit {
     firstName: '',
     lastName: '',
     email: '',
-    password: '',
     role: 'vet',
     branchId: null as string | null
   };
@@ -762,7 +757,6 @@ export class UserListComponent implements OnInit {
       firstName: '',
       lastName: '',
       email: '',
-      password: '',
       role: 'vet',
       branchId: this.auth.activeBranchId() || null
     };
@@ -770,14 +764,23 @@ export class UserListComponent implements OnInit {
   }
 
   submitCreateUser() {
-    if (!this.newForm.firstName || !this.newForm.lastName || !this.newForm.email || !this.newForm.password) {
+    if (!this.newForm.firstName || !this.newForm.lastName || !this.newForm.email) {
       alert('Por favor complete todos los campos obligatorios.');
       return;
     }
 
     this.auth.createUser(this.newForm).subscribe({
       next: (res) => {
-        alert(res.message || 'Usuario creado exitosamente.');
+        // El correo falló al enviarse: es la única vez que la contraseña se expone,
+        // para que el admin pueda entregarla manualmente al empleado.
+        if (!res.emailSent && res.tempPassword) {
+          alert(
+            `${res.message}\n\nContraseña temporal: ${res.tempPassword}\n\n` +
+            `Compártela de forma segura con el usuario — no se volverá a mostrar.`
+          );
+        } else {
+          alert(res.message || 'Usuario creado exitosamente.');
+        }
         this.showCreateModal.set(false);
         this.loadUsers();
       },

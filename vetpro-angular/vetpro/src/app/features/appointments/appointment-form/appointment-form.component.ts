@@ -28,6 +28,7 @@ export class AppointmentFormComponent implements OnInit {
   appointmentId = signal<string | null>(null);
   loading = signal(false);
   submitting = signal(false);
+  isNewPatient = signal(false);
 
   // Listados relacionales
   patients = signal<Patient[]>([]);
@@ -71,6 +72,8 @@ export class AppointmentFormComponent implements OnInit {
   private initForm() {
     this.form = this.fb.group({
       patientId: ['', Validators.required],
+      prospectName: [''],
+      prospectPhone: [''],
       vetId: ['', Validators.required],
       serviceType: ['Consulta General', Validators.required],
       date: ['', Validators.required],
@@ -79,6 +82,29 @@ export class AppointmentFormComponent implements OnInit {
       reason: ['', Validators.maxLength(500)],
       notes: ['', Validators.maxLength(500)]
     });
+  }
+
+  toggleNewPatient(value: boolean) {
+    this.isNewPatient.set(value);
+    const patientIdCtrl = this.form.get('patientId');
+    const prospectNameCtrl = this.form.get('prospectName');
+    const prospectPhoneCtrl = this.form.get('prospectPhone');
+
+    if (value) {
+      patientIdCtrl?.clearValidators();
+      patientIdCtrl?.setValue('');
+      prospectNameCtrl?.setValidators([Validators.required, Validators.minLength(2)]);
+      prospectPhoneCtrl?.setValidators([Validators.required]);
+    } else {
+      patientIdCtrl?.setValidators([Validators.required]);
+      prospectNameCtrl?.clearValidators();
+      prospectNameCtrl?.setValue('');
+      prospectPhoneCtrl?.clearValidators();
+      prospectPhoneCtrl?.setValue('');
+    }
+    patientIdCtrl?.updateValueAndValidity();
+    prospectNameCtrl?.updateValueAndValidity();
+    prospectPhoneCtrl?.updateValueAndValidity();
   }
 
   private loadPatients() {
@@ -142,6 +168,8 @@ export class AppointmentFormComponent implements OnInit {
 
     const appointmentData: Partial<Appointment> = {
       ...rest,
+      patientId: this.isNewPatient() ? null : rest.patientId,
+      isNewPatient: this.isNewPatient(),
       scheduledAt,
       branchId: this.authSvc.activeBranchId() || undefined,
       status: 'scheduled'

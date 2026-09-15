@@ -30,7 +30,13 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
       clinicId: string;
       branchId?: string | null;
     };
-    
+
+    // Defensa en profundidad: un token de super-admin de plataforma (o de tutor)
+    // firma válido con el mismo JWT_SECRET pero nunca debe colar en rutas de clínica.
+    if (decoded.role === 'platform_admin' || decoded.role === 'tutor') {
+      return res.status(403).json({ error: 'Este token no tiene acceso a rutas de clínica.' });
+    }
+
     req.user = decoded;
     next();
   } catch (error) {

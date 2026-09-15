@@ -19,13 +19,8 @@ export class PortalLoginComponent {
   loading = signal(false);
   error = signal('');
   success = signal(false);
+  successMessage = signal('');
   magicLink = signal<string | null>(null);
-
-  demoNumbers = [
-    { number: '3122115299', label: 'Daniel Flórez (Demo)' },
-    { number: '3157891234', label: 'María Rodríguez (Gatos)' },
-    { number: '3209876543', label: 'Diana Pérez (Conejo)' }
-  ];
 
   onSubmit() {
     const rawPhone = this.phone().trim();
@@ -43,6 +38,7 @@ export class PortalLoginComponent {
       next: (res) => {
         this.loading.set(false);
         this.success.set(true);
+        this.successMessage.set(res.message || '');
         if (res.magicLink) {
           this.magicLink.set(res.magicLink);
         }
@@ -52,11 +48,6 @@ export class PortalLoginComponent {
         this.error.set(err.error?.error || 'No se pudo enviar el enlace. Verifica el número e intenta nuevamente.');
       }
     });
-  }
-
-  useDemoNumber(num: string) {
-    this.phone.set(num);
-    this.onSubmit();
   }
 
   navigateToMagicLink() {

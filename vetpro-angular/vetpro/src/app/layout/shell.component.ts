@@ -181,7 +181,6 @@ export class ShellComponent {
         { label: 'Facturación & POS', icon: 'receipt_long',   path: '/billing' },
         { label: 'Consentimientos', icon: 'draw',            path: '/consent' },
         { label: 'CRM Reactivación', icon: 'contact_phone',   path: '/crm' },
-        { label: 'Notificaciones',  icon: 'campaign',        path: '/notifications' },
         { label: 'Reportes',        icon: 'bar_chart',       path: '/reports' }
       );
     } else if (role === 'vet') {
@@ -193,8 +192,7 @@ export class ShellComponent {
     } else if (role === 'receptionist') {
       items.push(
         { label: 'Facturación & POS', icon: 'receipt_long',   path: '/billing' },
-        { label: 'CRM Reactivación', icon: 'contact_phone',   path: '/crm' },
-        { label: 'Notificaciones',  icon: 'campaign',        path: '/notifications' }
+        { label: 'CRM Reactivación', icon: 'contact_phone',   path: '/crm' }
       );
     } else if (role === 'walker') {
       items.push(

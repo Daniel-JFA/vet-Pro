@@ -89,4 +89,52 @@ router.post('/', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// GET /tutors/:id (Detalle de un tutor)
+router.get('/:id', async (req: AuthRequest, res: Response) => {
+  const clinicId = req.user?.clinicId;
+  const { id } = req.params;
+  if (!clinicId) return res.status(401).json({ error: 'No autorizado.' });
+
+  try {
+    const tutor = await prisma.tutor.findFirst({ where: { id, clinicId } });
+    if (!tutor) return res.status(404).json({ error: 'Tutor no encontrado.' });
+    return res.json(tutor);
+  } catch (error) {
+    console.error('Error al consultar tutor:', error);
+    return res.status(500).json({ error: 'Error al consultar el tutor.' });
+  }
+});
+
+// PATCH /tutors/:id (Editar datos de contacto del tutor)
+router.patch('/:id', async (req: AuthRequest, res: Response) => {
+  const clinicId = req.user?.clinicId;
+  const { id } = req.params;
+  const { firstName, lastName, email, phone, documentId, address, notes } = req.body;
+
+  if (!clinicId) return res.status(401).json({ error: 'No autorizado.' });
+
+  try {
+    const existing = await prisma.tutor.findFirst({ where: { id, clinicId } });
+    if (!existing) return res.status(404).json({ error: 'Tutor no encontrado.' });
+
+    const updated = await prisma.tutor.update({
+      where: { id },
+      data: {
+        ...(firstName !== undefined ? { firstName } : {}),
+        ...(lastName !== undefined ? { lastName } : {}),
+        ...(email !== undefined ? { email } : {}),
+        ...(phone !== undefined ? { phone } : {}),
+        ...(documentId !== undefined ? { documentId } : {}),
+        ...(address !== undefined ? { address } : {}),
+        ...(notes !== undefined ? { notes } : {})
+      }
+    });
+
+    return res.json(updated);
+  } catch (error) {
+    console.error('Error al actualizar tutor:', error);
+    return res.status(500).json({ error: 'Error al actualizar el tutor.' });
+  }
+});
+
 export const TUTOR_ROUTES = router;

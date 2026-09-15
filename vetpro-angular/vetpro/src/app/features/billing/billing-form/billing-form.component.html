@@ -175,22 +175,46 @@
       <aside class="form-sidebar">
         <!-- CARD: SERVICIOS RÁPIDOS -->
         <div class="card sidebar-card template-card">
-          <h3>Plantillas de Servicios</h3>
-          <p class="sidebar-help">Haz clic para agregar rápidamente un servicio al listado.</p>
-          
-          <div class="template-list">
-            <button 
-              type="button" 
-              class="template-btn" 
-              *ngFor="let s of quickServices" 
+          <header class="section-title-row">
+            <h3>Plantillas de Servicios</h3>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="toggleAddService()">
+              <span class="material-symbols-outlined">{{ showAddService() ? 'close' : 'add' }}</span>
+            </button>
+          </header>
+          <p class="sidebar-help">Tu propio catálogo de precios — haz clic para agregar rápidamente un servicio al listado.</p>
+
+          <!-- Formulario para agregar un servicio nuevo al catálogo -->
+          <div class="new-service-form" *ngIf="showAddService()">
+            <input type="text" [ngModel]="newServiceName()" (ngModelChange)="newServiceName.set($event)" placeholder="Nombre del servicio" />
+            <div class="new-service-row">
+              <input type="number" [ngModel]="newServicePrice()" (ngModelChange)="newServicePrice.set($event)" placeholder="Precio" min="0" />
+              <select [ngModel]="newServiceTax()" (ngModelChange)="newServiceTax.set($event)">
+                <option [ngValue]="0.19">19% IVA</option>
+                <option [ngValue]="0.05">5% Esp.</option>
+                <option [ngValue]="0">Exento</option>
+              </select>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" (click)="saveNewService()" [disabled]="savingService()">
+              {{ savingService() ? 'Guardando...' : 'Guardar en mi Catálogo' }}
+            </button>
+          </div>
+
+          <div class="template-list" *ngIf="!loadingCatalog()">
+            <button
+              type="button"
+              class="template-btn"
+              *ngFor="let s of quickServices()"
               (click)="addQuickService(s)"
             >
               <div class="template-info">
                 <strong>{{ s.name }}</strong>
-                <span>{{ s.price | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+                <span>{{ s.salePrice | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
               </div>
               <span class="material-symbols-outlined plus-icon">add_circle</span>
             </button>
+            <p class="empty-catalog" *ngIf="!quickServices().length">
+              Todavía no tienes servicios guardados. Usa el botón "+" para crear el primero con tus propios precios.
+            </p>
           </div>
         </div>
 

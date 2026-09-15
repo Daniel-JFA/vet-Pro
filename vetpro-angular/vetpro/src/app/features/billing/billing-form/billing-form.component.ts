@@ -4,6 +4,7 @@ import { RouterLink, Router } from '@angular/router';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { BillingService } from '../../../core/services/billing.service';
 import { PatientService } from '../../../core/services/patient.service';
+import { ServiceCatalogService, ServiceCatalogItem } from '../../../core/services/service-catalog.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { Tutor } from '../../../core/models';
 
@@ -25,6 +26,7 @@ interface BillingItemInput {
 export class BillingFormComponent implements OnInit {
   private billingSvc = inject(BillingService);
   private patientSvc = inject(PatientService);
+  private catalogSvc = inject(ServiceCatalogService);
   private toast = inject(ToastService);
   private router = inject(Router);
 
@@ -38,22 +40,21 @@ export class BillingFormComponent implements OnInit {
   notes = signal<string>('');
   dueAt = signal<string>('');
 
-  // Items agregados a la factura
+  // Items agregados a la factura (arranca vacío — cada clínica define sus propios precios)
   items = signal<BillingItemInput[]>([
-    { description: 'Consulta General Veterinaria', quantity: 1, unitPrice: 75000, taxRate: 0.19, discount: 0 }
+    { description: '', quantity: 1, unitPrice: 0, taxRate: 0.19, discount: 0 }
   ]);
 
-  // Portafolio de productos y servicios rápidos
-  quickServices = [
-    { name: 'Consulta General', price: 75000, tax: 0.19 },
-    { name: 'Control Clínico de Seguimiento', price: 45000, tax: 0.19 },
-    { name: 'Vacuna Antirrábica Nobivac', price: 60000, tax: 0.19 },
-    { name: 'Vacuna Triple Felina (Refuerzo)', price: 70000, tax: 0.19 },
-    { name: 'Hemograma Completo Vet', price: 90000, tax: 0.0 },
-    { name: 'Ecografía Abdominal General', price: 160000, tax: 0.19 },
-    { name: 'Esterilización Canina Hembra (< 15kg)', price: 320000, tax: 0.19 },
-    { name: 'Desparasitación Interna Suspensión', price: 25000, tax: 0.19 }
-  ];
+  // Catálogo de servicios propio de la clínica (se carga de la BD, no hay precios fijos de plataforma)
+  quickServices = signal<ServiceCatalogItem[]>([]);
+  loadingCatalog = signal(true);
+
+  // Formulario para agregar un servicio nuevo al catálogo de la clínica
+  showAddService = signal(false);
+  newServiceName = signal('');
+  newServicePrice = signal<number | null>(null);
+  newServiceTax = signal(0.19);
+  savingService = signal(false);
 
   // Cálculos reactivos de la factura
   totals = computed(() => {
@@ -84,10 +85,55 @@ export class BillingFormComponent implements OnInit {
 
   ngOnInit() {
     this.loadTutors();
+    this.loadCatalog();
     // Establecer fecha de vencimiento predeterminada en 7 días
     const date = new Date();
     date.setDate(date.getDate() + 7);
     this.dueAt.set(date.toISOString().split('T')[0]);
+  }
+
+  private loadCatalog() {
+    this.loadingCatalog.set(true);
+    this.catalogSvc.getServices().subscribe({
+      next: (list) => {
+        this.quickServices.set(list);
+        this.loadingCatalog.set(false);
+      },
+      error: () => {
+        this.loadingCatalog.set(false);
+        this.toast.error('No se pudo cargar el catálogo de servicios de la clínica.');
+      }
+    });
+  }
+
+  toggleAddService() {
+    this.showAddService.update(v => !v);
+    this.newServiceName.set('');
+    this.newServicePrice.set(null);
+    this.newServiceTax.set(0.19);
+  }
+
+  saveNewService() {
+    const name = this.newServiceName().trim();
+    const salePrice = this.newServicePrice();
+    if (!name || salePrice === null || salePrice < 0) {
+      this.toast.error('Indica un nombre y un precio válido para el servicio.');
+      return;
+    }
+
+    this.savingService.set(true);
+    this.catalogSvc.createService({ name, salePrice, taxRate: this.newServiceTax() }).subscribe({
+      next: (created) => {
+        this.savingService.set(false);
+        this.quickServices.update(list => [...list, created].sort((a, b) => a.name.localeCompare(b.name)));
+        this.toggleAddService();
+        this.toast.success('Servicio agregado a tu catálogo.');
+      },
+      error: (err) => {
+        this.savingService.set(false);
+        this.toast.error(err?.error?.error || 'No se pudo guardar el servicio.');
+      }
+    });
   }
 
   private loadTutors() {
@@ -118,19 +164,19 @@ export class BillingFormComponent implements OnInit {
     this.items.update(list => list.filter((_, i) => i !== index));
   }
 
-  addQuickService(service: any) {
+  addQuickService(service: ServiceCatalogItem) {
     // Si hay un item vacío en la lista (por ej. primer item con precio 0), lo reemplazamos
     const list = this.items();
     if (list.length === 1 && list[0].unitPrice === 0 && !list[0].description) {
       this.items.set([{
         description: service.name,
         quantity: 1,
-        unitPrice: service.price,
-        taxRate: service.tax,
+        unitPrice: service.salePrice,
+        taxRate: service.taxRate,
         discount: 0
       }]);
     } else {
-      this.addItem(service.name, 1, service.price, service.tax, 0);
+      this.addItem(service.name, 1, service.salePrice, service.taxRate, 0);
     }
   }
 

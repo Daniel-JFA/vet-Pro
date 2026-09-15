@@ -137,34 +137,6 @@
 
     <!-- Columna Lateral -->
     <div class="side-column">
-      <!-- Sección: Foto de la Mascota -->
-      <div class="card photo-section">
-        <div class="section-title">
-          <span class="material-symbols-outlined section-icon">photo_camera</span>
-          <h2>Foto de Perfil</h2>
-        </div>
-
-        <div class="photo-uploader">
-          <!-- Vista previa de foto -->
-          <div class="photo-preview" *ngIf="previewPhotoUrl()">
-            <img [src]="previewPhotoUrl()" alt="Mascota" />
-            <button type="button" class="btn-remove-photo" (click)="removePhoto()" title="Eliminar foto">
-              <span class="material-symbols-outlined">close</span>
-            </button>
-          </div>
-          <!-- Placeholder sin foto -->
-          <div class="photo-placeholder" *ngIf="!previewPhotoUrl()">
-            <span class="material-symbols-outlined">pets</span>
-            <p>Sin foto cargada</p>
-          </div>
-
-          <button type="button" class="btn btn-ghost btn-photo-upload" (click)="simulatePhotoUpload()">
-            <span class="material-symbols-outlined">upload_file</span>
-            Simular Carga de Foto
-          </button>
-        </div>
-      </div>
-
       <!-- Sección: Tutor de la Mascota -->
       <div class="card tutor-section">
         <div class="section-title">

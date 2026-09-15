@@ -34,8 +34,8 @@ router.use(authMiddleware as any);
 // ─────────────────────────────────────────────
 // ESQUEMAS DE VALIDACIÓN ZOD
 // ─────────────────────────────────────────────
-const CreateAppointmentSchema = z.object({
-  patientId: z.string().uuid('ID de paciente inválido'),
+const AppointmentBaseSchema = z.object({
+  patientId: z.string().uuid('ID de paciente inválido').optional().nullable(),
   vetId: z.string().uuid('ID de veterinario inválido').optional().nullable(),
   branchId: z.string().uuid('ID de sucursal inválido').optional().nullable(),
   serviceType: z.string().min(1, 'El tipo de servicio es obligatorio'),
@@ -51,10 +51,23 @@ const CreateAppointmentSchema = z.object({
   city: z.string().optional().nullable(),
   latitude: z.number().optional().nullable(),
   longitude: z.number().optional().nullable(),
-  travelFee: z.number().nonnegative().default(0)
+  travelFee: z.number().nonnegative().default(0),
+
+  // Cita para una mascota que aún no existe en el sistema
+  isNewPatient: z.boolean().default(false),
+  prospectName: z.string().optional().nullable(),
+  prospectPhone: z.string().optional().nullable()
 });
 
-const UpdateAppointmentSchema = CreateAppointmentSchema.partial().extend({
+const CreateAppointmentSchema = AppointmentBaseSchema.refine(
+  data => data.isNewPatient ? !!(data.prospectName && data.prospectPhone) : !!data.patientId,
+  {
+    message: 'Debe seleccionar un paciente existente, o marcar "mascota nueva" e indicar nombre y teléfono del tutor.',
+    path: ['patientId']
+  }
+);
+
+const UpdateAppointmentSchema = AppointmentBaseSchema.partial().extend({
   status: z.string().optional(),
   trackingStatus: z.nativeEnum(TrackingStatus).optional()
 });
@@ -284,13 +297,16 @@ router.post('/', async (req: AuthRequest, res: Response) => {
   const data = parsed.data;
 
   try {
-    // 1. Validar que el paciente pertenezca a la clínica (Anti-IDOR)
-    const patient = await prisma.patient.findFirst({
-      where: { id: data.patientId, clinicId, deletedAt: null }
-    });
+    // 1. Validar que el paciente pertenezca a la clínica (Anti-IDOR) —
+    //    salvo que sea una cita para una mascota nueva, aún no registrada.
+    if (!data.isNewPatient) {
+      const patient = await prisma.patient.findFirst({
+        where: { id: data.patientId!, clinicId, deletedAt: null }
+      });
 
-    if (!patient) {
-      return res.status(404).json({ error: 'El paciente especificado no existe o no pertenece a su clínica.' });
+      if (!patient) {
+        return res.status(404).json({ error: 'El paciente especificado no existe o no pertenece a su clínica.' });
+      }
     }
 
     // 2. Validar o determinar la sucursal (Branch)
@@ -326,7 +342,10 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       data: {
         clinicId,
         branchId,
-        patientId: data.patientId,
+        patientId: data.isNewPatient ? null : data.patientId,
+        isNewPatient: data.isNewPatient,
+        prospectName: data.isNewPatient ? data.prospectName : null,
+        prospectPhone: data.isNewPatient ? data.prospectPhone : null,
         vetId: data.vetId || null,
         serviceType: data.serviceType,
         modality: data.modality,
@@ -407,6 +426,51 @@ router.patch('/:id/status', async (req: AuthRequest, res: Response) => {
   } catch (error: any) {
     console.error('[AppointmentRoutes] Error al actualizar estado de cita:', error);
     return res.status(500).json({ error: 'Error al actualizar el estado de la cita.' });
+  }
+});
+
+// PATCH /api/v1/appointments/:id/link-patient
+// Vincula una cita de "mascota nueva" al paciente ya registrado al iniciar la atención
+router.patch('/:id/link-patient', async (req: AuthRequest, res: Response) => {
+  const clinicId = req.user?.clinicId;
+  const { id } = req.params;
+  const { patientId } = req.body;
+
+  if (!clinicId) {
+    return res.status(401).json({ error: 'No autorizado.' });
+  }
+  if (!patientId) {
+    return res.status(400).json({ error: 'patientId es obligatorio.' });
+  }
+
+  try {
+    const existing = await prisma.appointment.findFirst({
+      where: { id, clinicId, deletedAt: null }
+    });
+    if (!existing) {
+      return res.status(404).json({ error: 'Cita no encontrada.' });
+    }
+
+    const patient = await prisma.patient.findFirst({
+      where: { id: patientId, clinicId, deletedAt: null }
+    });
+    if (!patient) {
+      return res.status(404).json({ error: 'El paciente especificado no existe o no pertenece a su clínica.' });
+    }
+
+    const updated = await prisma.appointment.update({
+      where: { id },
+      data: { patientId, isNewPatient: false },
+      include: {
+        patient: { include: { tutor: true } },
+        vet: { select: { firstName: true, lastName: true } }
+      }
+    });
+
+    return res.json(mapAppointmentToApi(updated));
+  } catch (error: any) {
+    console.error('[AppointmentRoutes] Error al vincular paciente a la cita:', error);
+    return res.status(500).json({ error: 'Error al vincular el paciente a la cita.' });
   }
 });
 

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink, Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { PatientService } from '../../../core/services/patient.service';
+import { AppointmentService } from '../../../core/services/appointment.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { Patient, Tutor, Species, PatientStatus } from '../../../core/models';
 
@@ -16,6 +17,7 @@ import { Patient, Tutor, Species, PatientStatus } from '../../../core/models';
 export class PatientFormComponent implements OnInit {
   private fb = inject(FormBuilder);
   private svc = inject(PatientService);
+  private appointmentSvc = inject(AppointmentService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private toast = inject(ToastService);
@@ -68,6 +70,21 @@ export class PatientFormComponent implements OnInit {
       this.isEditMode.set(true);
       this.patientId.set(id);
       this.loadPatient(id);
+      return;
+    }
+
+    // Venimos de "agendar cita para mascota nueva" — precargar datos del prospecto
+    // y arrancar directo en modo "tutor nuevo"
+    const prospectName = this.route.snapshot.queryParamMap.get('prospectName');
+    const prospectPhone = this.route.snapshot.queryParamMap.get('prospectPhone');
+    if (prospectName || prospectPhone) {
+      this.setTutorMode('new');
+      const [firstName, ...rest] = (prospectName || '').split(' ');
+      this.tutorForm.patchValue({
+        firstName: firstName || '',
+        lastName: rest.join(' '),
+        phone: prospectPhone || ''
+      });
     }
   }
 
@@ -188,26 +205,29 @@ export class PatientFormComponent implements OnInit {
 
     this.submitting.set(true);
 
-    const patientData = { ...this.form.value };
-
-    // Si se crea un tutor nuevo inline, primero simulamos guardarlo
+    // Si se crea un tutor nuevo inline, hay que registrarlo primero en el
+    // backend (antes no se hacía: se inventaba un id falso en el navegador
+    // y el backend siempre rechazaba la creación del paciente).
     if (this.tutorMode() === 'new') {
-      const newTutor: Tutor = {
-        id: 't_new_' + Math.random().toString(36).substr(2, 9),
-        clinicId: 'c1',
-        ...this.tutorForm.value,
-        createdAt: new Date()
-      };
-      patientData.tutorId = newTutor.id;
-      patientData.tutor = newTutor;
+      this.svc.createTutor(this.tutorForm.value).subscribe({
+        next: (newTutor) => this.savePatient({ ...this.form.value, tutorId: newTutor.id }),
+        error: () => {
+          this.submitting.set(false);
+          this.toast.error('No se pudo registrar el tutor. Verifica los datos e intenta de nuevo.');
+        }
+      });
+    } else {
+      this.savePatient({ ...this.form.value });
     }
+  }
 
+  private savePatient(patientData: any) {
     if (this.isEditMode()) {
       this.svc.updatePatient(this.patientId()!, patientData).subscribe({
-        next: () => {
+        next: (patient) => {
           this.submitting.set(false);
           this.toast.success('Paciente actualizado exitosamente.');
-          this.router.navigate(['/patients']);
+          this.afterSave(patient);
         },
         error: () => {
           this.submitting.set(false);
@@ -216,16 +236,35 @@ export class PatientFormComponent implements OnInit {
       });
     } else {
       this.svc.createPatient(patientData).subscribe({
-        next: () => {
+        next: (patient) => {
           this.submitting.set(false);
           this.toast.success('Paciente registrado exitosamente.');
-          this.router.navigate(['/patients']);
+          this.afterSave(patient);
         },
         error: () => {
           this.submitting.set(false);
           this.toast.error('No se pudo registrar el paciente. Verifica los datos e intenta de nuevo.');
         }
       });
+    }
+  }
+
+  // Si venimos de "agendar cita para mascota nueva", vincula el paciente recién
+  // creado a esa cita y vuelve al calendario en vez de al listado de pacientes.
+  private afterSave(patient: Patient) {
+    const returnAppointmentId = this.route.snapshot.queryParamMap.get('returnAppointmentId');
+    if (returnAppointmentId) {
+      this.appointmentSvc.linkPatient(returnAppointmentId, patient.id).subscribe({
+        next: () => this.router.navigate(['/medical-records', 'new', patient.id], {
+          queryParams: { appointmentId: returnAppointmentId }
+        }),
+        error: () => {
+          this.toast.error('El paciente se creó, pero no se pudo vincular a la cita.');
+          this.router.navigate(['/appointments/calendar']);
+        }
+      });
+    } else {
+      this.router.navigate(['/patients']);
     }
   }
 

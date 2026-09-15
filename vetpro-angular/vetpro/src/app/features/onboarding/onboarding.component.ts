@@ -126,11 +126,13 @@ import { AuthService } from '../../core/services/auth.service';
             <input type="email" [(ngModel)]="vetEmail" placeholder="Ej: laura@clinica.co" />
           </div>
 
+          <p class="error-inline" *ngIf="errorMsg()">{{ errorMsg() }}</p>
+
           <div class="actions">
-            <button class="back-btn" (click)="goToStep(2)">Atrás</button>
-            <button class="next-btn" (click)="finishOnboarding()" [disabled]="!vetName() || !vetEmail()">
-              Finalizar Configuración
-              <span class="material-symbols-outlined">check</span>
+            <button class="back-btn" (click)="goToStep(2)" [disabled]="submitting()">Atrás</button>
+            <button class="next-btn" (click)="finishOnboarding()" [disabled]="submitting()">
+              {{ submitting() ? 'Guardando...' : 'Finalizar Configuración' }}
+              <span class="material-symbols-outlined" *ngIf="!submitting()">check</span>
             </button>
           </div>
         </div>
@@ -261,6 +263,15 @@ import { AuthService } from '../../core/services/auth.service';
         color: #9ca3af;
         margin: -10px 0 8px;
       }
+    }
+
+    .error-inline {
+      font-size: 0.85rem;
+      color: #f87171;
+      background: rgba(239, 68, 68, 0.1);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin: 0;
     }
 
     .form-group {
@@ -478,26 +489,77 @@ export class OnboardingComponent {
   vetName = signal('');
   vetEmail = signal('');
 
+  submitting = signal(false);
+  errorMsg = signal('');
+
   goToStep(step: number) {
     this.currentStep.set(step);
   }
 
   finishOnboarding() {
+    this.errorMsg.set('');
+    this.submitting.set(true);
+
     this.auth.updateClinic({
       businessType: this.businessType(),
       phone: this.phone(),
       city: this.city(),
       nit: this.nit()
     }).subscribe({
-      next: () => {
-        localStorage.setItem('vetpro_clinic_onboarded', 'true');
-        this.currentStep.set(4);
-      },
-      error: () => {
-        localStorage.setItem('vetpro_clinic_onboarded', 'true');
-        this.currentStep.set(4);
+      next: () => this.createBranchThenVet(),
+      error: (err) => {
+        this.submitting.set(false);
+        this.errorMsg.set(err?.error?.error || 'No se pudo guardar la configuración de la empresa. Intenta de nuevo.');
       }
     });
+  }
+
+  // Pasos 2 y 3 son complementarios: si fallan, no bloquean el acceso al sistema
+  // (ya se puede operar), pero avisamos en vez de fingir que se crearon.
+  private createBranchThenVet() {
+    if (!this.branchName() || !this.branchAddress()) {
+      this.createVetIfProvided();
+      return;
+    }
+
+    this.auth.createBranch({
+      name: this.branchName(),
+      address: this.branchAddress(),
+      phone: this.phone() || '+57 300 000 0000'
+    }).subscribe({
+      next: () => this.createVetIfProvided(),
+      error: () => {
+        alert('No se pudo crear la sede/zona de cobertura. Podrás agregarla luego desde Configuración de Sedes.');
+        this.createVetIfProvided();
+      }
+    });
+  }
+
+  private createVetIfProvided() {
+    if (!this.vetName() || !this.vetEmail()) {
+      this.finish();
+      return;
+    }
+
+    const [firstName, ...rest] = this.vetName().trim().split(' ');
+    this.auth.createUser({
+      firstName: firstName || this.vetName(),
+      lastName: rest.join(' ') || '-',
+      email: this.vetEmail().trim().toLowerCase(),
+      role: 'vet'
+    }).subscribe({
+      next: () => this.finish(),
+      error: (err) => {
+        alert(err?.error?.error || 'No se pudo registrar al veterinario adicional. Podrás agregarlo luego desde Gestión de Equipo.');
+        this.finish();
+      }
+    });
+  }
+
+  private finish() {
+    this.submitting.set(false);
+    localStorage.setItem('vetpro_clinic_onboarded', 'true');
+    this.currentStep.set(4);
   }
 
   navigateToDashboard() {

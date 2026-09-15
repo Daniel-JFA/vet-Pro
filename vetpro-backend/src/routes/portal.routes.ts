@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../config/database.js';
 import { tutorAuthMiddleware, TutorAuthRequest } from '../middleware/tutorAuth.js';
+import { MailerService } from '../services/mailer.service.js';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'vetpro_super_secret_signing_key_2026_dev';
@@ -201,12 +202,38 @@ router.post('/auth/magic-link', async (req, res) => {
       { expiresIn: '1h' }
     );
 
-    const magicLink = `http://localhost:4200/portal/auth?token=${token}`;
+    const appUrl = process.env.APP_URL || 'http://localhost:4200';
+    const magicLink = `${appUrl}/portal/auth?token=${token}`;
+
+    // 4. Entregar el enlace — hoy el único canal real es correo (no hay
+    // integración de SMS/WhatsApp). Si el tutor no tiene correo registrado,
+    // no hay forma de contactarlo automáticamente: se lo decimos con honestidad.
+    let emailSent = false;
+    if (tutor.email) {
+      const clinic = await prisma.clinic.findUnique({ where: { id: tutor.clinicId } });
+      emailSent = await MailerService.sendMagicLinkEmail({
+        to: tutor.email,
+        firstName: tutor.firstName,
+        clinicName: clinic?.name || 'VetPro',
+        magicLink
+      });
+    }
+
+    if (!emailSent && !isDevelopment) {
+      return res.status(422).json({
+        error: tutor.email
+          ? 'No se pudo enviar el correo de acceso. Intenta de nuevo o contacta a la clínica.'
+          : 'No tenemos un correo registrado para contactarte. Pide a la clínica que actualice tu información de contacto para poder enviarte el acceso al portal.'
+      });
+    }
 
     return res.json({
       success: true,
-      message: 'Enlace de acceso generado exitosamente.',
-      // Se retorna directamente para que en desarrollo local puedan dar click
+      message: emailSent
+        ? `Te enviamos el enlace de acceso a ${tutor.email}.`
+        : 'Enlace de acceso generado exitosamente.',
+      emailSent,
+      // Se retorna directamente solo en desarrollo local para poder probar sin correo real
       magicLink: isDevelopment ? magicLink : null
     });
   } catch (error) {

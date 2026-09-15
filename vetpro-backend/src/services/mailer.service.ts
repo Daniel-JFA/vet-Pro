@@ -18,6 +18,13 @@ export interface PasswordResetEmailData {
   newPasswordPlain: string;
 }
 
+export interface MagicLinkEmailData {
+  to: string;
+  firstName: string;
+  clinicName: string;
+  magicLink: string;
+}
+
 function getRoleLabel(role: string): string {
   const roles: Record<string, string> = {
     admin: '🛡️ Administrador (Gestión Total & Finanzas)',
@@ -250,6 +257,57 @@ Por seguridad, te recomendamos cambiar tu contraseña temporal tras tu primer in
       return true;
     } catch (error: any) {
       console.error(`❌ [Mailer] Error al enviar restablecimiento a ${data.to}:`, error.message);
+      return false;
+    }
+  }
+
+  public static async sendMagicLinkEmail(data: MagicLinkEmailData): Promise<boolean> {
+    const transporter = this.getTransporter();
+    const from = process.env.SMTP_FROM || `VetPro SaaS <${process.env.SMTP_USER || 'no-reply@vetpro.co'}>`;
+
+    if (!transporter) {
+      console.warn('⚠️ [Mailer] No se envió enlace de acceso al portal: SMTP no configurado.');
+      return false;
+    }
+
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="utf-8">
+      <title>Tu acceso al Portal de Tutores - VetPro</title>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; margin: 0; padding: 24px; color: #1e293b; }
+        .container { max-width: 540px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 32px 28px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+        .title { font-size: 20px; font-weight: 700; color: #0f172a; margin: 0 0 16px; }
+        .btn { display: inline-block; background: #10b981; color: #fff !important; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 700; margin-top: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h2 class="title">Tu acceso al Portal de Tutores</h2>
+        <p>Hola, ${data.firstName}:</p>
+        <p><strong>${data.clinicName}</strong> te invita a ingresar a tu portal personal para ver el historial y las citas de tus mascotas.</p>
+        <p><a href="${data.magicLink}" class="btn">Ingresar al Portal</a></p>
+        <p style="font-size: 12px; color: #94a3b8; margin-top: 24px;">Este enlace es personal, expira en 1 hora y solo puede usarse una vez. Si no solicitaste este acceso, ignora este correo.</p>
+      </div>
+    </body>
+    </html>
+    `;
+
+    try {
+      await transporter.sendMail({
+        from,
+        to: data.to,
+        subject: `Tu acceso al Portal de Tutores — ${data.clinicName}`,
+        text: `Hola ${data.firstName}, ingresa a tu portal en: ${data.magicLink} (válido por 1 hora, un solo uso).`,
+        html: htmlContent
+      });
+
+      console.log(`✉️ [Mailer] Enlace de acceso al portal enviado a: ${data.to}`);
+      return true;
+    } catch (error: any) {
+      console.error(`❌ [Mailer] Error al enviar enlace de acceso a ${data.to}:`, error.message);
       return false;
     }
   }

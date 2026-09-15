@@ -126,8 +126,12 @@ export type AppointmentStatus = 'scheduled' | 'waiting' | 'in-progress' | 'done'
 export interface Appointment {
   id: string;
   clinicId: string;
-  patientId: string;
+  patientId?: string | null;
   patient?: Patient;
+  // Cita para una mascota que todavía no existe en el sistema
+  isNewPatient?: boolean;
+  prospectName?: string | null;
+  prospectPhone?: string | null;
   vetId: string;
   vet?: User;
   serviceType: string;

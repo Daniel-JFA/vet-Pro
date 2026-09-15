@@ -1,8 +1,9 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../core/services/auth.service';
+import { GeoService, Departamento, Municipio } from '../../../core/services/geo.service';
 import { PrivacyModalComponent } from '../../../shared/components/privacy-modal/privacy-modal.component';
 
 @Component({
@@ -79,14 +80,25 @@ import { PrivacyModalComponent } from '../../../shared/components/privacy-modal/
             <input type="password" formControlName="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" />
           </div>
 
+          <div class="field">
+            <label>Teléfono móvil *</label>
+            <input type="tel" formControlName="phone" placeholder="+57 300 123 4567" />
+          </div>
+
           <div class="row-2">
             <div class="field">
-              <label>Teléfono móvil *</label>
-              <input type="tel" formControlName="phone" placeholder="+57 300 123 4567" />
+              <label>Departamento *</label>
+              <select formControlName="departamentoCode" (change)="onDepartamentoChange()">
+                <option value="" disabled selected>Selecciona...</option>
+                <option *ngFor="let d of departamentos()" [value]="d.code">{{ d.nombre }}</option>
+              </select>
             </div>
             <div class="field">
-              <label>Ciudad *</label>
-              <input type="text" formControlName="city" placeholder="Ej. Medellín, Bogotá" />
+              <label>Municipio / Ciudad *</label>
+              <select formControlName="municipioId" [disabled]="!form.value.departamentoCode || loadingMunicipios()">
+                <option value="" disabled selected>{{ loadingMunicipios() ? 'Cargando...' : 'Selecciona...' }}</option>
+                <option *ngFor="let m of municipios()" [value]="m.id">{{ m.nombre }}</option>
+              </select>
             </div>
           </div>
 
@@ -221,7 +233,7 @@ import { PrivacyModalComponent } from '../../../shared/components/privacy-modal/
       font-weight: 500;
       color: var(--text-color, #334155);
     }
-    input {
+    input, select {
       padding: 9px 12px;
       border: 1px solid var(--surface-border, #cbd5e1);
       border-radius: 7px;
@@ -230,8 +242,13 @@ import { PrivacyModalComponent } from '../../../shared/components/privacy-modal/
       background: var(--surface-card, #fff);
       color: var(--text-color, #0f172a);
       transition: border-color 0.2s;
+      font-family: inherit;
       &:focus {
         border-color: var(--primary-color, #2563eb);
+      }
+      &:disabled {
+        background: var(--surface-ground, #f1f5f9);
+        cursor: not-allowed;
       }
     }
     .btn-register {
@@ -294,15 +311,20 @@ import { PrivacyModalComponent } from '../../../shared/components/privacy-modal/
     }
   `]
 })
-export class RegisterComponent {
+export class RegisterComponent implements OnInit {
   private fb = inject(FormBuilder);
   private auth = inject(AuthService);
+  private geo = inject(GeoService);
   private router = inject(Router);
 
   isPrivacyOpen = signal(false);
   loading = signal(false);
   error = signal('');
   selectedType = signal<'clinic' | 'independent_vet'>('clinic');
+
+  departamentos = signal<Departamento[]>([]);
+  municipios = signal<Municipio[]>([]);
+  loadingMunicipios = signal(false);
 
   form = this.fb.group({
     clinicName: ['', [Validators.required, Validators.minLength(2)]],
@@ -311,12 +333,33 @@ export class RegisterComponent {
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(6)]],
     phone: ['', [Validators.required]],
-    city: ['Medellín', [Validators.required]],
+    departamentoCode: ['', [Validators.required]],
+    municipioId: ['', [Validators.required]],
     nit: ['']
   });
 
+  ngOnInit() {
+    this.geo.getDepartamentos().subscribe(list => this.departamentos.set(list));
+  }
+
   setType(type: 'clinic' | 'independent_vet') {
     this.selectedType.set(type);
+  }
+
+  onDepartamentoChange() {
+    const code = this.form.value.departamentoCode;
+    this.form.patchValue({ municipioId: '' });
+    this.municipios.set([]);
+    if (!code) return;
+
+    this.loadingMunicipios.set(true);
+    this.geo.getMunicipios(code).subscribe({
+      next: (list) => {
+        this.municipios.set(list);
+        this.loadingMunicipios.set(false);
+      },
+      error: () => this.loadingMunicipios.set(false)
+    });
   }
 
   submit() {
@@ -334,7 +377,7 @@ export class RegisterComponent {
       email: val.email!.trim().toLowerCase(),
       password: val.password!,
       phone: val.phone?.trim(),
-      city: val.city?.trim(),
+      municipioId: val.municipioId!,
       nit: val.nit?.trim() || undefined
     }).subscribe({
       next: () => {

@@ -95,10 +95,12 @@
             <div class="card-body">
               <div class="patient-title">
                 <span class="material-symbols-outlined pet-icon">pets</span>
-                <strong>{{ app.patient?.name }}</strong>
-                <span class="breed-text">({{ app.patient?.breed || app.patient?.species }})</span>
+                <strong *ngIf="!app.isNewPatient">{{ app.patient?.name }}</strong>
+                <span class="breed-text" *ngIf="!app.isNewPatient">({{ app.patient?.breed || app.patient?.species }})</span>
+                <strong *ngIf="app.isNewPatient">🆕 {{ app.prospectName }}</strong>
               </div>
-              <div class="tutor-sub">👤 Tutor: {{ app.patient?.tutor?.firstName }} {{ app.patient?.tutor?.lastName }}</div>
+              <div class="tutor-sub" *ngIf="!app.isNewPatient">👤 Tutor: {{ app.patient?.tutor?.firstName }} {{ app.patient?.tutor?.lastName }}</div>
+              <div class="tutor-sub" *ngIf="app.isNewPatient">📞 {{ app.prospectPhone }} (mascota nueva, pendiente registro)</div>
               
               <!-- Dirección física del Domicilio -->
               <div class="address-sub" *ngIf="app.patient?.tutor?.address" style="display: flex; align-items: flex-start; gap: 4px; font-size: 11.5px; color: var(--primary-color); margin: 6px 0; font-weight: 500;">
@@ -106,7 +108,7 @@
                 <span>{{ app.patient?.tutor?.address }}</span>
               </div>
 
-              <div class="vet-sub">🩺 Asignado: {{ app.vetId === 'v1' ? 'Dr. Andrés' : 'Dra. Laura' }}</div>
+              <div class="vet-sub">🩺 Asignado: {{ app.vet ? 'Dr(a). ' + app.vet.firstName + ' ' + app.vet.lastName : 'Sin asignar' }}</div>
               <p class="reason-text" *ngIf="app.reason">"{{ app.reason }}"</p>
             </div>
 
@@ -156,10 +158,12 @@
             <div class="card-body">
               <div class="patient-title">
                 <span class="material-symbols-outlined pet-icon color-orange">pets</span>
-                <strong>{{ app.patient?.name }}</strong>
-                <span class="breed-text">({{ app.patient?.breed || app.patient?.species }})</span>
+                <strong *ngIf="!app.isNewPatient">{{ app.patient?.name }}</strong>
+                <span class="breed-text" *ngIf="!app.isNewPatient">({{ app.patient?.breed || app.patient?.species }})</span>
+                <strong *ngIf="app.isNewPatient">🆕 {{ app.prospectName }}</strong>
               </div>
-              <div class="tutor-sub">👤 Tutor: {{ app.patient?.tutor?.firstName }} {{ app.patient?.tutor?.lastName }}</div>
+              <div class="tutor-sub" *ngIf="!app.isNewPatient">👤 Tutor: {{ app.patient?.tutor?.firstName }} {{ app.patient?.tutor?.lastName }}</div>
+              <div class="tutor-sub" *ngIf="app.isNewPatient">📞 {{ app.prospectPhone }} (mascota nueva, pendiente registro)</div>
               
               <!-- Dirección física del Domicilio -->
               <div class="address-sub" *ngIf="app.patient?.tutor?.address" style="display: flex; align-items: flex-start; gap: 4px; font-size: 11.5px; color: var(--primary-color); margin: 6px 0; font-weight: 500;">
@@ -167,7 +171,7 @@
                 <span>{{ app.patient?.tutor?.address }}</span>
               </div>
 
-              <div class="vet-sub">🩺 Asignado: {{ app.vetId === 'v1' ? 'Dr. Andrés' : 'Dra. Laura' }}</div>
+              <div class="vet-sub">🩺 Asignado: {{ app.vet ? 'Dr(a). ' + app.vet.firstName + ' ' + app.vet.lastName : 'Sin asignar' }}</div>
               <p class="reason-text" *ngIf="app.reason">"{{ app.reason }}"</p>
             </div>
 
@@ -217,10 +221,12 @@
             <div class="card-body">
               <div class="patient-title">
                 <span class="material-symbols-outlined pet-icon color-emerald">pets</span>
-                <strong>{{ app.patient?.name }}</strong>
-                <span class="breed-text">({{ app.patient?.breed || app.patient?.species }})</span>
+                <strong *ngIf="!app.isNewPatient">{{ app.patient?.name }}</strong>
+                <span class="breed-text" *ngIf="!app.isNewPatient">({{ app.patient?.breed || app.patient?.species }})</span>
+                <strong *ngIf="app.isNewPatient">🆕 {{ app.prospectName }}</strong>
               </div>
-              <div class="tutor-sub">👤 Tutor: {{ app.patient?.tutor?.firstName }} {{ app.patient?.tutor?.lastName }}</div>
+              <div class="tutor-sub" *ngIf="!app.isNewPatient">👤 Tutor: {{ app.patient?.tutor?.firstName }} {{ app.patient?.tutor?.lastName }}</div>
+              <div class="tutor-sub" *ngIf="app.isNewPatient">📞 {{ app.prospectPhone }} (mascota nueva, pendiente registro)</div>
               
               <!-- Dirección física del Domicilio -->
               <div class="address-sub" *ngIf="app.patient?.tutor?.address" style="display: flex; align-items: flex-start; gap: 4px; font-size: 11.5px; color: var(--primary-color); margin: 6px 0; font-weight: 500;">
@@ -228,7 +234,7 @@
                 <span>{{ app.patient?.tutor?.address }}</span>
               </div>
 
-              <div class="vet-sub">🩺 Atendido por: {{ app.vetId === 'v1' ? 'Dr. Andrés' : 'Dra. Laura' }}</div>
+              <div class="vet-sub">🩺 Atendido por: {{ app.vet ? 'Dr(a). ' + app.vet.firstName + ' ' + app.vet.lastName : 'Sin asignar' }}</div>
               <p class="reason-text" *ngIf="app.reason">"{{ app.reason }}"</p>
             </div>
 
@@ -288,10 +294,12 @@
               <div class="card-body">
                 <div class="patient-title">
                   <span class="material-symbols-outlined pet-icon color-gray">pets</span>
-                  <strong>{{ app.patient?.name }}</strong>
-                  <span class="breed-text">({{ app.patient?.breed || app.patient?.species }})</span>
+                  <strong *ngIf="!app.isNewPatient">{{ app.patient?.name }}</strong>
+                  <span class="breed-text" *ngIf="!app.isNewPatient">({{ app.patient?.breed || app.patient?.species }})</span>
+                  <strong *ngIf="app.isNewPatient">🆕 {{ app.prospectName }}</strong>
                 </div>
-                <div class="tutor-sub">👤 Tutor: {{ app.patient?.tutor?.firstName }} {{ app.patient?.tutor?.lastName }}</div>
+                <div class="tutor-sub" *ngIf="!app.isNewPatient">👤 Tutor: {{ app.patient?.tutor?.firstName }} {{ app.patient?.tutor?.lastName }}</div>
+              <div class="tutor-sub" *ngIf="app.isNewPatient">📞 {{ app.prospectPhone }} (mascota nueva, pendiente registro)</div>
                 
                 <!-- Dirección física del Domicilio -->
                 <div class="address-sub" *ngIf="app.patient?.tutor?.address" style="display: flex; align-items: flex-start; gap: 4px; font-size: 11.5px; color: var(--text-color-secondary); margin: 6px 0;">
@@ -299,7 +307,7 @@
                   <span>{{ app.patient?.tutor?.address }}</span>
                 </div>
 
-                <div class="vet-sub">🩺 Atendido por: {{ app.vetId === 'v1' ? 'Dr. Andrés' : 'Dra. Laura' }}</div>
+                <div class="vet-sub">🩺 Atendido por: {{ app.vet ? 'Dr(a). ' + app.vet.firstName + ' ' + app.vet.lastName : 'Sin asignar' }}</div>
                 <p class="reason-text" style="color: var(--text-color-secondary);" *ngIf="app.reason">"{{ app.reason }}"</p>
               </div>
 
@@ -331,9 +339,9 @@
           <tbody>
             <tr *ngFor="let app of finishedAppointments(); trackBy: trackById">
               <td>{{ app.scheduledAt | date:'shortTime' }}</td>
-              <td><strong>🐾 {{ app.patient?.name }}</strong></td>
+              <td><strong>🐾 {{ app.isNewPatient ? '🆕 ' + app.prospectName : app.patient?.name }}</strong></td>
               <td>{{ app.serviceType }}</td>
-              <td>{{ app.vetId === 'v1' ? 'Dr. Andrés' : 'Dra. Laura' }}</td>
+              <td>{{ app.vet ? 'Dr(a). ' + app.vet.firstName + ' ' + app.vet.lastName : 'Sin asignar' }}</td>
               <td><span style="color: var(--primary-color); font-size: 12px;">📍 {{ app.patient?.tutor?.address || 'N/A' }}</span></td>
               <td>
                 <span 

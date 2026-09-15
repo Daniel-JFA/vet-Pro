@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AppointmentService } from '../../../core/services/appointment.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { Appointment, User } from '../../../core/models';
 
@@ -15,6 +16,7 @@ import { Appointment, User } from '../../../core/models';
 })
 export class AppointmentCalendarComponent implements OnInit {
   private svc = inject(AppointmentService);
+  private authSvc = inject(AuthService);
   private toast = inject(ToastService);
 
   loading = signal(true);
@@ -24,11 +26,8 @@ export class AppointmentCalendarComponent implements OnInit {
   // Fecha de la agenda de la semana (Lunes de la semana actual)
   currentWeekStart = signal<Date>(this.getStartOfWeek(new Date()));
 
-  // Lista de veterinarios mock
-  vets = signal<User[]>([
-    { id: 'v1', clinicId: 'c1', firstName: 'Andrés', lastName: 'Espinoza', email: 'admin@vetpro.co', role: 'admin', active: true },
-    { id: 'v2', clinicId: 'c1', firstName: 'Laura', lastName: 'Cardona', email: 'vet@vetpro.co', role: 'vet', active: true }
-  ]);
+  // Lista real de veterinarios/admin de la clínica (se carga en ngOnInit)
+  vets = signal<User[]>([]);
 
   // Lista de horas del calendario
   hours = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
@@ -62,6 +61,14 @@ export class AppointmentCalendarComponent implements OnInit {
 
   ngOnInit() {
     this.load();
+    this.loadVets();
+  }
+
+  private loadVets() {
+    this.authSvc.getUsers().subscribe({
+      next: users => this.vets.set(users.filter((u: User) => u.active && (u.role === 'vet' || u.role === 'admin'))),
+      error: () => this.toast.error('No se pudo cargar el listado de veterinarios.')
+    });
   }
 
   load() {

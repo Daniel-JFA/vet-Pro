@@ -31,6 +31,11 @@ export class AppointmentService {
     return this.api.patch<Appointment>(`/appointments/${id}/status`, { status });
   }
 
+  // Vincula el paciente recién registrado a una cita de "mascota nueva"
+  linkPatient(id: string, patientId: string): Observable<Appointment> {
+    return this.api.patch<Appointment>(`/appointments/${id}/link-patient`, { patientId });
+  }
+
   cancel(id: string, reason?: string): Observable<void> {
     return this.api.patch<void>(`/appointments/${id}/cancel`, { reason });
   }

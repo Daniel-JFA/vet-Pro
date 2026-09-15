@@ -174,16 +174,39 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  
+
   label {
     font-size: 13px;
     font-weight: 500;
     color: var(--text-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
   }
-  
+
+  .link-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--primary-color);
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+    white-space: nowrap;
+  }
+
+  .field-help {
+    font-size: 11.5px;
+    color: var(--text-color-secondary, #64748b);
+    font-weight: 400;
+  }
+
   input[type="text"],
   input[type="number"],
   input[type="date"],
+  input[type="tel"],
   select,
   textarea {
     height: 38px;

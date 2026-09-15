@@ -23,6 +23,8 @@ import { LAB_ROUTES } from './routes/lab.routes.js';
 import { GROOMING_ROUTES } from './routes/grooming.routes.js';
 import { CRM_ROUTES } from './routes/crm.routes.js';
 import { PLATFORM_ROUTES } from './routes/platform.routes.js';
+import { GEO_ROUTES } from './routes/geo.routes.js';
+import { SERVICE_CATALOG_ROUTES } from './routes/service-catalog.routes.js';
 import { errorHandler } from './middleware/error.js';
 
 dotenv.config();
@@ -133,6 +135,8 @@ app.use('/api/v1/labs', LAB_ROUTES);
 app.use('/api/v1/grooming', GROOMING_ROUTES);
 app.use('/api/v1/crm', CRM_ROUTES);
 app.use('/api/v1/platform', PLATFORM_ROUTES);
+app.use('/api/v1/geo', GEO_ROUTES);
+app.use('/api/v1/service-catalog', SERVICE_CATALOG_ROUTES);
 app.use('/docs', DOCS_ROUTES);
 
 // Manejador global de excepciones

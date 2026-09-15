@@ -86,9 +86,20 @@ export class AppointmentListComponent implements OnInit {
       next: () => {
         this.updateLocalStatus(app.id, newStatus);
         if (newStatus === 'in-progress') {
-          this.router.navigate(['/medical-records', 'new', app.patientId], {
-            queryParams: { appointmentId: app.id }
-          });
+          if (app.isNewPatient && !app.patientId) {
+            // Mascota nueva: primero se registra al tutor y al paciente
+            this.router.navigate(['/patients', 'new'], {
+              queryParams: {
+                prospectName: app.prospectName,
+                prospectPhone: app.prospectPhone,
+                returnAppointmentId: app.id
+              }
+            });
+          } else {
+            this.router.navigate(['/medical-records', 'new', app.patientId], {
+              queryParams: { appointmentId: app.id }
+            });
+          }
         }
       },
       error: () => {

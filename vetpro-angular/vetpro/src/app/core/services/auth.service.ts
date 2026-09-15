@@ -73,7 +73,7 @@ export class AuthService {
     email: string;
     password: string;
     phone?: string;
-    city?: string;
+    municipioId: string;
     nit?: string;
   }): Observable<{ token: string; user: User; clinic: Clinic }> {
     return this.api.post<{ token: string; user: User; clinic: Clinic }>(
@@ -135,6 +135,10 @@ export class AuthService {
     );
   }
 
+  createBranch(data: { name: string; address: string; phone: string; email?: string }): Observable<Branch> {
+    return this.api.post<Branch>('/branches', data);
+  }
+
   // Cambiar sucursal activa actual
   changeActiveBranch(branchId: string): void {
     localStorage.setItem('vetpro_active_branch_id', branchId);
@@ -151,11 +155,10 @@ export class AuthService {
     firstName: string;
     lastName: string;
     email: string;
-    password: string;
     role: string;
     branchId?: string | null;
-  }): Observable<any> {
-    return this.api.post<any>('/auth/users', data);
+  }): Observable<{ message: string; emailSent: boolean; tempPassword?: string; user: any }> {
+    return this.api.post<{ message: string; emailSent: boolean; tempPassword?: string; user: any }>('/auth/users', data);
   }
 
   updateUser(id: string, data: {
@@ -178,6 +181,7 @@ export class AuthService {
     documentNumber: string;
     phone: string;
     address: string;
+    municipioId: string;
     birthDate?: string | null;
   }): Observable<{ message: string; user: User }> {
     return this.api.patch<{ message: string; user: User }>('/auth/complete-profile', data).pipe(

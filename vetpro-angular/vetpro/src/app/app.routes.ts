@@ -73,11 +73,6 @@ export const routes: Routes = [
         loadChildren: () => import('./features/billing/billing.routes').then(m => m.BILLING_ROUTES)
       },
       {
-        path: 'notifications',
-        canActivate: [roleGuard(['admin', 'receptionist'])],
-        loadChildren: () => import('./features/notifications/notifications.routes').then(m => m.NOTIFICATIONS_ROUTES)
-      },
-      {
         path: 'consent',
         canActivate: [roleGuard(['admin', 'vet'])],
         loadChildren: () => import('./features/consent/consent.routes').then(m => m.CONSENT_ROUTES)

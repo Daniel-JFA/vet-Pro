@@ -1,8 +1,9 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { GeoService, Departamento, Municipio } from '../../core/services/geo.service';
 
 @Component({
   selector: 'app-complete-profile',
@@ -40,9 +41,26 @@ import { AuthService } from '../../core/services/auth.service';
           <input type="tel" [(ngModel)]="phone" placeholder="Ej: +57 312 456 7890" />
         </div>
 
+        <div class="form-row">
+          <div class="form-group" style="flex: 1;">
+            <label>Departamento</label>
+            <select [(ngModel)]="departamentoCode" (ngModelChange)="onDepartamentoChange()">
+              <option value="" disabled selected>Selecciona...</option>
+              <option *ngFor="let d of departamentos()" [value]="d.code">{{ d.nombre }}</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label>Municipio / Ciudad</label>
+            <select [(ngModel)]="municipioId" [disabled]="!departamentoCode() || loadingMunicipios()">
+              <option value="" disabled selected>{{ loadingMunicipios() ? 'Cargando...' : 'Selecciona...' }}</option>
+              <option *ngFor="let m of municipios()" [value]="m.id">{{ m.nombre }}</option>
+            </select>
+          </div>
+        </div>
+
         <div class="form-group">
-          <label>Dirección de Residencia</label>
-          <input type="text" [(ngModel)]="address" placeholder="Ej: Calle 45 #20-30, Medellín" />
+          <label>Dirección Exacta</label>
+          <input type="text" [(ngModel)]="address" placeholder="Ej: Calle 45 #20-30" />
         </div>
 
         <div class="form-group">
@@ -56,7 +74,7 @@ import { AuthService } from '../../core/services/auth.service';
           <button
             class="submit-btn"
             (click)="submit()"
-            [disabled]="loading() || !documentNumber() || !phone() || !address()"
+            [disabled]="loading() || !documentNumber() || !phone() || !address() || !municipioId()"
           >
             {{ loading() ? 'Guardando...' : 'Guardar y Continuar' }}
             <span class="material-symbols-outlined" *ngIf="!loading()">arrow_forward</span>
@@ -217,8 +235,9 @@ import { AuthService } from '../../core/services/auth.service';
     }
   `]
 })
-export class CompleteProfileComponent {
+export class CompleteProfileComponent implements OnInit {
   private router = inject(Router);
+  private geo = inject(GeoService);
   auth = inject(AuthService);
 
   documentType = signal<'CC' | 'CE' | 'TI' | 'PA'>('CC');
@@ -229,11 +248,37 @@ export class CompleteProfileComponent {
   loading = signal(false);
   errorMsg = signal('');
 
+  departamentoCode = signal('');
+  municipioId = signal('');
+  departamentos = signal<Departamento[]>([]);
+  municipios = signal<Municipio[]>([]);
+  loadingMunicipios = signal(false);
+
   constructor() {
     // Si ya completó su perfil, no tiene nada que hacer aquí
     if (this.auth.currentUser?.profileCompleted) {
       this.router.navigate(['/']);
     }
+  }
+
+  ngOnInit() {
+    this.geo.getDepartamentos().subscribe(list => this.departamentos.set(list));
+  }
+
+  onDepartamentoChange() {
+    const code = this.departamentoCode();
+    this.municipioId.set('');
+    this.municipios.set([]);
+    if (!code) return;
+
+    this.loadingMunicipios.set(true);
+    this.geo.getMunicipios(code).subscribe({
+      next: (list) => {
+        this.municipios.set(list);
+        this.loadingMunicipios.set(false);
+      },
+      error: () => this.loadingMunicipios.set(false)
+    });
   }
 
   submit() {
@@ -245,6 +290,7 @@ export class CompleteProfileComponent {
       documentNumber: this.documentNumber(),
       phone: this.phone(),
       address: this.address(),
+      municipioId: this.municipioId(),
       birthDate: this.birthDate() || null
     }).subscribe({
       next: () => {

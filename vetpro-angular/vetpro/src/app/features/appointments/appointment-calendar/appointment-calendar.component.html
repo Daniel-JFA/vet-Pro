@@ -90,7 +90,7 @@
                     👤 {{ app.patient?.tutor?.firstName }}
                   </span>
                   <span class="vet">
-                    🩺 {{ app.vetId === 'v1' ? 'Dr. Andrés' : 'Dra. Laura' }}
+                    🩺 {{ app.vet ? 'Dr(a). ' + app.vet.firstName + ' ' + app.vet.lastName : 'Sin asignar' }}
                   </span>
                 </div>
                 <!-- Mini Badge de Estado -->

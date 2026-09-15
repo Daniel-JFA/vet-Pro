@@ -1,4 +1,5 @@
 import { Router, Response } from 'express';
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../config/database.js';
@@ -8,6 +9,18 @@ import { MailerService } from '../services/mailer.service.js';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET!;
+
+// Genera una contraseña temporal segura (evita caracteres ambiguos: 0/O, 1/l/I)
+function generateTempPassword(): string {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  const symbols = '!@#$%*';
+  let pass = '';
+  for (let i = 0; i < 10; i++) {
+    pass += chars[crypto.randomInt(chars.length)];
+  }
+  pass += symbols[crypto.randomInt(symbols.length)];
+  return pass;
+}
 
 if (!JWT_SECRET) {
   console.error('FATAL: JWT_SECRET env var is not set. Refusing to start.');
@@ -29,6 +42,8 @@ function toUserResponse(user: {
   documentNumber?: string | null;
   phone?: string | null;
   address?: string | null;
+  departamentoCode?: string | null;
+  municipioId?: string | null;
   birthDate?: Date | null;
 }) {
   return {
@@ -46,6 +61,8 @@ function toUserResponse(user: {
     documentNumber: user.documentNumber ?? null,
     phone: user.phone ?? null,
     address: user.address ?? null,
+    departamentoCode: user.departamentoCode ?? null,
+    municipioId: user.municipioId ?? null,
     birthDate: user.birthDate ?? null
   };
 }
@@ -72,16 +89,22 @@ function signToken(user: {
 
 // POST /auth/register (Registro de nueva clínica o veterinario independiente)
 router.post('/register', async (req, res) => {
-  const { clinicName, businessType, firstName, lastName, email, password, phone, city, nit } = req.body;
+  const { clinicName, businessType, firstName, lastName, password, phone, municipioId, nit } = req.body;
+  const email: string | undefined = req.body.email?.trim().toLowerCase();
 
-  if (!clinicName || !firstName || !lastName || !email || !password) {
-    return res.status(400).json({ error: 'Todos los campos obligatorios deben ser completados.' });
+  if (!clinicName || !firstName || !lastName || !email || !password || !municipioId) {
+    return res.status(400).json({ error: 'Todos los campos obligatorios deben ser completados, incluyendo el municipio.' });
   }
 
   try {
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
       return res.status(409).json({ error: 'El correo electrónico ya está registrado.' });
+    }
+
+    const municipio = await prisma.municipio.findUnique({ where: { id: municipioId } });
+    if (!municipio) {
+      return res.status(400).json({ error: 'El municipio seleccionado no es válido.' });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -98,7 +121,9 @@ router.post('/register', async (req, res) => {
           email,
           phone: phone || '+57 300 000 0000',
           address: bType === 'independent_vet' ? 'Atención Domiciliaria / Móvil' : 'Sede Principal',
-          city: city || 'Medellín',
+          city: municipio.nombre,
+          departamentoCode: municipio.deptoCode,
+          municipioId: municipio.id,
           nit: nit || null,
           plan: 'pro'
         }
@@ -232,17 +257,22 @@ router.patch('/complete-profile', authMiddleware as any, async (req: AuthRequest
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ error: 'No autorizado.' });
 
-  const { documentType, documentNumber, phone, address, birthDate } = req.body;
+  const { documentType, documentNumber, phone, address, municipioId, birthDate } = req.body;
 
   const validDocTypes = ['CC', 'CE', 'PA', 'TI'];
   if (!documentType || !validDocTypes.includes(documentType)) {
     return res.status(400).json({ error: `Tipo de documento inválido. Valores permitidos: ${validDocTypes.join(', ')}` });
   }
-  if (!documentNumber || !phone || !address) {
-    return res.status(400).json({ error: 'Documento, teléfono y dirección son obligatorios.' });
+  if (!documentNumber || !phone || !address || !municipioId) {
+    return res.status(400).json({ error: 'Documento, teléfono, dirección y municipio son obligatorios.' });
   }
 
   try {
+    const municipio = await prisma.municipio.findUnique({ where: { id: municipioId } });
+    if (!municipio) {
+      return res.status(400).json({ error: 'El municipio seleccionado no es válido.' });
+    }
+
     const updated = await prisma.user.update({
       where: { id: userId },
       data: {
@@ -250,6 +280,8 @@ router.patch('/complete-profile', authMiddleware as any, async (req: AuthRequest
         documentNumber: documentNumber.trim(),
         phone: phone.trim(),
         address: address.trim(),
+        departamentoCode: municipio.deptoCode,
+        municipioId: municipio.id,
         birthDate: birthDate ? new Date(birthDate) : null,
         profileCompleted: true
       }
@@ -369,10 +401,10 @@ router.post('/users', authMiddleware as any, roleMiddleware(['admin']) as any, a
   const clinicId = req.user?.clinicId;
   if (!clinicId) return res.status(401).json({ error: 'No autorizado.' });
 
-  const { firstName, lastName, email, password, role, branchId } = req.body;
+  const { firstName, lastName, email, role, branchId } = req.body;
 
-  if (!firstName || !lastName || !email || !password || !role) {
-    return res.status(400).json({ error: 'Nombre, apellido, correo, contraseña y rol son obligatorios.' });
+  if (!firstName || !lastName || !email || !role) {
+    return res.status(400).json({ error: 'Nombre, apellido, correo y rol son obligatorios.' });
   }
 
   const validRoles = ['admin', 'vet', 'assistant', 'receptionist', 'walker', 'groomer'];
@@ -398,7 +430,8 @@ router.post('/users', authMiddleware as any, roleMiddleware(['admin']) as any, a
       if (!branch) return res.status(404).json({ error: 'Sucursal no encontrada.' });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const tempPassword = generateTempPassword();
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
 
     const newUser = await prisma.user.create({
       data: {
@@ -431,7 +464,7 @@ router.post('/users', authMiddleware as any, roleMiddleware(['admin']) as any, a
         clinicName: clinic?.name || 'VetPro Cloud',
         role: newUser.role,
         branchName: newUser.branch?.name || null,
-        passwordPlain: password
+        passwordPlain: tempPassword
       });
     } catch (mailError) {
       console.error('Error al enviar correo de bienvenida con credenciales:', mailError);
@@ -440,8 +473,10 @@ router.post('/users', authMiddleware as any, roleMiddleware(['admin']) as any, a
     return res.status(201).json({
       message: emailSent
         ? 'Usuario creado exitosamente. Se ha enviado un correo con las credenciales de acceso.'
-        : 'Usuario creado exitosamente.',
+        : 'Usuario creado, pero no se pudo enviar el correo. Comparte esta contraseña temporal manualmente.',
       emailSent,
+      // Solo se expone si el correo falló — es la única forma de que el admin la conozca
+      ...(emailSent ? {} : { tempPassword }),
       user: {
         id: newUser.id,
         clinicId: newUser.clinicId,

@@ -165,7 +165,7 @@ import { RouterLink } from '@angular/router';
               <span class="material-symbols-outlined">mobile_friendly</span>
             </div>
             <h3>Portal PWA del Tutor</h3>
-            <p>Tus clientes pueden consultar el carnet de vacunas digital de sus mascotas y programar su próximo domicilio mediante un enlace mágico enviado por WhatsApp sin contraseñas.</p>
+            <p>Tus clientes pueden consultar el carnet de vacunas digital de sus mascotas y programar su próximo domicilio mediante un enlace mágico enviado por correo, sin contraseñas.</p>
           </div>
 
           <div class="feature-card">
@@ -332,7 +332,7 @@ import { RouterLink } from '@angular/router';
             <span class="section-label">PORTAL DEL TUTOR (PWA)</span>
             <h2>Fideliza a tus Clientes con Cero Fricción</h2>
             <p>
-              Ofrece a los dueños de mascotas una aplicación móvil web progresiva para consultar su historial de domicilios. Acceden mediante enlaces mágicos enviados por WhatsApp sin contraseñas.
+              Ofrece a los dueños de mascotas una aplicación móvil web progresiva para consultar su historial de domicilios. Acceden mediante enlaces mágicos enviados por correo, sin contraseñas.
             </p>
             <ul class="tutor-list">
               <li>
@@ -361,8 +361,8 @@ import { RouterLink } from '@angular/router';
       <section id="pricing" class="pricing-section">
         <div class="section-header">
           <span class="section-label">Planes Flexibles</span>
-          <h2>Precios Claros y Transparentes</h2>
-          <p>Elige el plan ideal para tu práctica itinerante o para tu red de veterinarios móviles. Cancela cuando quieras.</p>
+          <h2>Un Plan para cada Práctica Veterinaria</h2>
+          <p>Elige el plan ideal para tu práctica itinerante o para tu red de veterinarios móviles. Escríbenos para una cotización a la medida.</p>
         </div>
 
         <div class="pricing-grid">
@@ -371,9 +371,7 @@ import { RouterLink } from '@angular/router';
             <div class="plan-header">
               <h3>Plan VetPro Itinerante</h3>
               <div class="price">
-                <span class="currency">$</span>
-                <span class="amount">189,000</span>
-                <span class="period">/ mes (COP)</span>
+                <span class="amount-quote">Cotización Personalizada</span>
               </div>
               <p>Diseñado para médicos veterinarios independientes que atienden a domicilio.</p>
             </div>
@@ -396,9 +394,7 @@ import { RouterLink } from '@angular/router';
             <div class="plan-header">
               <h3>Plan Clínicas Móviles</h3>
               <div class="price">
-                <span class="currency">$</span>
-                <span class="amount">299,000</span>
-                <span class="period">/ mes (COP)</span>
+                <span class="amount-quote">Cotización Personalizada</span>
               </div>
               <p>Ideal para empresas de visitas veterinarias a domicilio con múltiples sucursales y médicos.</p>
             </div>
@@ -460,7 +456,7 @@ import { RouterLink } from '@angular/router';
             <h5>Enlaces</h5>
             <a href="#features">Características</a>
             <a href="#ai-demo">Dictado IA</a>
-            <a href="#pricing">Precios</a>
+            <a href="#pricing">Planes</a>
           </div>
           <div class="footer-legal">
             <h5>Seguridad & Leyes</h5>
@@ -1612,6 +1608,13 @@ import { RouterLink } from '@angular/router';
       color: white;
     }
 
+    .amount-quote {
+      font-size: 22px;
+      font-weight: 800;
+      color: white;
+      line-height: 1.3;
+    }
+
     .period {
       font-size: 13px;
       color: var(--text-gray);
@@ -1915,11 +1918,11 @@ export class LandingComponent {
     },
     {
       q: '¿Qué es el Portal del Tutor Passwordless?',
-      a: 'Es una aplicación progresiva (PWA) diseñada para dueños de mascotas. Cuando el tutor recibe un mensaje automatizado por WhatsApp (ej. recordatorio de vacuna), contiene un enlace con un token seguro (Magic Link). Al dar clic, ingresa instantáneamente a la app sin crear usuarios o contraseñas engorrosas.'
+      a: 'Es una aplicación progresiva (PWA) diseñada para dueños de mascotas. El tutor recibe un correo con un enlace seguro (Magic Link) de un solo uso. Al dar clic, ingresa instantáneamente a la app sin crear usuarios o contraseñas engorrosas.'
     },
     {
       q: '¿Se integra con WhatsApp para alertas automatizadas?',
-      a: 'Sí, la plataforma cuenta con un despachador simulado en tiempo real que emite alertas de salud, reservas y recordatorios directamente al WhatsApp del tutor de manera nativa e inmediata.'
+      a: 'La plataforma prepara recordatorios y campañas de reactivación listos para enviar por WhatsApp; si tienes credenciales de WhatsApp Business API configuradas, el envío es automático, y si no, genera el enlace de chat para que tu equipo lo despache con un clic.'
     },
     {
       q: '¿Cumple con la normatividad de protección de datos en Colombia?',

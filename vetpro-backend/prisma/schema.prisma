@@ -36,6 +36,34 @@ model PlatformAdmin {
 }
 
 // ─────────────────────────────────────────────
+// 🗺️ DIVISIÓN POLÍTICO-ADMINISTRATIVA DE COLOMBIA (referencia, solo lectura)
+// ─────────────────────────────────────────────
+// Tablas de catálogo (códigos DANE) para que ciudad/municipio se guarden como
+// una referencia estructurada en vez de texto libre — así se pueden filtrar
+// y agrupar de verdad (reportes, panel de super-admin, etc).
+
+model Departamento {
+  code       String      @id
+  nombre     String
+  municipios Municipio[]
+
+  @@map("departamentos")
+}
+
+model Municipio {
+  id         String       @id
+  deptoCode  String
+  nombre     String
+  departamento Departamento @relation(fields: [deptoCode], references: [code])
+
+  clinics Clinic[]
+  users   User[]
+
+  @@index([deptoCode])
+  @@map("municipios")
+}
+
+// ─────────────────────────────────────────────
 // 💎 MODELOS CORE DE LA CLÍNICA (SaaS)
 // ─────────────────────────────────────────────
 
@@ -60,12 +88,17 @@ model Clinic {
   phone          String
   email          String   @unique
   address        String
-  city           String
+  city           String // Nombre del municipio — mantenido por compatibilidad, se deriva de municipioId
+  departamentoCode String?
+  municipioId      String?
+  municipio        Municipio? @relation(fields: [municipioId], references: [id])
   plan           PlanType @default(starter)
   aiMinutesUsed  Float    @default(0)
   aiMinutesLimit Float    @default(60) // Límite en minutos según plan
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
+  serviceCatalogs ServiceCatalog[]
 
   // Relaciones
   branches              Branch[]
@@ -156,7 +189,10 @@ model User {
   documentType     String? // CC, CE, PA, TI
   documentNumber   String?
   phone            String?
-  address          String?
+  address          String? // Dirección exacta (calle/carrera) — el municipio va aparte
+  departamentoCode String?
+  municipioId      String?
+  municipio        Municipio? @relation(fields: [municipioId], references: [id])
   birthDate        DateTime?
 
   // Relaciones
@@ -301,8 +337,13 @@ model Appointment {
   clinic          Clinic            @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   branchId        String
   branch          Branch            @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  patientId       String
-  patient         Patient           @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  patientId       String?
+  patient         Patient?          @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  // Cita para una mascota que todavía no existe en el sistema — se registra
+  // al tutor y al paciente cuando inicia la atención (ver /link-patient)
+  isNewPatient    Boolean           @default(false)
+  prospectName    String?
+  prospectPhone   String?
   vetId           String?
   vet             User?             @relation("VetAppointments", fields: [vetId], references: [id], onDelete: Restrict)
   serviceType     String // Consulta General, Control, Cirugía, Vacunación, etc.
@@ -1067,6 +1108,23 @@ enum LabCategory {
   imaging
   cytology
   other
+}
+
+// Catálogo de servicios/consultas de la clínica — cada clínica define sus
+// propios nombres y precios (no hay una tarifa fija de la plataforma).
+model ServiceCatalog {
+  id        String   @id @default(uuid())
+  clinicId  String
+  clinic    Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  name      String
+  salePrice Float    @default(0)
+  taxRate   Float    @default(0.19)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clinicId])
+  @@map("service_catalogs")
 }
 
 model LabTestCatalog {

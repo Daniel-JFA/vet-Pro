@@ -36,8 +36,11 @@
 
         <div class="fields-row fields-row-2">
           <!-- Paciente -->
-          <div class="field" [class.error]="form.get('patientId')?.invalid && form.get('patientId')?.touched">
-            <label>Paciente (Mascota) *</label>
+          <div class="field" [class.error]="form.get('patientId')?.invalid && form.get('patientId')?.touched" *ngIf="!isNewPatient()">
+            <label>
+              Paciente (Mascota) *
+              <button type="button" class="link-btn" (click)="toggleNewPatient(true)" *ngIf="!isEditMode()">¿Es una mascota nueva?</button>
+            </label>
             <select formControlName="patientId">
               <option value="" disabled selected>-- Elegir Paciente --</option>
               <option *ngFor="let p of patients()" [value]="p.id">
@@ -47,6 +50,16 @@
             <span class="error-msg" *ngIf="form.get('patientId')?.invalid && form.get('patientId')?.touched">
               Debe seleccionar un paciente para agendar la cita.
             </span>
+          </div>
+
+          <!-- Mascota nueva: se registra al iniciar la atención, solo pedimos datos de contacto del tutor -->
+          <div class="field" *ngIf="isNewPatient()">
+            <label>
+              Nombre del Tutor (Mascota Nueva) *
+              <button type="button" class="link-btn" (click)="toggleNewPatient(false)">Ya existe en el sistema</button>
+            </label>
+            <input type="text" formControlName="prospectName" placeholder="Nombre completo del tutor" />
+            <span class="field-help">Se registrará formalmente al tutor y la mascota cuando inicie la atención.</span>
           </div>
 
           <!-- Veterinario -->
@@ -61,6 +74,13 @@
             <span class="error-msg" *ngIf="form.get('vetId')?.invalid && form.get('vetId')?.touched">
               Debe asignar un veterinario a la cita.
             </span>
+          </div>
+        </div>
+
+        <div class="fields-row fields-row-2" *ngIf="isNewPatient()">
+          <div class="field">
+            <label>Teléfono del Tutor *</label>
+            <input type="tel" formControlName="prospectPhone" placeholder="+57 300 123 4567" />
           </div>
         </div>
 

@@ -154,10 +154,14 @@ import { Appointment } from '../../core/models';
               <div class="card-details">
                 <div class="details-main">
                   <div class="patient-info">
-                    <span class="patient-emoji">{{ getSpeciesEmoji(app.patient?.species) }}</span>
-                    <div class="patient-meta">
+                    <span class="patient-emoji">{{ app.isNewPatient ? '🆕' : getSpeciesEmoji(app.patient?.species) }}</span>
+                    <div class="patient-meta" *ngIf="!app.isNewPatient">
                       <span class="patient-name">{{ app.patient?.name }}</span>
                       <span class="patient-breed">{{ app.patient?.breed || 'Sin raza' }}</span>
+                    </div>
+                    <div class="patient-meta" *ngIf="app.isNewPatient">
+                      <span class="patient-name">{{ app.prospectName }}</span>
+                      <span class="patient-breed">Mascota nueva — pendiente de registro</span>
                     </div>
                   </div>
                   <span class="status-badge" [class]="app.status">
@@ -166,9 +170,13 @@ import { Appointment } from '../../core/models';
                 </div>
 
                 <div class="details-meta">
-                  <div class="meta-row">
+                  <div class="meta-row" *ngIf="!app.isNewPatient">
                     <span class="material-symbols-outlined meta-icon">person</span>
                     <span>Tutor: <strong>{{ app.patient?.tutor?.firstName }} {{ app.patient?.tutor?.lastName }}</strong></span>
+                  </div>
+                  <div class="meta-row" *ngIf="app.isNewPatient">
+                    <span class="material-symbols-outlined meta-icon">call</span>
+                    <span>Contacto: <strong>{{ app.prospectPhone }}</strong></span>
                   </div>
                   <div class="meta-row">
                     <span class="material-symbols-outlined meta-icon">location_on</span>
@@ -896,8 +904,19 @@ export class DashboardComponent implements OnInit {
   }
 
   updateAppointmentStatus(id: string, status: Appointment['status']) {
+    const app = this.todayAppointments().find(a => a.id === id);
     this.appts.updateStatus(id, status).subscribe({
       next: () => {
+        if (status === 'in-progress' && app?.isNewPatient && !app.patientId) {
+          this.router.navigate(['/patients', 'new'], {
+            queryParams: {
+              prospectName: app.prospectName,
+              prospectPhone: app.prospectPhone,
+              returnAppointmentId: app.id
+            }
+          });
+          return;
+        }
         this.loadTodayAppointments();
       },
       error: (err: any) => {
