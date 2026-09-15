@@ -76,12 +76,12 @@
 
 ---
 
-## Pendientes recomendados (no bloqueantes para mañana, pero anotados)
+## Pendientes recomendados
 
-1. Construir una página de "Tutores" (listado + edición) en el staff app — el backend ya está listo.
-2. Separar métodos de pago en el cierre de caja (efectivo vs. tarjeta vs. transferencia) y filtrar por sede.
-3. Configurar un Proveedor Tecnológico Autorizado real para que las facturas DIAN tengan validez fiscal (acción de negocio, no de código).
-4. Reversar el movimiento de inventario al anular una factura.
-5. Arreglar (o eliminar del enum) las cohortes de CRM "cumpleaños"/"desparasitación" si algún día se conectan desde la UI.
-6. Corregir la URL hardcodeada de Swagger, o quitar `/docs` del despliegue de producción.
-7. Subida de fotos real (mascotas) — hoy no existe ningún mecanismo de carga de archivos en el backend.
+1. ✅ **Hecho** — Página de "Tutores" (listado + edición) en el staff app.
+2. 🔲 Separar métodos de pago en el cierre de caja (efectivo vs. tarjeta vs. transferencia) y filtrar por sede.
+3. 🔲 Configurar un Proveedor Tecnológico Autorizado real para reactivar DIAN (acción de negocio — necesita decisión/credenciales tuyas).
+4. ✅ **Hecho** — Anular una factura ahora revierte el movimiento de inventario.
+5. ✅ **Hecho** — Cohorte de "cumpleaños" del CRM implementada con datos reales; "desparasitación" retirada del enum (no explotable, sin datos para calcularla).
+6. ✅ **Hecho** — URL de Swagger corregida a relativa.
+7. 🔲 Subida de fotos real (mascotas) — necesita decidir infraestructura (volumen local vs. S3/R2).
