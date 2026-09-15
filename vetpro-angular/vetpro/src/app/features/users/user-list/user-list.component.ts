@@ -263,7 +263,6 @@ export interface UserItem {
                 <option value="vet">🩺 Médico Veterinario (Consultas, IA SOAP, Recetas)</option>
                 <option value="assistant">💉 Auxiliar Veterinario (Kardex, Fluidoterapia, Dosis)</option>
                 <option value="receptionist">💼 Recepcionista / Caja (Citas, POS, Facturación, WhatsApp)</option>
-                <option value="groomer">✂️ Peluquero / Estilista (Spa, Baño Medicado, Kanban)</option>
                 <option value="walker">🐕 Paseador (Rutas y Paseos)</option>
                 <option value="admin">🛡️ Administrador (Acceso Total & Finanzas)</option>
               </select>

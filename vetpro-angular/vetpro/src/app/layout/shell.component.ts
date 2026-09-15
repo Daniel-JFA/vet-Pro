@@ -155,8 +155,7 @@ export class ShellComponent implements OnInit {
       { label: 'Inicio',               icon: 'home',           path: '/dashboard' },
       { label: 'Pacientes',            icon: 'pets',           path: '/patients' },
       { label: 'Tutores',              icon: 'group',          path: '/tutors' },
-      { label: 'Citas & Agenda',       icon: 'calendar_month', path: '/appointments', badge: this.pendingAppointmentsToday() },
-      { label: 'Domicilios On-Demand', icon: 'two_wheeler',    path: '/appointments/on-demand' }
+      { label: 'Citas & Agenda',       icon: 'calendar_month', path: '/appointments', badge: this.pendingAppointmentsToday() }
     ];
 
     // Solo roles clínicos ven historia clínica, hospitalización y laboratorio
@@ -165,13 +164,6 @@ export class ShellComponent implements OnInit {
         { label: 'Historia clínica',   icon: 'description',    path: '/medical-records' },
         { label: 'Hospitalización',    icon: 'local_hospital', path: '/hospitalization' },
         { label: 'Laboratorio',        icon: 'biotech',        path: '/labs' }
-      );
-    }
-
-    // Peluquería y Spa
-    if (role === 'admin' || role === 'vet' || role === 'assistant' || role === 'receptionist' || role === 'groomer') {
-      baseNav.push(
-        { label: 'Peluquería & Spa',   icon: 'content_cut',    path: '/grooming' }
       );
     }
 
