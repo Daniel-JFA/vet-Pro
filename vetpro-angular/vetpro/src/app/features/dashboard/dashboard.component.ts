@@ -865,6 +865,14 @@ export class DashboardComponent implements OnInit {
       },
       error: (err: any) => {
         console.error('Error cargando KPIs:', err);
+        // Nunca dejar datos de una sesión/tenant anterior visibles en pantalla
+        this.kpis.set({
+          revenue: { current: 0, growth: 0 },
+          consultations: { current: 0, growth: 0 },
+          newPatients: { current: 0, growth: 0 },
+          retentionRate: { current: 0, growth: 0 }
+        });
+        this.speciesRawData.set([]);
         this.loadingStats.set(false);
       }
     });
@@ -881,6 +889,7 @@ export class DashboardComponent implements OnInit {
       },
       error: (err: any) => {
         console.error('Error cargando citas de hoy:', err);
+        this.todayAppointments.set([]);
         this.loadingAppts.set(false);
       }
     });

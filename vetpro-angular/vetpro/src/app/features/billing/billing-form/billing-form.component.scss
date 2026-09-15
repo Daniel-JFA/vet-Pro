@@ -192,6 +192,13 @@
   text-align: left;
   font-size: 0.9rem;
 
+  th.col-qty { width: 80px; }
+  th.col-price { width: 140px; }
+  th.col-tax { width: 100px; }
+  th.col-discount { width: 90px; }
+  th.col-total { width: 130px; }
+  th.col-actions { width: 50px; }
+
   th {
     background: #f8fafc;
     padding: 0.75rem 1rem;
@@ -268,6 +275,10 @@
 
     span {
       font-size: 1.25rem;
+    }
+
+    .delete-label {
+      display: none;
     }
 
     &:hover:not(:disabled) {
@@ -522,6 +533,114 @@
 
     span {
       font-size: 1rem;
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+// RESPONSIVE — Mobile (celular)
+// ─────────────────────────────────────────────
+@media (max-width: 640px) {
+  .billing-form-page {
+    padding: 1rem;
+  }
+
+  .form-header .page-title {
+    font-size: 1.4rem;
+  }
+
+  .card {
+    padding: 1rem;
+    border-radius: 12px;
+  }
+
+  .form-row-grid {
+    grid-template-columns: 1fr;
+  }
+
+  // La tabla de ítems pasa a tarjetas apiladas: cada <tr> es una tarjeta,
+  // cada <td> se etiqueta con su columna via data-label (ver .html)
+  .table-wrapper {
+    overflow-x: visible;
+    border: none;
+  }
+
+  .items-table {
+    thead {
+      display: none;
+    }
+
+    tbody, tr, td {
+      display: block;
+      width: 100%;
+    }
+
+    tr {
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 0.75rem;
+      margin-bottom: 0.75rem;
+      background: white;
+    }
+
+    td {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 0;
+      border-bottom: 1px dashed #f1f5f9;
+
+      &::before {
+        content: attr(data-label);
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        flex-shrink: 0;
+      }
+
+      input, select {
+        max-width: 60%;
+        text-align: right;
+      }
+    }
+
+    tr td:last-child {
+      border-bottom: none;
+    }
+
+    .col-actions {
+      justify-content: flex-end;
+
+      &::before {
+        content: none;
+      }
+    }
+
+    .delete-row-btn {
+      display: inline-flex;
+      gap: 0.4rem;
+      width: auto;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+
+      .delete-label {
+        display: inline;
+        font-size: 0.8rem;
+        font-weight: 600;
+      }
+    }
+  }
+
+  .form-actions-row {
+    flex-direction: column-reverse;
+
+    .btn {
+      width: 100%;
+      justify-content: center;
     }
   }
 }

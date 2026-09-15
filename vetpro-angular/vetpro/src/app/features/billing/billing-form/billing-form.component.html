@@ -64,31 +64,31 @@
               <table class="items-table">
                 <thead>
                   <tr>
-                    <th>Descripción / Servicio *</th>
-                    <th style="width: 80px;">Cant.</th>
-                    <th style="width: 140px;">Precio Unitario ($)</th>
-                    <th style="width: 100px;">IVA (%)</th>
-                    <th style="width: 90px;">Desc. (%)</th>
-                    <th style="width: 130px; text-align: right;">Total ($)</th>
-                    <th style="width: 50px; text-align: center;"></th>
+                    <th class="col-desc">Descripción / Servicio *</th>
+                    <th class="col-qty">Cant.</th>
+                    <th class="col-price">Precio Unitario ($)</th>
+                    <th class="col-tax">IVA (%)</th>
+                    <th class="col-discount">Desc. (%)</th>
+                    <th class="col-total" style="text-align: right;">Total ($)</th>
+                    <th class="col-actions" style="text-align: center;"></th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr *ngFor="let item of items(); let i = index">
-                    <td>
-                      <input 
-                        type="text" 
-                        [value]="item.description" 
+                    <td class="col-desc" data-label="Descripción">
+                      <input
+                        type="text"
+                        [value]="item.description"
                         (input)="updateItemField(i, 'description', $event)"
                         placeholder="Ej: Consulta General"
                         required
                         class="desc-input"
                       />
                     </td>
-                    <td>
-                      <input 
-                        type="number" 
-                        [value]="item.quantity" 
+                    <td class="col-qty" data-label="Cantidad">
+                      <input
+                        type="number"
+                        [value]="item.quantity"
                         (input)="updateItemField(i, 'quantity', $event)"
                         min="1"
                         step="1"
@@ -96,10 +96,10 @@
                         class="num-input center"
                       />
                     </td>
-                    <td>
-                      <input 
-                        type="number" 
-                        [value]="item.unitPrice" 
+                    <td class="col-price" data-label="Precio Unitario">
+                      <input
+                        type="number"
+                        [value]="item.unitPrice"
                         (input)="updateItemField(i, 'unitPrice', $event)"
                         min="0"
                         placeholder="0"
@@ -107,17 +107,17 @@
                         class="num-input"
                       />
                     </td>
-                    <td>
+                    <td class="col-tax" data-label="IVA">
                       <select [value]="item.taxRate" (change)="updateItemField(i, 'taxRate', $event)" class="tax-select">
                         <option [value]="0.19">19% (IVA)</option>
                         <option [value]="0.05">5% (Esp.)</option>
                         <option [value]="0.0">Exento (0%)</option>
                       </select>
                     </td>
-                    <td>
-                      <input 
-                        type="number" 
-                        [value]="item.discount" 
+                    <td class="col-discount" data-label="Descuento">
+                      <input
+                        type="number"
+                        [value]="item.discount"
                         (input)="updateItemField(i, 'discount', $event)"
                         min="0"
                         max="100"
@@ -125,12 +125,13 @@
                         class="num-input center"
                       />
                     </td>
-                    <td class="item-total-col">
+                    <td class="col-total item-total-col" data-label="Total">
                       {{ (item.quantity * item.unitPrice * (1 - item.discount / 100) * (1 + item.taxRate)) | currency:'COP':'symbol-narrow':'1.0-0' }}
                     </td>
-                    <td style="text-align: center;">
+                    <td class="col-actions" style="text-align: center;">
                       <button type="button" class="delete-row-btn" (click)="removeItem(i)" [disabled]="items().length === 1">
                         <span class="material-symbols-outlined">delete</span>
+                        <span class="delete-label">Eliminar ítem</span>
                       </button>
                     </td>
                   </tr>
