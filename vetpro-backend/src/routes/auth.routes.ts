@@ -10,17 +10,13 @@ import { MailerService } from '../services/mailer.service.js';
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET!;
 
-// Genera una contraseña temporal segura (evita caracteres ambiguos: 0/O, 1/l/I)
-function generateTempPassword(): string {
-  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-  const symbols = '!@#$%*';
-  let pass = '';
-  for (let i = 0; i < 10; i++) {
-    pass += chars[crypto.randomInt(chars.length)];
-  }
-  pass += symbols[crypto.randomInt(symbols.length)];
-  return pass;
+// Token de activación/recuperación — nunca se escribe ni se copia a mano,
+// solo viaja dentro de un enlace, así que no hay forma de transcribirlo mal.
+function generateActivationToken(): string {
+  return crypto.randomBytes(32).toString('hex');
 }
+
+const ACTIVATION_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
 
 if (!JWT_SECRET) {
   console.error('FATAL: JWT_SECRET env var is not set. Refusing to start.');
@@ -232,6 +228,67 @@ router.post('/login', async (req, res) => {
     });
   } catch (error) {
     console.error('Error en /auth/login:', error);
+    return res.status(500).json({ error: 'Error interno del servidor.' });
+  }
+});
+
+// GET /auth/activation/:token (Consultar datos básicos antes de activar — para mostrar "Hola, Nombre")
+router.get('/activation/:token', async (req, res) => {
+  const { token } = req.params;
+
+  try {
+    const user = await prisma.user.findUnique({ where: { activationToken: token } });
+    if (!user || !user.activationTokenExpiresAt || user.activationTokenExpiresAt < new Date()) {
+      return res.status(404).json({ error: 'El enlace de activación no es válido o ya expiró.' });
+    }
+
+    return res.json({ firstName: user.firstName, lastName: user.lastName, email: user.email });
+  } catch (error) {
+    console.error('Error en /auth/activation/:token:', error);
+    return res.status(500).json({ error: 'Error interno del servidor.' });
+  }
+});
+
+// POST /auth/activate (Define la contraseña real y activa la cuenta — reemplaza el flujo de contraseña temporal)
+router.post('/activate', async (req, res) => {
+  const { token, password } = req.body;
+
+  if (!token || !password) {
+    return res.status(400).json({ error: 'Token y contraseña son obligatorios.' });
+  }
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres.' });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { activationToken: token },
+      include: { clinic: true }
+    });
+
+    if (!user || !user.activationTokenExpiresAt || user.activationTokenExpiresAt < new Date()) {
+      return res.status(404).json({ error: 'El enlace de activación no es válido o ya expiró. Pide a tu administrador que te reenvíe la invitación.' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const activated = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        activationToken: null,
+        activationTokenExpiresAt: null
+      },
+      include: { clinic: true }
+    });
+
+    return res.json({
+      message: 'Cuenta activada exitosamente.',
+      token: signToken(activated),
+      user: toUserResponse(activated),
+      clinic: activated.clinic
+    });
+  } catch (error) {
+    console.error('Error en /auth/activate:', error);
     return res.status(500).json({ error: 'Error interno del servidor.' });
   }
 });
@@ -449,8 +506,11 @@ router.post('/users', authMiddleware as any, roleMiddleware(['admin']) as any, a
       if (!branch) return res.status(404).json({ error: 'Sucursal no encontrada.' });
     }
 
-    const tempPassword = generateTempPassword();
-    const passwordHash = await bcrypt.hash(tempPassword, 10);
+    // Contraseña inservible de por sí — nadie puede loguear con esto, el
+    // usuario define su propia contraseña real al activar la cuenta.
+    const placeholderHash = await bcrypt.hash(crypto.randomUUID(), 10);
+    const activationToken = generateActivationToken();
+    const activationTokenExpiresAt = new Date(Date.now() + ACTIVATION_TOKEN_TTL_MS);
 
     const newUser = await prisma.user.create({
       data: {
@@ -459,7 +519,9 @@ router.post('/users', authMiddleware as any, roleMiddleware(['admin']) as any, a
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim().toLowerCase(),
-        passwordHash,
+        passwordHash: placeholderHash,
+        activationToken,
+        activationTokenExpiresAt,
         role: role as any,
         active: true
       },
@@ -473,29 +535,34 @@ router.post('/users', authMiddleware as any, roleMiddleware(['admin']) as any, a
       where: { id: clinicId }
     });
 
-    // Enviar correo con credenciales de acceso de forma asíncrona / segura
+    const appUrl = process.env.APP_URL || 'http://localhost:4201';
+    const activationLink = `${appUrl}/auth/activate?token=${activationToken}`;
+
+    // Enviar correo con el enlace de activación de forma asíncrona / segura
     let emailSent = false;
     try {
-      emailSent = await MailerService.sendNewUserCredentials({
+      emailSent = await MailerService.sendActivationLink({
         to: newUser.email,
         firstName: newUser.firstName,
         lastName: newUser.lastName,
         clinicName: clinic?.name || 'VetPro Cloud',
         role: newUser.role,
         branchName: newUser.branch?.name || null,
-        passwordPlain: tempPassword
+        activationLink
       });
     } catch (mailError) {
-      console.error('Error al enviar correo de bienvenida con credenciales:', mailError);
+      console.error('Error al enviar correo de activación:', mailError);
     }
 
     return res.status(201).json({
       message: emailSent
-        ? 'Usuario creado exitosamente. Se ha enviado un correo con las credenciales de acceso.'
-        : 'Usuario creado, pero no se pudo enviar el correo. Comparte esta contraseña temporal manualmente.',
+        ? 'Usuario creado exitosamente. Se ha enviado un correo para que active su cuenta.'
+        : 'Usuario creado, pero no se pudo enviar el correo. Comparte este enlace de activación manualmente.',
       emailSent,
-      // Solo se expone si el correo falló — es la única forma de que el admin la conozca
-      ...(emailSent ? {} : { tempPassword }),
+      // Solo se expone si el correo falló — es la única forma de que el admin lo comparta.
+      // A diferencia de una contraseña, un link mal copiado simplemente no carga (no hay
+      // forma de que "parezca funcionar" estando mal transcrito).
+      ...(emailSent ? {} : { activationLink }),
       user: {
         id: newUser.id,
         clinicId: newUser.clinicId,

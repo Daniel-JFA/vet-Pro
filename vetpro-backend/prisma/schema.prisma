@@ -179,6 +179,10 @@ model User {
   lastName     String
   email        String   @unique
   passwordHash String
+  // Link de activación (nuevo usuario) o de recuperación — reemplaza el
+  // envío de contraseñas en texto plano, que un usuario puede copiar mal.
+  activationToken          String?   @unique
+  activationTokenExpiresAt DateTime?
   role         UserRole @default(vet)
   avatarUrl    String?
   active       Boolean  @default(true)

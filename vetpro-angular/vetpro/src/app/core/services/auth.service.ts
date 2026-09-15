@@ -159,8 +159,22 @@ export class AuthService {
     email: string;
     role: string;
     branchId?: string | null;
-  }): Observable<{ message: string; emailSent: boolean; tempPassword?: string; user: any }> {
-    return this.api.post<{ message: string; emailSent: boolean; tempPassword?: string; user: any }>('/auth/users', data);
+  }): Observable<{ message: string; emailSent: boolean; activationLink?: string; user: any }> {
+    return this.api.post<{ message: string; emailSent: boolean; activationLink?: string; user: any }>('/auth/users', data);
+  }
+
+  // Activación de cuenta (el usuario define su propia contraseña vía un enlace enviado por correo)
+  getActivationInfo(token: string): Observable<{ firstName: string; lastName: string; email: string }> {
+    return this.api.get<{ firstName: string; lastName: string; email: string }>(`/auth/activation/${token}`);
+  }
+
+  activateAccount(token: string, password: string): Observable<{ token: string; user: User; clinic: Clinic }> {
+    return this.api.post<{ token: string; user: User; clinic: Clinic }>('/auth/activate', { token, password }).pipe(
+      tap(res => {
+        localStorage.setItem('vetpro_token', res.token);
+        this.state.set({ token: res.token, user: res.user, clinic: res.clinic });
+      })
+    );
   }
 
   updateUser(id: string, data: {

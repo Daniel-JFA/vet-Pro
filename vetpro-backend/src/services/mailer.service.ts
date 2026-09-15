@@ -10,6 +10,16 @@ export interface NewUserEmailData {
   passwordPlain: string;
 }
 
+export interface ActivationEmailData {
+  to: string;
+  firstName: string;
+  lastName: string;
+  clinicName: string;
+  role: string;
+  branchName?: string | null;
+  activationLink: string;
+}
+
 export interface PasswordResetEmailData {
   to: string;
   firstName: string;
@@ -201,6 +211,117 @@ Por seguridad, te recomendamos cambiar tu contraseña temporal tras tu primer in
       return true;
     } catch (error: any) {
       console.error(`❌ [Mailer] Error al enviar correo de credenciales a ${data.to}:`, error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Enviar correo de activación de cuenta — reemplaza el envío de contraseñas
+   * en texto plano. El usuario define su propia contraseña al hacer clic en
+   * el enlace, así que no hay nada que pueda copiarse mal.
+   */
+  public static async sendActivationLink(data: ActivationEmailData): Promise<boolean> {
+    const transporter = this.getTransporter();
+    const from = process.env.SMTP_FROM || `VetPro SaaS <${process.env.SMTP_USER || 'no-reply@vetpro.co'}>`;
+
+    if (!transporter) {
+      console.warn('⚠️ [Mailer] No se envió correo de activación a', data.to, ': SMTP_USER o SMTP_PASS no configurados.');
+      return false;
+    }
+
+    const roleText = getRoleLabel(data.role);
+    const branchText = data.branchName || 'Operación Central / Global';
+
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Activa tu cuenta en VetPro</title>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px; color: #1e293b; }
+        .container { max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+        .header { background: linear-gradient(135deg, #1e40af, #2563eb); padding: 32px 24px; text-align: center; color: #ffffff; }
+        .header h1 { margin: 8px 0 0; font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+        .logo-badge { display: inline-block; background: rgba(255, 255, 255, 0.2); padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+        .content { padding: 32px 28px; }
+        .greeting { font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #0f172a; }
+        .text { font-size: 14px; line-height: 1.6; color: #475569; margin: 0 0 20px; }
+        .info-card { background: #f1f5f9; border-radius: 8px; border-left: 4px solid #2563eb; padding: 18px 20px; margin: 24px 0; }
+        .cred-row { margin-bottom: 10px; font-size: 13.5px; }
+        .cred-row:last-child { margin-bottom: 0; }
+        .cred-label { color: #64748b; font-weight: 500; }
+        .btn-container { text-align: center; margin: 28px 0; }
+        .btn { display: inline-block; background: #2563eb; color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 15px; font-weight: 700; letter-spacing: 0.2px; }
+        .notice { font-size: 12px; color: #64748b; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 6px; padding: 10px 14px; line-height: 1.5; }
+        .footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 24px; text-align: center; font-size: 11.5px; color: #94a3b8; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <span class="logo-badge">VetPro SaaS Cloud</span>
+          <h1>¡Bienvenido a ${data.clinicName}!</h1>
+        </div>
+        <div class="content">
+          <p class="greeting">Hola, ${data.firstName} ${data.lastName}:</p>
+          <p class="text">
+            Tu cuenta de usuario fue creada en <strong>VetPro</strong> por el equipo administrativo de <strong>${data.clinicName}</strong>. Activa tu cuenta y define tu propia contraseña haciendo clic en el botón de abajo.
+          </p>
+
+          <div class="info-card">
+            <div class="cred-row"><span class="cred-label">Rol Asignado:</span> <strong>${roleText}</strong></div>
+            <div class="cred-row"><span class="cred-label">Sede / Cobertura:</span> <strong>${branchText}</strong></div>
+            <div class="cred-row"><span class="cred-label">Correo de Acceso:</span> <strong>${data.to}</strong></div>
+          </div>
+
+          <div class="btn-container">
+            <a href="${data.activationLink}" class="btn" target="_blank">Activar mi Cuenta</a>
+          </div>
+
+          <div class="notice">
+            🔒 Este enlace es personal y expira en 7 días. Si el botón no funciona, copia y pega esta dirección en tu navegador:<br>
+            <span style="word-break: break-all;">${data.activationLink}</span>
+          </div>
+        </div>
+        <div class="footer">
+          Este mensaje fue generado automáticamente por VetPro Cloud para ${data.to}.<br>
+          Si no reconoces este registro, puedes contactar al administrador de tu clínica.
+        </div>
+      </div>
+    </body>
+    </html>
+    `;
+
+    const textContent = `
+¡Bienvenido a ${data.clinicName}!
+
+Hola, ${data.firstName} ${data.lastName}:
+Tu cuenta en VetPro fue creada. Activa tu cuenta y define tu contraseña en:
+${data.activationLink}
+
+Rol: ${roleText}
+Sede: ${branchText}
+Correo: ${data.to}
+
+Este enlace es personal y expira en 7 días.
+    `.trim();
+
+    try {
+      await transporter.sendMail({
+        from,
+        to: data.to,
+        ...(this.getBcc() ? { bcc: this.getBcc() } : {}),
+        subject: `Activa tu cuenta en VetPro — ${data.clinicName}`,
+        text: textContent,
+        html: htmlContent
+      });
+
+      console.log(`✉️ [Mailer] Correo de activación enviado exitosamente a: ${data.to}`);
+      return true;
+    } catch (error: any) {
+      console.error(`❌ [Mailer] Error al enviar correo de activación a ${data.to}:`, error.message);
       return false;
     }
   }

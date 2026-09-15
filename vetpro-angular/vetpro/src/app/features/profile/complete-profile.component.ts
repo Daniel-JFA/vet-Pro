@@ -11,8 +11,11 @@ import { GeoService, Departamento, Municipio } from '../../core/services/geo.ser
   imports: [CommonModule, FormsModule],
   template: `
     <div class="complete-profile-page">
-      <div class="profile-card glass-effect animate-fade-in">
-        <div class="card-glow"></div>
+      <div class="profile-card">
+        <div class="logo">
+          <span class="logo-mark">V</span>
+          <span class="logo-name">VetPro</span>
+        </div>
 
         <h2>Completa tus Datos</h2>
         <p class="subtitle">
@@ -87,60 +90,63 @@ import { GeoService, Departamento, Municipio } from '../../core/services/geo.ser
     .complete-profile-page {
       min-height: 100vh;
       display: flex;
-      justify-content: center;
       align-items: center;
-      background: radial-gradient(circle at 50% 0%, hsl(162, 70%, 10%) 0%, hsl(220, 25%, 5%) 100%);
+      justify-content: center;
+      background: var(--surface-ground, #f8fafc);
       font-family: 'Inter', sans-serif;
-      padding: 24px;
-      box-sizing: border-box;
-      color: #f3f4f6;
-    }
-
-    .glass-effect {
-      background: rgba(17, 24, 39, 0.65);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+      padding: 30px 16px;
     }
 
     .profile-card {
-      position: relative;
+      background: var(--surface-card, #ffffff);
+      border: 1px solid var(--surface-border, #e2e8f0);
+      border-radius: 12px;
+      padding: 36px;
       width: 100%;
-      max-width: 480px;
-      border-radius: 28px;
-      padding: 40px;
-      overflow: hidden;
+      max-width: 520px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
-      gap: 18px;
+      gap: 16px;
+    }
 
-      .card-glow {
-        position: absolute;
-        top: -60px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 250px;
-        height: 120px;
-        background: radial-gradient(circle, hsla(162, 72%, 46%, 0.2) 0%, transparent 70%);
-        pointer-events: none;
-      }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+    .logo-mark {
+      width: 36px;
+      height: 36px;
+      background: var(--primary-color, #2563eb);
+      color: #fff;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 18px;
+    }
+    .logo-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-color, #1e293b);
     }
 
     h2 {
-      font-size: 1.5rem;
-      font-weight: 800;
-      color: #ffffff;
+      font-size: 20px;
+      font-weight: 700;
       margin: 0;
-      letter-spacing: -0.3px;
+      color: var(--text-color, #0f172a);
     }
 
     .subtitle {
-      font-size: 0.88rem;
-      line-height: 1.45;
-      color: #9ca3af;
-      margin: -8px 0 4px;
+      font-size: 13px;
+      color: var(--text-color-secondary, #64748b);
+      margin: 0;
+      line-height: 1.5;
     }
 
     .form-row {
@@ -151,43 +157,44 @@ import { GeoService, Departamento, Municipio } from '../../core/services/geo.ser
     .form-group {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 5px;
 
       label {
-        font-size: 0.8rem;
-        font-weight: 700;
-        color: #cbd5e1;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+        font-size: 12.5px;
+        font-weight: 500;
+        color: var(--text-color, #334155);
       }
 
       input, select {
-        background: rgba(10, 15, 26, 0.5);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 12px;
-        padding: 12px 16px;
-        color: #ffffff;
-        font-size: 0.95rem;
-        font-family: inherit;
+        padding: 9px 12px;
+        border: 1px solid var(--surface-border, #cbd5e1);
+        border-radius: 7px;
+        font-size: 13px;
         outline: none;
-        transition: all 0.3s ease;
+        background: var(--surface-card, #fff);
+        color: var(--text-color, #0f172a);
+        font-family: inherit;
+        transition: border-color 0.2s;
 
         &:focus {
-          border-color: #10b981;
-          box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+          border-color: var(--primary-color, #2563eb);
         }
-      }
 
-      select option {
-        background: #111827;
-        color: #ffffff;
+        &:disabled {
+          background: var(--surface-ground, #f1f5f9);
+          cursor: not-allowed;
+        }
       }
     }
 
     .error-msg {
+      color: var(--red-500, #ef4444);
+      font-size: 12.5px;
       margin: 0;
-      font-size: 0.85rem;
-      color: #f87171;
+      text-align: center;
+      background: rgba(239, 68, 68, 0.08);
+      padding: 8px;
+      border-radius: 6px;
     }
 
     .actions {
@@ -200,38 +207,27 @@ import { GeoService, Departamento, Municipio } from '../../core/services/geo.ser
       justify-content: center;
       align-items: center;
       gap: 8px;
-      padding: 14px;
-      border-radius: 12px;
-      font-size: 0.92rem;
-      font-weight: 700;
+      padding: 11px;
+      background: var(--primary-color, #2563eb);
+      color: #fff;
+      border: none;
+      border-radius: 7px;
+      font-size: 14px;
+      font-weight: 600;
       cursor: pointer;
       font-family: inherit;
-      transition: all 0.3s ease;
-      background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-      border: none;
-      color: #ffffff;
-      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+      transition: opacity 0.2s;
 
-      span { font-size: 1.2rem; }
+      span { font-size: 1.1rem; }
 
       &:hover:not(:disabled) {
-        background: linear-gradient(135deg, #047857 0%, #059669 100%);
-        transform: translateY(-1px);
+        filter: brightness(0.95);
       }
 
       &:disabled {
-        opacity: 0.5;
+        opacity: 0.6;
         cursor: not-allowed;
       }
-    }
-
-    .animate-fade-in {
-      animation: fadeIn 0.4s ease-out both;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
     }
   `]
 })

@@ -771,12 +771,12 @@ export class UserListComponent implements OnInit {
 
     this.auth.createUser(this.newForm).subscribe({
       next: (res) => {
-        // El correo falló al enviarse: es la única vez que la contraseña se expone,
-        // para que el admin pueda entregarla manualmente al empleado.
-        if (!res.emailSent && res.tempPassword) {
+        // El correo falló al enviarse: es la única vez que el enlace se expone,
+        // para que el admin pueda entregarlo manualmente al empleado.
+        if (!res.emailSent && res.activationLink) {
           alert(
-            `${res.message}\n\nContraseña temporal: ${res.tempPassword}\n\n` +
-            `Compártela de forma segura con el usuario — no se volverá a mostrar.`
+            `${res.message}\n\nEnlace de activación: ${res.activationLink}\n\n` +
+            `Compártelo de forma segura con el usuario — expira en 7 días.`
           );
         } else {
           alert(res.message || 'Usuario creado exitosamente.');
