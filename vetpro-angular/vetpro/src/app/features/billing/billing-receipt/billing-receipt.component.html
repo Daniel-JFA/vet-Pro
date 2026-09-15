@@ -32,10 +32,10 @@
           Abonar / Pagar
         </button>
 
-        <!-- Emitir a la DIAN -->
-        <button 
-          class="btn btn-dian" 
-          *ngIf="!isDianIssued() && !invoice()?.electronicId && invoice()?.status !== 'draft'"
+        <!-- Emitir a la DIAN — oculto hasta configurar un Proveedor Tecnológico Autorizado real -->
+        <button
+          class="btn btn-dian"
+          *ngIf="dianEnabled() && !isDianIssued() && !invoice()?.electronicId && invoice()?.status !== 'draft'"
           [disabled]="dianTransmitting()"
           (click)="transmitToDian()"
         >
@@ -43,12 +43,12 @@
           {{ dianTransmitting() ? 'Transmitiendo a DIAN...' : 'Emitir Factura DIAN' }}
         </button>
 
-        <div class="dian-badge-ok" *ngIf="invoice()?.electronicId && invoice()?.dianStatus === 'validated'">
+        <div class="dian-badge-ok" *ngIf="dianEnabled() && invoice()?.electronicId && invoice()?.dianStatus === 'validated'">
           <span class="material-symbols-outlined">verified</span>
           FEV Validada DIAN
         </div>
 
-        <div class="dian-badge-pending" *ngIf="invoice()?.electronicId && invoice()?.dianStatus !== 'validated'">
+        <div class="dian-badge-pending" *ngIf="dianEnabled() && invoice()?.electronicId && invoice()?.dianStatus !== 'validated'">
           <span class="material-symbols-outlined">pending</span>
           CUFE de Prueba (No Transmitido a la DIAN)
         </div>
@@ -189,8 +189,8 @@
         </div>
       </footer>
 
-      <!-- SELLO FISCAL DIAN (CUFE & QR) -->
-      <section class="dian-fiscal-stamp" *ngIf="invoice()?.electronicId && invoice()?.dianStatus === 'validated'">
+      <!-- SELLO FISCAL DIAN (CUFE & QR) — oculto hasta configurar un Proveedor Tecnológico Autorizado real -->
+      <section class="dian-fiscal-stamp" *ngIf="dianEnabled() && invoice()?.electronicId && invoice()?.dianStatus === 'validated'">
         <div class="dian-stamp-qr">
           <span class="material-symbols-outlined">qr_code_2</span>
         </div>
@@ -206,7 +206,7 @@
         </div>
       </section>
 
-      <section class="dian-fiscal-stamp dian-fiscal-stamp--pending" *ngIf="invoice()?.electronicId && invoice()?.dianStatus !== 'validated'">
+      <section class="dian-fiscal-stamp dian-fiscal-stamp--pending" *ngIf="dianEnabled() && invoice()?.electronicId && invoice()?.dianStatus !== 'validated'">
         <div class="dian-stamp-qr">
           <span class="material-symbols-outlined">pending</span>
         </div>

@@ -33,6 +33,10 @@ export class BillingReceiptComponent implements OnInit {
   whatsappMessage = signal('');
 
   // DIAN Electronic Invoice State
+  // Oculto hasta configurar un Proveedor Tecnológico Autorizado real
+  // (DIAN_PROVIDER_URL / DIAN_PROVIDER_API_KEY) — sin eso, "emitir" solo
+  // genera un CUFE de prueba sin validez fiscal.
+  dianEnabled = signal(false);
   isDianIssued = signal(false);
   dianStatus = signal<'pending' | 'accepted' | 'rejected'>('pending');
   cufeCode = signal<string | null>(null);
