@@ -139,6 +139,7 @@ export class ShellComponent {
     const baseNav: NavItem[] = [
       { label: 'Inicio',               icon: 'home',           path: '/dashboard' },
       { label: 'Pacientes',            icon: 'pets',           path: '/patients' },
+      { label: 'Tutores',              icon: 'group',          path: '/tutors' },
       { label: 'Citas & Agenda',       icon: 'calendar_month', path: '/appointments', badge: 3 },
       { label: 'Domicilios On-Demand', icon: 'two_wheeler',    path: '/appointments/on-demand' }
     ];

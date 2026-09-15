@@ -15,7 +15,9 @@ CRM_ROUTES.use(roleMiddleware(['admin', 'receptionist']) as any);
 
 const SendCampaignSchema = z.object({
   name: z.string().min(3, 'El nombre de la campaña es obligatorio'),
-  targetType: z.enum(['inactive_180d', 'vaccine_due', 'deworming_due', 'birthday']),
+  // 'deworming_due' se retiró: no hay ningún dato estructurado en el sistema
+  // (sin modelo de desparasitación) para calcular esa cohorte con precisión.
+  targetType: z.enum(['inactive_180d', 'vaccine_due', 'birthday']),
   channel: z.enum(['whatsapp', 'email', 'sms']).default('whatsapp'),
   templateBody: z.string().min(10, 'El cuerpo del mensaje es obligatorio'),
   discountPercent: z.number().min(0).max(100).default(10)
@@ -161,7 +163,32 @@ CRM_ROUTES.post('/broadcast', async (req: AuthRequest, res: Response) => {
         tutorName: p.tutor.firstName,
         phone: p.tutor.phone.replace(/[^0-9]/g, '')
       }));
+    } else if (data.targetType === 'birthday') {
+      // Cumpleaños en los próximos 30 días (sin importar el año de nacimiento)
+      const patients = await prisma.patient.findMany({
+        where: { clinicId, status: 'active', deletedAt: null, birthDate: { not: null } },
+        include: { tutor: true },
+        take: 500
+      });
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const isUpcoming = (birthDate: Date, windowDays: number) => {
+        const next = new Date(today.getFullYear(), birthDate.getMonth(), birthDate.getDate());
+        if (next < today) next.setFullYear(today.getFullYear() + 1);
+        const diffDays = (next.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
+        return diffDays >= 0 && diffDays <= windowDays;
+      };
+
+      targets = patients
+        .filter(p => p.birthDate && isUpcoming(new Date(p.birthDate), 30))
+        .map(p => ({
+          patientName: p.name,
+          tutorName: p.tutor.firstName,
+          phone: p.tutor.phone.replace(/[^0-9]/g, '')
+        }));
     } else {
+      // vaccine_due
       const vaccines = await prisma.vaccine.findMany({
         where: { nextDueAt: { lt: new Date() }, patient: { clinicId, status: 'active' } },
         include: { patient: { include: { tutor: true } } },

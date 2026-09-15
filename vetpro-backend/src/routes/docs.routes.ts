@@ -39,7 +39,7 @@ const swaggerHtml = `
           }
         },
         servers: [
-          { url: "http://localhost:3000/api/v1", description: "Servidor de Desarrollo Local" }
+          { url: "/api/v1", description: "Servidor actual (relativo — funciona en cualquier entorno)" }
         ],
         paths: {
           "/auth/login": {

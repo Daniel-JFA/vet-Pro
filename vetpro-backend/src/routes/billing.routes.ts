@@ -551,18 +551,57 @@ router.patch('/invoices/:id/void', async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Factura no encontrada.' });
     }
 
-    const updated = await prisma.invoice.update({
-      where: { id },
-      data: {
-        status: 'void',
-        balance: 0,
-        notes: (invoice.notes ? invoice.notes + '\n' : '') +
-          `[Anulación: ${reason || 'Sin motivo indicado'} - ${new Date().toLocaleDateString('es-CO')}]`
-      },
-      include: {
-        tutor: true,
-        items: true
+    if (invoice.status === 'void') {
+      return res.status(400).json({ error: 'Esta factura ya está anulada.' });
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      // Revertir el descuento de inventario que hizo esta factura al crearse
+      // (si tuvo ítems ligados a productos con descuento automático de stock)
+      const movements = await tx.inventoryMovement.findMany({
+        where: { clinicId, referenceType: 'invoice', referenceId: id, type: 'out' }
+      });
+
+      for (const mv of movements) {
+        const product = await tx.product.findFirst({ where: { id: mv.productId!, clinicId } });
+        if (!product) continue;
+
+        const prevStock = product.currentStock;
+        const newStock = prevStock + mv.quantity;
+
+        await tx.product.update({ where: { id: product.id }, data: { currentStock: newStock } });
+
+        await tx.inventoryMovement.create({
+          data: {
+            clinicId,
+            branchId: mv.branchId,
+            productId: product.id,
+            type: 'in',
+            quantity: mv.quantity,
+            quantityBefore: prevStock,
+            quantityAfter: newStock,
+            unitCost: product.costPrice,
+            reason: `Reversión por anulación de factura ${invoice.invoiceNumber}`,
+            referenceId: invoice.id,
+            referenceType: 'invoice',
+            performedBy: req.user?.id || 'system'
+          }
+        });
       }
+
+      return tx.invoice.update({
+        where: { id },
+        data: {
+          status: 'void',
+          balance: 0,
+          notes: (invoice.notes ? invoice.notes + '\n' : '') +
+            `[Anulación: ${reason || 'Sin motivo indicado'} - ${new Date().toLocaleDateString('es-CO')}]`
+        },
+        include: {
+          tutor: true,
+          items: true
+        }
+      });
     });
 
     return res.json(updated);

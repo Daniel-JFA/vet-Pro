@@ -54,4 +54,12 @@ export class PatientService {
   createTutor(data: Partial<Tutor>): Observable<Tutor> {
     return this.api.post<Tutor>('/tutors', data);
   }
+
+  getTutor(id: string): Observable<Tutor> {
+    return this.api.get<Tutor>(`/tutors/${id}`);
+  }
+
+  updateTutor(id: string, data: Partial<Tutor>): Observable<Tutor> {
+    return this.api.patch<Tutor>(`/tutors/${id}`, data);
+  }
 }
