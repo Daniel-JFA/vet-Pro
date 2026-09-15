@@ -1,8 +1,9 @@
-import { Component, inject, signal, computed, HostListener } from '@angular/core';
+import { Component, inject, signal, computed, HostListener, OnInit } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../core/services/auth.service';
+import { AppointmentService } from '../core/services/appointment.service';
 import { ToastContainerComponent } from '../shared/components/toast/toast-container.component';
 
 interface NavItem {
@@ -120,10 +121,24 @@ interface NavItem {
   `,
   styleUrl: './shell.component.scss'
 })
-export class ShellComponent {
+export class ShellComponent implements OnInit {
   auth = inject(AuthService);
+  private appointmentSvc = inject(AppointmentService);
   sidebarCollapsed = signal(false);
   mobileSidebarOpen = signal(false);
+
+  // Citas de hoy que aún no se han atendido — número real, no un valor fijo
+  pendingAppointmentsToday = signal<number | undefined>(undefined);
+
+  ngOnInit() {
+    this.appointmentSvc.getTodayAppointments().subscribe({
+      next: (appointments) => {
+        const pending = appointments.filter(a => a.status === 'scheduled' || a.status === 'waiting').length;
+        this.pendingAppointmentsToday.set(pending > 0 ? pending : undefined);
+      },
+      error: () => this.pendingAppointmentsToday.set(undefined)
+    });
+  }
 
   // Close mobile sidebar menu when Escape key is pressed
   @HostListener('window:keydown.escape')
@@ -140,7 +155,7 @@ export class ShellComponent {
       { label: 'Inicio',               icon: 'home',           path: '/dashboard' },
       { label: 'Pacientes',            icon: 'pets',           path: '/patients' },
       { label: 'Tutores',              icon: 'group',          path: '/tutors' },
-      { label: 'Citas & Agenda',       icon: 'calendar_month', path: '/appointments', badge: 3 },
+      { label: 'Citas & Agenda',       icon: 'calendar_month', path: '/appointments', badge: this.pendingAppointmentsToday() },
       { label: 'Domicilios On-Demand', icon: 'two_wheeler',    path: '/appointments/on-demand' }
     ];
 

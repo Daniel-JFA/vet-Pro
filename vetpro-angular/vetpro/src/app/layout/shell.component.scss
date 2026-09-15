@@ -16,7 +16,8 @@
   display: flex;
   flex-direction: column;
   transition: width 200ms ease, min-width 200ms ease;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 
   &.collapsed {
     width: 64px;
