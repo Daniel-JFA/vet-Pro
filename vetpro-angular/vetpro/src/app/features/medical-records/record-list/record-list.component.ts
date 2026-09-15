@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { PatientService } from '../../../core/services/patient.service';
-import { MedicalRecord, Patient } from '../../../core/models';
+import { ToastService } from '../../../core/services/toast.service';
+import { MedicalRecord } from '../../../core/models';
 
 @Component({
   selector: 'app-record-list',
@@ -14,8 +15,10 @@ import { MedicalRecord, Patient } from '../../../core/models';
 })
 export class RecordListComponent implements OnInit {
   private patientSvc = inject(PatientService);
+  private toast = inject(ToastService);
 
   loading = signal(true);
+  loadError = signal(false);
   search = signal('');
   typeFilter = signal<string>('all');
   records = signal<MedicalRecord[]>([]);
@@ -45,12 +48,18 @@ export class RecordListComponent implements OnInit {
 
   load() {
     this.loading.set(true);
-    // Para simplificar, obtenemos los registros clínicos simulando atenciones
-    // Carga inicial offline con Mock
-    setTimeout(() => {
-      this.records.set(MOCK_ALL_RECORDS);
-      this.loading.set(false);
-    }, 400);
+    this.loadError.set(false);
+    this.patientSvc.getAllMedicalRecords({ pageSize: 100 }).subscribe({
+      next: res => {
+        this.records.set(res.data);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.loading.set(false);
+        this.loadError.set(true);
+        this.toast.error('No se pudo cargar el listado de historias clínicas. Verifica tu conexión e intenta de nuevo.');
+      }
+    });
   }
 
   recordTypeLabel(type: string): string {
@@ -69,62 +78,3 @@ export class RecordListComponent implements OnInit {
     return r.id;
   }
 }
-
-// ── MOCK DATA ─────────────────────────────────
-
-const MOCK_PATIENTS_LIST: Patient[] = [
-  { id: 'p1', clinicId: 'c1', tutorId: 't1', name: 'Toby', species: 'dog', breed: 'Golden Retriever', sex: 'male', sterilized: true, status: 'active', createdAt: new Date() },
-  { id: 'p2', clinicId: 'c1', tutorId: 't2', name: 'Luna', species: 'cat', breed: 'Siamés', sex: 'female', sterilized: true, status: 'active', createdAt: new Date() },
-  { id: 'p3', clinicId: 'c1', tutorId: 't3', name: 'Copito', species: 'rabbit', breed: 'Angora', sex: 'male', sterilized: false, status: 'active', createdAt: new Date() }
-];
-
-const MOCK_ALL_RECORDS: MedicalRecord[] = [
-  {
-    id: 'r1',
-    clinicId: 'c1',
-    patientId: 'p1',
-    patient: MOCK_PATIENTS_LIST[0],
-    vetId: 'v1',
-    type: 'consultation',
-    title: 'Control de Vacunación y Control de Peso',
-    diagnosis: 'Paciente clínicamente sano. Gingivitis leve grado 1.',
-    aiGenerated: true,
-    createdAt: new Date(Date.now() - 1 * 86400000)
-  },
-  {
-    id: 'r2',
-    clinicId: 'c1',
-    patientId: 'p2',
-    patient: MOCK_PATIENTS_LIST[1],
-    vetId: 'v2',
-    type: 'consultation',
-    title: 'Revisión y Limpieza de Canal Auditivo',
-    diagnosis: 'Otitis externa leve en oído derecho.',
-    aiGenerated: true,
-    createdAt: new Date(Date.now() - 3 * 86400000)
-  },
-  {
-    id: 'r3',
-    clinicId: 'c1',
-    patientId: 'p1',
-    patient: MOCK_PATIENTS_LIST[0],
-    vetId: 'v2',
-    type: 'consultation',
-    title: 'Cuadro Agudo de Gastroenteritis Leve',
-    diagnosis: 'Gastroenteritis bacteriana aguda por indiscreción alimentaria.',
-    aiGenerated: false,
-    createdAt: new Date(Date.now() - 15 * 86400000)
-  },
-  {
-    id: 'r4',
-    clinicId: 'c1',
-    patientId: 'p3',
-    patient: MOCK_PATIENTS_LIST[2],
-    vetId: 'v1',
-    type: 'surgery',
-    title: 'Procedimiento Quirúrgico de Orquiectomía',
-    diagnosis: 'Castración electiva completada.',
-    aiGenerated: false,
-    createdAt: new Date(Date.now() - 45 * 86400000)
-  }
-];

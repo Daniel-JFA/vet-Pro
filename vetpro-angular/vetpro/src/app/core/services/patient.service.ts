@@ -31,12 +31,16 @@ export class PatientService {
     return this.api.get<MedicalRecord>(`/medical-records/${id}`);
   }
 
+  getAllMedicalRecords(params?: QueryParams): Observable<PagedResult<MedicalRecord>> {
+    return this.api.getPaged<MedicalRecord>('/medical-records', params);
+  }
+
   createMedicalRecord(data: any): Observable<MedicalRecord> {
     return this.api.post<MedicalRecord>('/medical-records', data);
   }
 
-  transcribeVoice(durationSeconds: number, text?: string): Observable<any> {
-    return this.api.post<any>('/medical-records/transcribe', { durationSeconds, text });
+  transcribeVoice(durationSeconds: number, text?: string, audioBase64?: string): Observable<any> {
+    return this.api.post<any>('/medical-records/transcribe', { durationSeconds, text, audioBase64 });
   }
 
   getVaccines(patientId: string): Observable<Vaccine[]> {

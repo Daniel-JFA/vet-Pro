@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ConsentService } from '../../../core/services/consent.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-consent-list',
@@ -13,6 +14,7 @@ import { ConsentService } from '../../../core/services/consent.service';
 })
 export class ConsentListComponent implements OnInit {
   private consentSvc = inject(ConsentService);
+  private toast = inject(ToastService);
 
   loading = signal(true);
   search = signal('');
@@ -63,9 +65,8 @@ export class ConsentListComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        // Fallback offline mock consents
-        this.consentForms.set(MOCK_CONSENTS);
         this.loading.set(false);
+        this.toast.error('No se pudo cargar el listado de consentimientos. Verifica tu conexión e intenta de nuevo.');
       }
     });
   }
@@ -94,29 +95,3 @@ export class ConsentListComponent implements OnInit {
     return item.id;
   }
 }
-
-// ── MOCK DATA ─────────────────────────────────
-
-const MOCK_CONSENTS = [
-  {
-    id: 'c-form-1',
-    patientId: 'p1',
-    patientName: 'Toby',
-    tutorName: 'Carlos Gómez',
-    tutorPhone: '+57 312 456 7890',
-    title: 'Autorización para Anestesia y Cirugía',
-    signed: true,
-    signedAt: new Date(Date.now() - 1 * 86400000),
-    createdAt: new Date(Date.now() - 1 * 86400000)
-  },
-  {
-    id: 'c-form-2',
-    patientId: 'p1',
-    patientName: 'Toby',
-    tutorName: 'Carlos Gómez',
-    tutorPhone: '+57 312 456 7890',
-    title: 'Consentimiento para Hospitalización General',
-    signed: false,
-    createdAt: new Date()
-  }
-];

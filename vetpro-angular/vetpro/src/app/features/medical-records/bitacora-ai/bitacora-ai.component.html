@@ -3,6 +3,13 @@
     <div class="spinner"></div>
   </div>
 
+  <div class="empty-state" *ngIf="!loading() && !patient()">
+    <span class="material-symbols-outlined">cloud_off</span>
+    <h3>No se pudo cargar el paciente</h3>
+    <p>El paciente no existe o hubo un problema de conexión con el servidor.</p>
+    <a routerLink="/patients" class="btn btn-ghost">Volver al listado</a>
+  </div>
+
   <div *ngIf="!loading() && patient() as p" class="ai-grid">
     <!-- Cabecera de Página -->
     <header class="ai-header">
@@ -211,14 +218,18 @@
         <div class="ai-meter-box" *ngIf="activeInputTab() !== 'templates'" style="margin-top: 20px; margin-bottom: 0;">
           <div class="meter-labels">
             <span>Uso Mensual de IA</span>
-            <strong>{{ aiMinutesUsed() | number:'1.2-2' }} / {{ aiMinutesLimit }} min</strong>
+            <strong>{{ aiMinutesUsed() | number:'1.2-2' }} / {{ aiMinutesLimit() }} min</strong>
           </div>
           <div class="meter-bar-bg">
-            <div 
-              class="meter-fill" 
-              [style.width.%]="(aiMinutesUsed() / aiMinutesLimit) * 100"
+            <div
+              class="meter-fill"
+              [style.width.%]="aiMinutesLimit() > 0 ? (aiMinutesUsed() / aiMinutesLimit()) * 100 : 0"
             ></div>
           </div>
+        </div>
+
+        <div class="ai-warning-box" *ngIf="aiVoiceUnavailable()" style="margin-top: 12px;">
+          ⚠️ La transcripción de voz por IA no está configurada en este servidor. Puedes dictar el texto manualmente en la pestaña "Texto".
         </div>
       </div>
     </div>

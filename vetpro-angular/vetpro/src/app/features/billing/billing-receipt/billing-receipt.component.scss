@@ -150,6 +150,31 @@
   span { font-size: 18px; }
 }
 
+.dian-badge-pending {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px;
+  background: #fffbeb;
+  color: #b45309;
+  font-size: 0.85rem;
+  font-weight: 700;
+  span { font-size: 18px; }
+}
+
+.dian-fiscal-stamp--pending {
+  border-color: #fde68a;
+  background: #fffbeb;
+
+  .dian-stamp-qr span { color: #b45309; }
+
+  .dian-valid-chip--pending {
+    background: #fef3c7;
+    color: #b45309;
+  }
+}
+
 .dian-fiscal-stamp {
   display: flex;
   align-items: center;

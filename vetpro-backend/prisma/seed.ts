@@ -448,16 +448,16 @@ async function main() {
             total: itemTotal
           });
 
-          // Restar stock y registrar movimiento de inventario (out)
+          // Restar stock (nunca por debajo de 0) y registrar movimiento de inventario (out)
+          const productBeforeDeduction = await prisma.product.findUnique({ where: { id: product.id } });
+          const qtyBefore = productBeforeDeduction?.currentStock ?? 0;
+          const qtyToDeduct = Math.min(item.qty, qtyBefore);
+          const qtyAfter = qtyBefore - qtyToDeduct;
+
           await prisma.product.update({
             where: { id: product.id },
-            data: { currentStock: { decrement: item.qty } }
+            data: { currentStock: qtyAfter }
           });
-
-          // Leer stock actualizado para registrar cantidades precisas
-          const updatedProd = await prisma.product.findUnique({ where: { id: product.id } });
-          const qtyBefore = updatedProd ? updatedProd.currentStock + item.qty : item.qty;
-          const qtyAfter = updatedProd ? updatedProd.currentStock : 0;
 
           await prisma.inventoryMovement.create({
             data: {
@@ -465,7 +465,7 @@ async function main() {
               branchId: branch.id,
               productId: product.id,
               type: MovementType.out,
-              quantity: item.qty,
+              quantity: qtyToDeduct,
               quantityBefore: qtyBefore,
               quantityAfter: qtyAfter,
               reason: `Consumo médico en cita ${appointment.serviceType}`,

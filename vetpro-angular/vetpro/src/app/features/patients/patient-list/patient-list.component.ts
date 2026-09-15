@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { PatientService } from '../../../core/services/patient.service';
-import { Patient, Tutor, Species, PatientStatus } from '../../../core/models';
+import { ToastService } from '../../../core/services/toast.service';
+import { Patient, Species, PatientStatus } from '../../../core/models';
 
 @Component({
   selector: 'app-patient-list',
@@ -14,9 +15,11 @@ import { Patient, Tutor, Species, PatientStatus } from '../../../core/models';
 })
 export class PatientListComponent implements OnInit {
   private svc = inject(PatientService);
+  private toast = inject(ToastService);
 
   patients = signal<Patient[]>([]);
   loading = signal(true);
+  loadError = signal(false);
   search = signal('');
   speciesFilter = signal<Species | ''>('');
   statusFilter = signal<PatientStatus | 'all'>('all');
@@ -85,6 +88,7 @@ export class PatientListComponent implements OnInit {
 
   load() {
     this.loading.set(true);
+    this.loadError.set(false);
     this.svc.getPatients({ page: this.page(), pageSize: this.pageSize }).subscribe({
       next: res => {
         this.patients.set(res.data);
@@ -92,10 +96,9 @@ export class PatientListComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        // En caso de error (cuando el backend no está corriendo aún), cargamos datos Mock
-        this.patients.set(MOCK_PATIENTS);
-        this.total.set(MOCK_PATIENTS.length);
         this.loading.set(false);
+        this.loadError.set(true);
+        this.toast.error('No se pudo cargar el listado de pacientes. Verifique su conexión e intente de nuevo.');
       }
     });
   }
@@ -124,21 +127,3 @@ export class PatientListComponent implements OnInit {
     return p.id;
   }
 }
-
-// ── MOCK DATA ─────────────────────────────────
-
-const MOCK_TUTORS: Tutor[] = [
-  { id: 't1', clinicId: 'c1', firstName: 'Carlos', lastName: 'Gómez', email: 'carlos@gmail.com', phone: '3124567890', documentId: '1018234567', address: 'Calle 100 #15-30, Bogotá', createdAt: new Date() },
-  { id: 't2', clinicId: 'c1', firstName: 'María', lastName: 'Rodríguez', email: 'maria@outlook.com', phone: '3157891234', documentId: '52345678', address: 'Carrera 7 #45-12, Medellín', createdAt: new Date() },
-  { id: 't3', clinicId: 'c1', firstName: 'Diana', lastName: 'Pérez', email: 'diana@hotmail.com', phone: '3209876543', documentId: '1032456789', address: 'Av. El Poblado #3-45, Envigado', createdAt: new Date() },
-  { id: 't4', clinicId: 'c1', firstName: 'Juan', lastName: 'Sánchez', email: 'juan@gmail.com', phone: '3001234567', documentId: '79876543', address: 'Transversal 5 #80-22, Cali', createdAt: new Date() }
-];
-
-const MOCK_PATIENTS: Patient[] = [
-  { id: 'p1', clinicId: 'c1', tutorId: 't1', tutor: MOCK_TUTORS[0], name: 'Toby', species: 'dog', breed: 'Golden Retriever', sex: 'male', sterilized: true, weight: 32.5, chipId: '985112003456789', photoUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&q=80&w=150', status: 'active', createdAt: new Date() },
-  { id: 'p2', clinicId: 'c1', tutorId: 't2', tutor: MOCK_TUTORS[1], name: 'Luna', species: 'cat', breed: 'Siamés', sex: 'female', sterilized: true, weight: 4.2, chipId: '985112003456780', photoUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=150', status: 'active', createdAt: new Date() },
-  { id: 'p3', clinicId: 'c1', tutorId: 't1', tutor: MOCK_TUTORS[0], name: 'Kira', species: 'dog', breed: 'Bulldog Francés', sex: 'female', sterilized: false, weight: 11.8, chipId: '985112003456781', status: 'active', createdAt: new Date() },
-  { id: 'p4', clinicId: 'c1', tutorId: 't3', tutor: MOCK_TUTORS[2], name: 'Copito', species: 'rabbit', breed: 'Angora', sex: 'male', sterilized: false, weight: 2.1, status: 'active', createdAt: new Date() },
-  { id: 'p5', clinicId: 'c1', tutorId: 't4', tutor: MOCK_TUTORS[3], name: 'Rocky', species: 'dog', breed: 'Pastor Alemán', sex: 'male', sterilized: true, weight: 38.0, chipId: '985112003456782', photoUrl: 'https://images.unsplash.com/photo-1589941013453-ec89f33b5e95?auto=format&fit=crop&q=80&w=150', status: 'inactive', createdAt: new Date() },
-  { id: 'p6', clinicId: 'c1', tutorId: 't2', tutor: MOCK_TUTORS[1], name: 'Mimi', species: 'cat', breed: 'Persa', sex: 'female', sterilized: true, weight: 3.8, status: 'active', createdAt: new Date() }
-];

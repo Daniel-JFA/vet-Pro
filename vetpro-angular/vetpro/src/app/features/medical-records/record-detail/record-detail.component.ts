@@ -2,7 +2,8 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { PatientService } from '../../../core/services/patient.service';
-import { MedicalRecord, Patient } from '../../../core/models';
+import { ToastService } from '../../../core/services/toast.service';
+import { MedicalRecord } from '../../../core/models';
 
 @Component({
   selector: 'app-record-detail',
@@ -14,6 +15,7 @@ import { MedicalRecord, Patient } from '../../../core/models';
 export class RecordDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private patientSvc = inject(PatientService);
+  private toast = inject(ToastService);
 
   recordId = signal<string | null>(null);
   record = signal<MedicalRecord | null>(null);
@@ -45,10 +47,9 @@ export class RecordDetailComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        // Fallback mock data offline
-        const mockRec = MOCK_RECORDS_DETAILS.find(r => r.id === id) || MOCK_RECORDS_DETAILS[0];
-        this.record.set(mockRec);
+        this.record.set(null);
         this.loading.set(false);
+        this.toast.error('No se pudo cargar la historia clínica.');
       }
     });
   }
@@ -87,73 +88,3 @@ export class RecordDetailComponent implements OnInit {
     window.print();
   }
 }
-
-// ── MOCK DATA ─────────────────────────────────
-
-const MOCK_PATIENT: Patient = {
-  id: 'p1',
-  clinicId: 'c1',
-  tutorId: 't1',
-  name: 'Toby',
-  species: 'dog',
-  breed: 'Golden Retriever',
-  birthDate: new Date('2022-04-12'),
-  sex: 'male',
-  sterilized: true,
-  weight: 32.5,
-  chipId: '985112003456789',
-  photoUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&q=80&w=150',
-  status: 'active',
-  createdAt: new Date(),
-  tutor: {
-    id: 't1',
-    clinicId: 'c1',
-    firstName: 'Carlos',
-    lastName: 'Gómez',
-    phone: '+57 312 456 7890',
-    email: 'carlos.gomez@correo.co',
-    documentId: '1.018.234.567',
-    address: 'Calle 100 #15-30, Bogotá D.C.',
-    createdAt: new Date()
-  }
-};
-
-const MOCK_RECORDS_DETAILS: MedicalRecord[] = [
-  {
-    id: 'r1',
-    clinicId: 'c1',
-    patientId: 'p1',
-    patient: MOCK_PATIENT,
-    vetId: 'Dr(a). Diego Silva',
-    type: 'consultation',
-    title: 'Control de Vacunación y Control de Peso',
-    anamnesis: 'Tutor asiste con Toby para control de vacunas anual. Informa que ha estado comiendo bien y su nivel de energía es alto. Sin problemas digestivos reportados en los últimos meses.',
-    physicalExam: 'Paciente alerta y responsivo. Mucosas rosadas, tiempo de llenado capilar < 2s. Frecuencia cardíaca: 95 lpm, frecuencia respiratoria: 20 rpm, temperatura: 38.6°C. Peso estable de 32.5 kg. Ligera acumulación de sarro en premolares superiores.',
-    diagnosis: 'Paciente clínicamente sano. Gingivitis leve grado 1.',
-    treatment: 'Se realiza la aplicación de la vacuna Antirrábica Nobivac. Se aconseja iniciar profilaxis dental casera o cepillado regular en casa.',
-    observations: 'Toby se portó excelente. Se le entregó galleta premio al finalizar.',
-    aiGenerated: true,
-    aiTranscriptionMinutes: 2.5,
-    attachments: [
-      { id: 'att1', recordId: 'r1', name: 'Cuadro_Hematico_Toby.pdf', type: 'pdf', url: 'https://vetpro.co/files/toby_hemo.pdf', size: 250880, uploadedAt: new Date() }
-    ],
-    createdAt: new Date(Date.now() - 1 * 86400000)
-  },
-  {
-    id: 'r2',
-    clinicId: 'c1',
-    patientId: 'p1',
-    patient: MOCK_PATIENT,
-    vetId: 'Dr(a). Diego Silva',
-    type: 'consultation',
-    title: 'Revisión y Limpieza de Canal Auditivo',
-    anamnesis: 'Tutor indica sacudidas constantes de cabeza y rascado frecuente en oreja derecha desde hace 3 días.',
-    physicalExam: 'Eritema moderado en canal auditivo derecho. Presencia de cerumen denso café oscuro con olor rancio. Dolor leve a la palpación profunda.',
-    diagnosis: 'Otitis externa eritemato-ceruminosa derecha.',
-    treatment: '1. Limpieza profunda en clínica.\n2. Prescribir gotas óticas Otomax: 4 gotas c/12h por 10 días.',
-    observations: 'Se programa control en 10 días.',
-    aiGenerated: true,
-    aiTranscriptionMinutes: 1.5,
-    createdAt: new Date(Date.now() - 3 * 86400000)
-  }
-];

@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AppointmentService } from '../../../core/services/appointment.service';
-import { Appointment, User, Patient, Tutor } from '../../../core/models';
+import { ToastService } from '../../../core/services/toast.service';
+import { Appointment, User } from '../../../core/models';
 
 @Component({
   selector: 'app-appointment-calendar',
@@ -14,6 +15,7 @@ import { Appointment, User, Patient, Tutor } from '../../../core/models';
 })
 export class AppointmentCalendarComponent implements OnInit {
   private svc = inject(AppointmentService);
+  private toast = inject(ToastService);
 
   loading = signal(true);
   appointments = signal<Appointment[]>([]);
@@ -70,8 +72,8 @@ export class AppointmentCalendarComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.appointments.set(MOCK_APPOINTMENTS_CALENDAR);
         this.loading.set(false);
+        this.toast.error('No se pudo cargar la agenda de citas. Verifica tu conexión e intenta de nuevo.');
       }
     });
   }
@@ -130,37 +132,3 @@ export class AppointmentCalendarComponent implements OnInit {
     return monday;
   }
 }
-
-// ── MOCK DATA ─────────────────────────────────
-
-const MOCK_TUTORS: Tutor[] = [
-  { id: 't1', clinicId: 'c1', firstName: 'Carlos', lastName: 'Gómez', phone: '3124567890', createdAt: new Date() },
-  { id: 't2', clinicId: 'c1', firstName: 'María', lastName: 'Rodríguez', phone: '3157891234', createdAt: new Date() },
-  { id: 't3', clinicId: 'c1', firstName: 'Diana', lastName: 'Pérez', phone: '3209876543', createdAt: new Date() }
-];
-
-const MOCK_PATIENTS: Patient[] = [
-  { id: 'p1', clinicId: 'c1', tutorId: 't1', tutor: MOCK_TUTORS[0], name: 'Toby', species: 'dog', breed: 'Golden Retriever', sex: 'male', sterilized: true, status: 'active', createdAt: new Date() },
-  { id: 'p2', clinicId: 'c1', tutorId: 't2', tutor: MOCK_TUTORS[1], name: 'Luna', species: 'cat', breed: 'Siamés', sex: 'female', sterilized: true, status: 'active', createdAt: new Date() },
-  { id: 'p3', clinicId: 'c1', tutorId: 't3', tutor: MOCK_TUTORS[2], name: 'Copito', species: 'rabbit', breed: 'Angora', sex: 'male', sterilized: false, status: 'active', createdAt: new Date() }
-];
-
-// Creamos fechas relativas a la semana actual (Miércoles de la semana actual es Lunes + 2 días)
-const getRelativeDate = (daysFromMonday: number, hourStr: string): Date => {
-  const now = new Date();
-  const day = now.getDay();
-  const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Lunes
-  const target = new Date(now.setDate(diff + daysFromMonday));
-  const [h, m] = hourStr.split(':');
-  target.setHours(parseInt(h), parseInt(m), 0, 0);
-  return target;
-};
-
-const MOCK_APPOINTMENTS_CALENDAR: Appointment[] = [
-  { id: 'a1', clinicId: 'c1', patientId: 'p1', patient: MOCK_PATIENTS[0], vetId: 'v1', serviceType: 'Vacunación', scheduledAt: getRelativeDate(2, '09:00'), durationMinutes: 30, status: 'scheduled', reason: 'Refuerzo de antirrábica.', createdAt: new Date() },
-  { id: 'a2', clinicId: 'c1', patientId: 'p2', patient: MOCK_PATIENTS[1], vetId: 'v2', serviceType: 'Control', scheduledAt: getRelativeDate(0, '11:00'), durationMinutes: 30, status: 'done', reason: 'Control postoperatorio.', createdAt: new Date() },
-  { id: 'a3', clinicId: 'c1', patientId: 'p1', patient: MOCK_PATIENTS[0], vetId: 'v2', serviceType: 'Consulta General', scheduledAt: getRelativeDate(2, '15:00'), durationMinutes: 30, status: 'in-progress', reason: 'Dolor abdominal.', createdAt: new Date() },
-  { id: 'a4', clinicId: 'c1', patientId: 'p3', patient: MOCK_PATIENTS[2], vetId: 'v1', serviceType: 'Consulta General', scheduledAt: getRelativeDate(3, '16:00'), durationMinutes: 30, status: 'waiting', reason: 'Chequeo general.', createdAt: new Date() },
-  { id: 'a5', clinicId: 'c1', patientId: 'p2', patient: MOCK_PATIENTS[1], vetId: 'v2', serviceType: 'Control', scheduledAt: getRelativeDate(4, '14:00'), durationMinutes: 30, status: 'scheduled', reason: 'Revisión periódica.', createdAt: new Date() },
-  { id: 'a6', clinicId: 'c1', patientId: 'p3', patient: MOCK_PATIENTS[2], vetId: 'v1', serviceType: 'Consulta General', scheduledAt: getRelativeDate(1, '10:00'), durationMinutes: 30, status: 'cancelled', reason: 'El tutor canceló por cruce de horarios.', createdAt: new Date() }
-];

@@ -53,16 +53,18 @@ export class DianService {
 
   issueInvoiceDian(invoiceId: string): Observable<{
     success: boolean;
+    transmittedToDian: boolean;
     message: string;
     invoice: any;
     dianDetails: {
       cufe: string;
       qrCodeUrl: string;
-      xmlUblUrl: string;
+      xmlUblUrl: string | null;
       resolutionNumber: string;
       prefix: string;
       environment: string;
-      validatedAt: Date;
+      transmittedToDian: boolean;
+      validatedAt: Date | null;
     };
   }> {
     return this.api.post(`/billing/dian/invoices/${invoiceId}/issue`, {});

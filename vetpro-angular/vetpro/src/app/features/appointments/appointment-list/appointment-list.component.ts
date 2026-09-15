@@ -4,7 +4,8 @@ import { RouterLink, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AppointmentService } from '../../../core/services/appointment.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { Appointment, Patient, Tutor } from '../../../core/models';
+import { ToastService } from '../../../core/services/toast.service';
+import { Appointment } from '../../../core/models';
 
 @Component({
   selector: 'app-appointment-list',
@@ -16,6 +17,7 @@ import { Appointment, Patient, Tutor } from '../../../core/models';
 export class AppointmentListComponent implements OnInit {
   private svc = inject(AppointmentService);
   private router = inject(Router);
+  private toast = inject(ToastService);
   public auth = inject(AuthService);
 
   appointments = signal<Appointment[]>([]);
@@ -72,8 +74,8 @@ export class AppointmentListComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.appointments.set(MOCK_APPOINTMENTS_LIST);
         this.loading.set(false);
+        this.toast.error('No se pudo cargar la lista de citas del día. Verifica tu conexión e intenta de nuevo.');
       }
     });
   }
@@ -81,7 +83,7 @@ export class AppointmentListComponent implements OnInit {
   // Cambiar estado de la cita en sala de espera
   changeStatus(app: Appointment, newStatus: Appointment['status']) {
     this.svc.updateStatus(app.id, newStatus).subscribe({
-      next: updated => {
+      next: () => {
         this.updateLocalStatus(app.id, newStatus);
         if (newStatus === 'in-progress') {
           this.router.navigate(['/medical-records', 'new', app.patientId], {
@@ -90,13 +92,7 @@ export class AppointmentListComponent implements OnInit {
         }
       },
       error: () => {
-        // Fallback local offline exitoso
-        this.updateLocalStatus(app.id, newStatus);
-        if (newStatus === 'in-progress') {
-          this.router.navigate(['/medical-records', 'new', app.patientId], {
-            queryParams: { appointmentId: app.id }
-          });
-        }
+        this.toast.error('No se pudo actualizar el estado de la cita. Intenta de nuevo.');
       }
     });
   }
@@ -111,25 +107,3 @@ export class AppointmentListComponent implements OnInit {
     return a.id;
   }
 }
-
-// ── MOCK DATA ─────────────────────────────────
-
-const MOCK_TUTORS: Tutor[] = [
-  { id: 't1', clinicId: 'c1', firstName: 'Carlos', lastName: 'Gómez', phone: '3124567890', address: 'Calle 10A #34-12, El Poblado, Medellín', createdAt: new Date() },
-  { id: 't2', clinicId: 'c1', firstName: 'María', lastName: 'Rodríguez', phone: '3157891234', address: 'Carrera 65 #45-89, Laureles, Medellín', createdAt: new Date() },
-  { id: 't3', clinicId: 'c1', firstName: 'Diana', lastName: 'Pérez', phone: '3209876543', address: 'Circular 4 #73-22, Conquistadores, Medellín', createdAt: new Date() }
-];
-
-const MOCK_PATIENTS: Patient[] = [
-  { id: 'p1', clinicId: 'c1', tutorId: 't1', tutor: MOCK_TUTORS[0], name: 'Toby', species: 'dog', breed: 'Golden Retriever', sex: 'male', sterilized: true, status: 'active', createdAt: new Date() },
-  { id: 'p2', clinicId: 'c1', tutorId: 't2', tutor: MOCK_TUTORS[1], name: 'Luna', species: 'cat', breed: 'Siamés', sex: 'female', sterilized: true, status: 'active', createdAt: new Date() },
-  { id: 'p3', clinicId: 'c1', tutorId: 't3', tutor: MOCK_TUTORS[2], name: 'Copito', species: 'rabbit', breed: 'Angora', sex: 'male', sterilized: false, status: 'active', createdAt: new Date() }
-];
-
-const MOCK_APPOINTMENTS_LIST: Appointment[] = [
-  { id: 'a1', clinicId: 'c1', patientId: 'p1', patient: MOCK_PATIENTS[0], vetId: 'v1', serviceType: 'Vacunación', scheduledAt: new Date(Date.now() + 15 * 60000), durationMinutes: 30, status: 'scheduled', reason: 'Refuerzo de antirrábica.', createdAt: new Date() },
-  { id: 'a2', clinicId: 'c1', patientId: 'p2', patient: MOCK_PATIENTS[1], vetId: 'v2', serviceType: 'Control de Paciente', scheduledAt: new Date(Date.now() - 60 * 60000), durationMinutes: 30, status: 'done', reason: 'Control postoperatorio.', createdAt: new Date() },
-  { id: 'a3', clinicId: 'c1', patientId: 'p1', patient: MOCK_PATIENTS[0], vetId: 'v2', serviceType: 'Consulta General', scheduledAt: new Date(Date.now() - 5 * 60000), durationMinutes: 30, status: 'in-progress', reason: 'Dolor abdominal.', createdAt: new Date() },
-  { id: 'a4', clinicId: 'c1', patientId: 'p3', patient: MOCK_PATIENTS[2], vetId: 'v1', serviceType: 'Consulta General', scheduledAt: new Date(Date.now() + 50 * 60000), durationMinutes: 30, status: 'waiting', reason: 'Chequeo general.', createdAt: new Date() },
-  { id: 'a5', clinicId: 'c1', patientId: 'p2', patient: MOCK_PATIENTS[1], vetId: 'v2', serviceType: 'Control de Paciente', scheduledAt: new Date(Date.now() + 120 * 60000), durationMinutes: 30, status: 'scheduled', reason: 'Revisión periódica.', createdAt: new Date() }
-];

@@ -3,6 +3,13 @@
     <div class="spinner"></div>
   </div>
 
+  <div class="empty-state" *ngIf="!loading() && !patient()">
+    <span class="material-symbols-outlined empty-icon">cloud_off</span>
+    <h3>No se pudo cargar la ficha del paciente</h3>
+    <p>El paciente no existe o hubo un problema de conexión con el servidor.</p>
+    <a routerLink="/patients" class="btn btn-ghost">Volver al listado</a>
+  </div>
+
   <div *ngIf="!loading() && patient() as p" class="detail-grid">
     <!-- Cabecera de Ficha -->
     <header class="detail-header">

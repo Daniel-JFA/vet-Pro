@@ -171,8 +171,16 @@
       </tbody>
     </table>
 
+    <!-- Estado de Error de Carga -->
+    <div class="empty-state" *ngIf="!loading() && loadError()">
+      <span class="material-symbols-outlined empty-icon">cloud_off</span>
+      <h3>No se pudo cargar el listado de pacientes</h3>
+      <p>Ocurrió un problema de conexión con el servidor. Intenta nuevamente.</p>
+      <button class="btn btn-primary" (click)="load()">Reintentar</button>
+    </div>
+
     <!-- Estado de Vacío -->
-    <div class="empty-state" *ngIf="!loading() && filtered().length === 0">
+    <div class="empty-state" *ngIf="!loading() && !loadError() && filtered().length === 0">
       <span class="material-symbols-outlined empty-icon">search_off</span>
       <h3>No se encontraron pacientes</h3>
       <p>Prueba a cambiar los filtros o realiza una nueva búsqueda.</p>

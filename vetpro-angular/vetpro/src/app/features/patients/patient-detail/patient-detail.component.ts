@@ -2,7 +2,8 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { PatientService } from '../../../core/services/patient.service';
-import { Patient, Tutor, Vaccine, MedicalRecord, Attachment, Species, PatientStatus } from '../../../core/models';
+import { ToastService } from '../../../core/services/toast.service';
+import { Patient, Vaccine, MedicalRecord, Attachment, Species, PatientStatus } from '../../../core/models';
 
 @Component({
   selector: 'app-patient-detail',
@@ -14,6 +15,7 @@ import { Patient, Tutor, Vaccine, MedicalRecord, Attachment, Species, PatientSta
 export class PatientDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private svc = inject(PatientService);
+  private toast = inject(ToastService);
 
   patientId = signal<string | null>(null);
   patient = signal<Patient | null>(null);
@@ -22,10 +24,14 @@ export class PatientDetailComponent implements OnInit {
   // Tab activo: 'general' | 'history' | 'vaccines' | 'documents'
   activeTab = signal<'general' | 'history' | 'vaccines' | 'documents'>('general');
 
-  // Datos clínicos adicionales de la mascota (Mock para offline)
+  // Datos clínicos adicionales de la mascota
   historyRecords = signal<MedicalRecord[]>([]);
   vaccines = signal<Vaccine[]>([]);
-  attachments = signal<Attachment[]>([]);
+  attachments = computed<Attachment[]>(() =>
+    this.historyRecords()
+      .flatMap(r => r.attachments || [])
+      .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
+  );
 
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
@@ -45,10 +51,9 @@ export class PatientDetailComponent implements OnInit {
         this.loadClinicalData(id);
       },
       error: () => {
-        // Fallback en caso de offline
-        const mockP = MOCK_PATIENTS_DETAIL.find(p => p.id === id) || MOCK_PATIENTS_DETAIL[0];
-        this.patient.set(mockP);
-        this.loadClinicalData(id);
+        this.patient.set(null);
+        this.loading.set(false);
+        this.toast.error('No se pudo cargar la ficha del paciente. Verifique su conexión e intente de nuevo.');
       }
     });
   }
@@ -57,7 +62,7 @@ export class PatientDetailComponent implements OnInit {
     // Intentar cargar historia y vacunas
     this.svc.getMedicalHistory(id).subscribe({
       next: h => this.historyRecords.set(h),
-      error: () => this.historyRecords.set(MOCK_HISTORY)
+      error: () => this.toast.error('No se pudo cargar el historial clínico del paciente.')
     });
 
     this.svc.getVaccines(id).subscribe({
@@ -66,9 +71,8 @@ export class PatientDetailComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.vaccines.set(MOCK_VACCINES);
-        this.attachments.set(MOCK_ATTACHMENTS);
         this.loading.set(false);
+        this.toast.error('No se pudo cargar el esquema de vacunación del paciente.');
       }
     });
   }
@@ -138,63 +142,3 @@ export class PatientDetailComponent implements OnInit {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 }
-
-// ── MOCK DATA ─────────────────────────────────
-
-const MOCK_TUTOR_DETAIL: Tutor = {
-  id: 't1',
-  clinicId: 'c1',
-  firstName: 'Carlos',
-  lastName: 'Gómez',
-  email: 'carlos.gomez@correo.co',
-  phone: '+57 312 456 7890',
-  documentId: '1.018.234.567',
-  address: 'Calle 100 #15-30, Apto 502, Bogotá D.C.',
-  createdAt: new Date()
-};
-
-const MOCK_PATIENTS_DETAIL: Patient[] = [
-  { id: 'p1', clinicId: 'c1', tutorId: 't1', tutor: MOCK_TUTOR_DETAIL, name: 'Toby', species: 'dog', breed: 'Golden Retriever', birthDate: new Date('2022-04-12'), sex: 'male', sterilized: true, weight: 32.5, chipId: '985112003456789', photoUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&q=80&w=150', status: 'active', allergies: 'Alergia alimentaria (pollo), hipersensibilidad a pulgas.', notes: 'Toby es un perro muy dócil, pero suele ponerse nervioso al subir a la báscula metálica. Requiere premios.', createdAt: new Date() }
-];
-
-const MOCK_HISTORY: MedicalRecord[] = [
-  {
-    id: 'r1',
-    clinicId: 'c1',
-    patientId: 'p1',
-    vetId: 'v1',
-    type: 'consultation',
-    title: 'Control de Vacunación y Control de Peso',
-    anamnesis: 'Tutor asiste con Toby para control de vacunas anual. Informa que ha estado comiendo bien y su nivel de energía es alto. Sin problemas digestivos reportados en los últimos meses.',
-    physicalExam: 'Paciente alerta y responsivo. Mucosas rosadas, tiempo de llenado capilar < 2s. Frecuencia cardíaca: 95 lpm, frecuencia respiratoria: 20 rpm, temperatura: 38.6°C. Peso estable de 32.5 kg. Ligera acumulación de sarro en premolares superiores.',
-    diagnosis: 'Paciente clínicamente sano. Gingivitis leve grado 1.',
-    treatment: 'Se realiza la aplicación de la vacuna Antirrábica Nobivac. Se aconseja iniciar profilaxis dental casera o cepillado regular.',
-    aiGenerated: true,
-    aiTranscriptionMinutes: 2.5,
-    createdAt: new Date(Date.now() - 15 * 86400000)
-  },
-  {
-    id: 'r2',
-    clinicId: 'c1',
-    patientId: 'p1',
-    vetId: 'v2',
-    type: 'consultation',
-    title: 'Cuadro Agudo de Gastroenteritis Leve',
-    anamnesis: 'Carlos reporta que Toby presentó dos episodios de emesis líquida (bilis) en la madrugada y deposición blanda. Apetito disminuido hoy. Pudo haber ingerido pasto húmedo en el parque.',
-    physicalExam: 'Paciente algo decaído. Deshidratación estimada del 5%. Abdomen blando, dolor a la palpación profunda en fosa epigástrica. Mucosas ligeramente secas.',
-    diagnosis: 'Gastroenteritis infecciosa leve / indiscreción alimentaria.',
-    treatment: '1. Hidratación oral con suero electrolítico en casa.\n2. Inyección SC de Metoclopramida (antiemético) en clínica.\n3. Prescripción de Amoxicilina 500mg oral (1 tableta cada 12h por 7 días).\n4. Dieta blanda (arroz blanco con pechuga de pollo hervida) por 3 días.',
-    aiGenerated: false,
-    createdAt: new Date(Date.now() - 90 * 86400000)
-  }
-];
-
-const MOCK_VACCINES: Vaccine[] = [
-  { id: 'vac1', patientId: 'p1', name: 'Vacuna Antirrábica (Nobivac)', brand: 'MSD Animal Health', batch: 'RAB-2026X', appliedAt: new Date(Date.now() - 15 * 86400000), nextDueAt: new Date(Date.now() + 350 * 86400000), vetId: 'v1', notes: 'Aplicada en miembro posterior derecho SC.' },
-  { id: 'vac2', patientId: 'p1', name: 'Vacuna Múltiple Canina (DHPPI+L)', brand: 'Zoetis', batch: 'MULT-990A', appliedAt: new Date(Date.now() - 180 * 86400000), nextDueAt: new Date(Date.now() + 185 * 86400000), vetId: 'v1', notes: 'Refuerzo anual aplicado con éxito.' }
-];
-
-const MOCK_ATTACHMENTS: Attachment[] = [
-  { id: 'att1', recordId: 'r1', name: 'Cuadro_Hematico_Toby.pdf', type: 'pdf', url: 'https://vetpro.co/files/toby_hemo.pdf', size: 250880, uploadedAt: new Date(Date.now() - 15 * 86400000) },
-  { id: 'att2', recordId: 'r2', name: 'Ecografia_Abdominal.png', type: 'image', url: 'https://images.unsplash.com/photo-1579684389782-64d84b5e901d?auto=format&fit=crop&q=80&w=300', size: 1258291, uploadedAt: new Date(Date.now() - 90 * 86400000) }
-];

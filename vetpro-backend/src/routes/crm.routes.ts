@@ -22,6 +22,35 @@ const SendCampaignSchema = z.object({
 });
 
 // ─────────────────────────────────────────────
+// ENVÍO REAL VÍA WHATSAPP CLOUD API (META)
+// ─────────────────────────────────────────────
+
+async function sendWhatsAppMessage(phone: string, text: string): Promise<boolean> {
+  const token = process.env.WHATSAPP_TOKEN;
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+  try {
+    const response = await fetch(`https://graph.facebook.com/v20.0/${phoneNumberId}/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: phone,
+        type: 'text',
+        text: { body: text }
+      })
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('[CRM] Error al enviar mensaje de WhatsApp:', error);
+    return false;
+  }
+}
+
+// ─────────────────────────────────────────────
 // ENDPOINTS
 // ─────────────────────────────────────────────
 
@@ -147,14 +176,33 @@ CRM_ROUTES.post('/broadcast', async (req: AuthRequest, res: Response) => {
 
     const potentialRevenue = targets.length * 85000;
 
-    // Generar enlaces individuales para despacho WhatsApp
-    const sampleMessages = targets.slice(0, 10).map(t => {
-      let text = data.templateBody
+    const buildMessage = (t: { patientName: string; tutorName: string }) =>
+      data.templateBody
         .replace(/{nombre_tutor}/gi, t.tutorName)
         .replace(/{nombre_mascota}/gi, t.patientName)
         .replace(/{nombre_clinica}/gi, clinic.name)
         .replace(/{descuento}/gi, `${data.discountPercent}%`);
 
+    const whatsappConfigured = !!(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID);
+    const autoSend = data.channel === 'whatsapp' && whatsappConfigured;
+
+    let messagesSent = 0;
+    let messagesDelivered = 0;
+
+    if (autoSend) {
+      // Envío real, uno por uno, respetando resultados individuales (sin fingir éxito)
+      for (const t of targets) {
+        const ok = await sendWhatsAppMessage(t.phone, buildMessage(t));
+        if (ok) {
+          messagesSent += 1;
+          messagesDelivered += 1;
+        }
+      }
+    }
+
+    // Enlaces de respaldo para envío manual (siempre disponibles, se usen o no)
+    const sampleMessages = targets.slice(0, 10).map(t => {
+      const text = buildMessage(t);
       return {
         phone: t.phone,
         message: text,
@@ -171,16 +219,21 @@ CRM_ROUTES.post('/broadcast', async (req: AuthRequest, res: Response) => {
         templateBody: data.templateBody,
         potentialRevenue,
         patientsTargeted: targets.length,
-        messagesSent: targets.length,
-        messagesDelivered: targets.length,
+        messagesSent,
+        messagesDelivered,
         responsesReceived: 0,
         appointmentsBooked: 0
       }
     });
 
+    const message = autoSend
+      ? `Campaña '${campaign.name}' enviada automáticamente: ${messagesDelivered} de ${targets.length} mensajes entregados vía WhatsApp Cloud API.`
+      : `Campaña '${campaign.name}' generada para ${targets.length} destinatarios. WhatsApp Business API no está configurado (WHATSAPP_TOKEN/WHATSAPP_PHONE_NUMBER_ID): use los enlaces de envío manual generados a continuación.`;
+
     return res.status(201).json({
       success: true,
-      message: `Campaña '${campaign.name}' procesada para ${targets.length} destinatarios.`,
+      autoSent: autoSend,
+      message,
       campaign,
       sampleDispatches: sampleMessages
     });

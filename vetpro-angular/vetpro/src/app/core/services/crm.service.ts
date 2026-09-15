@@ -42,6 +42,7 @@ export class CrmService {
     discountPercent?: number;
   }): Observable<{
     success: boolean;
+    autoSent: boolean;
     message: string;
     campaign: any;
     sampleDispatches: { phone: string; message: string; link: string }[];

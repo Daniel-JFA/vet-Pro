@@ -3,6 +3,7 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../core/services/auth.service';
+import { ToastContainerComponent } from '../shared/components/toast/toast-container.component';
 
 interface NavItem {
   label: string;
@@ -14,7 +15,7 @@ interface NavItem {
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule, FormsModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule, FormsModule, ToastContainerComponent],
   template: `
     <div class="shell">
       <!-- Backdrop Overlay for Mobile -->
@@ -115,6 +116,7 @@ interface NavItem {
         </div>
       </main>
     </div>
+    <app-toast-container />
   `,
   styleUrl: './shell.component.scss'
 })

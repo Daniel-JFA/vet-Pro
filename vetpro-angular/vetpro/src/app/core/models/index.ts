@@ -311,6 +311,8 @@ export interface Invoice {
   paidAt?: Date;
   notes?: string;
   electronicId?: string; // DIAN CUFE
+  dianStatus?: 'not_applicable' | 'pending' | 'validated' | 'rejected';
+  qrCodeUrl?: string;
 }
 
 export interface InvoiceItem {

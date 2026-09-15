@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { CrmService } from '../../../core/services/crm.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 export interface InactivePatient {
   id: string;
@@ -103,8 +104,19 @@ export interface InactivePatient {
             </label>
           </div>
 
+          <!-- Estado de carga / error -->
+          <div class="empty-state" *ngIf="loadingCohorts()">
+            <p>Cargando pacientes inactivos...</p>
+          </div>
+          <div class="empty-state" *ngIf="!loadingCohorts() && cohortsError()">
+            <p>No se pudo cargar el listado. <button class="btn btn-ghost" (click)="loadCohorts()">Reintentar</button></p>
+          </div>
+          <div class="empty-state" *ngIf="!loadingCohorts() && !cohortsError() && filteredList().length === 0">
+            <p>No hay pacientes que coincidan con este filtro.</p>
+          </div>
+
           <!-- Inactive Patient List -->
-          <div class="patient-list-scroll">
+          <div class="patient-list-scroll" *ngIf="!loadingCohorts() && !cohortsError()">
             <div
               *ngFor="let p of filteredList()"
               class="patient-row"
@@ -181,9 +193,19 @@ export interface InactivePatient {
               <span class="material-symbols-outlined">rocket_launch</span>
               {{ isSending() ? 'Disparando Campaña por WhatsApp...' : 'Enviar Campaña a (' + selectedCount() + ') Tutores' }}
             </button>
-            <span *ngIf="campaignSent()" class="success-banner">
-              ✅ ¡Campaña enviada exitosamente a {{ lastSentCount() }} tutores por WhatsApp Business API!
+            <span *ngIf="campaignSent() && campaignAutoSent()" class="success-banner">
+              ✅ ¡Campaña enviada automáticamente a {{ lastSentCount() }} tutores por WhatsApp Cloud API!
             </span>
+            <span *ngIf="campaignSent() && !campaignAutoSent()" class="success-banner success-banner--manual">
+              ⚠️ WhatsApp Business API no está configurado en el servidor. Se generaron {{ sampleDispatches().length }} enlaces de envío manual (haz clic en cada uno para enviarlo desde tu WhatsApp).
+            </span>
+          </div>
+
+          <div class="manual-dispatch-list" *ngIf="campaignSent() && !campaignAutoSent() && sampleDispatches().length > 0">
+            <a *ngFor="let d of sampleDispatches()" [href]="d.link" target="_blank" rel="noopener" class="manual-dispatch-link">
+              <span class="material-symbols-outlined">open_in_new</span>
+              Enviar a {{ d.phone }}
+            </a>
           </div>
         </div>
       </div>
@@ -548,6 +570,43 @@ export interface InactivePatient {
       text-align: center;
     }
 
+    .empty-state {
+      padding: 24px;
+      text-align: center;
+      color: #64748b;
+      font-size: 13px;
+    }
+
+    .success-banner--manual {
+      background: #fffbeb;
+      color: #92400e;
+    }
+
+    .manual-dispatch-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 10px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .manual-dispatch-link {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 10px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 6px;
+      color: #16a34a;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      .material-symbols-outlined { font-size: 16px; }
+      &:hover { background: #dcfce7; }
+    }
+
     @media (max-width: 900px) {
       .crm-layout { grid-template-columns: 1fr; }
     }
@@ -555,12 +614,16 @@ export interface InactivePatient {
 })
 export class CrmReactivationComponent implements OnInit {
   private crmService = inject(CrmService);
+  private toast = inject(ToastService);
 
   activeFilter = signal<'all' | 'no_recent_visit' | 'vaccine_expired'>('all');
   isSending = signal(false);
   campaignSent = signal(false);
+  campaignAutoSent = signal(false);
   lastSentCount = signal(0);
   sampleDispatches = signal<{ phone: string; message: string; link: string }[]>([]);
+  loadingCohorts = signal(true);
+  cohortsError = signal(false);
 
   currentHour = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
 
@@ -571,80 +634,34 @@ export class CrmReactivationComponent implements OnInit {
   }
 
   loadCohorts() {
+    this.loadingCohorts.set(true);
+    this.cohortsError.set(false);
     this.crmService.getCohorts().subscribe({
       next: (data) => {
-        if (data && data.inactiveCohort && data.inactiveCohort.length > 0) {
-          const mapped: InactivePatient[] = data.inactiveCohort.map((p, idx) => ({
-            id: p.patientId,
-            patientName: p.patientName,
-            species: p.species,
-            breed: 'Mestizo',
-            tutorName: p.tutorName,
-            tutorPhone: p.tutorPhone,
-            lastVisitDate: p.lastVisit ? new Date(p.lastVisit) : new Date(Date.now() - 190 * 86400000),
-            daysInactive: 190 + (idx * 15),
-            reason: 'no_recent_visit',
-            selected: true
-          }));
-          this.inactiveList.set(mapped);
-        }
+        const mapped: InactivePatient[] = (data?.inactiveCohort || []).map((p, idx) => ({
+          id: p.patientId,
+          patientName: p.patientName,
+          species: p.species,
+          breed: 'Mestizo',
+          tutorName: p.tutorName,
+          tutorPhone: p.tutorPhone,
+          lastVisitDate: p.lastVisit ? new Date(p.lastVisit) : new Date(Date.now() - 190 * 86400000),
+          daysInactive: 190 + (idx * 15),
+          reason: 'no_recent_visit' as const,
+          selected: true
+        }));
+        this.inactiveList.set(mapped);
+        this.loadingCohorts.set(false);
       },
-      error: (err) => console.warn('[CRM] Usando datos de respaldo locales:', err)
+      error: () => {
+        this.loadingCohorts.set(false);
+        this.cohortsError.set(true);
+        this.toast.error('No se pudo cargar el listado de pacientes inactivos. Verifica tu conexión e intenta de nuevo.');
+      }
     });
   }
 
-  inactiveList = signal<InactivePatient[]>([
-    {
-      id: 'p-inact-1',
-      patientName: 'Rocky',
-      species: 'dog',
-      breed: 'Beagle',
-      tutorName: 'Javier Morales',
-      tutorPhone: '3104561234',
-      lastVisitDate: new Date(Date.now() - 210 * 86400000),
-      daysInactive: 210,
-      reason: 'no_recent_visit',
-      selected: true
-    },
-    {
-      id: 'p-inact-2',
-      patientName: 'Milo',
-      species: 'cat',
-      breed: 'Persa',
-      tutorName: 'Carolina Duque',
-      tutorPhone: '3187654321',
-      lastVisitDate: new Date(Date.now() - 365 * 86400000),
-      daysInactive: 365,
-      reason: 'vaccine_expired',
-      vaccineName: 'Triple Felina',
-      selected: true
-    },
-    {
-      id: 'p-inact-3',
-      patientName: 'Kira',
-      species: 'dog',
-      breed: 'Pastor Alemán',
-      tutorName: 'Gustavo Petroff',
-      tutorPhone: '3019876543',
-      lastVisitDate: new Date(Date.now() - 195 * 86400000),
-      daysInactive: 195,
-      reason: 'no_recent_visit',
-      selected: true
-    },
-    {
-      id: 'p-inact-4',
-      patientName: 'Pelusa',
-      species: 'cat',
-      breed: 'Criollo',
-      tutorName: 'Ana María Orozco',
-      tutorPhone: '3145558899',
-      lastVisitDate: new Date(Date.now() - 180 * 86400000),
-      daysInactive: 180,
-      reason: 'vaccine_expired',
-      vaccineName: 'Antirrábica',
-      selected: false
-    }
-  ]);
+  inactiveList = signal<InactivePatient[]>([]);
 
   filteredList = computed(() => {
     const f = this.activeFilter();
@@ -710,15 +727,15 @@ export class CrmReactivationComponent implements OnInit {
       next: (res) => {
         this.isSending.set(false);
         this.campaignSent.set(true);
+        this.campaignAutoSent.set(res.autoSent);
         this.lastSentCount.set(count);
-        if (res.sampleDispatches) {
-          this.sampleDispatches.set(res.sampleDispatches);
-        }
+        this.sampleDispatches.set(res.sampleDispatches || []);
+        this.toast.success(res.message);
       },
       error: () => {
         this.isSending.set(false);
-        this.campaignSent.set(true);
-        this.lastSentCount.set(count);
+        this.campaignSent.set(false);
+        this.toast.error('No se pudo procesar la campaña de reactivación. Intenta de nuevo.');
       }
     });
   }

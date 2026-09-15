@@ -11,7 +11,8 @@
     "db:migrate:deploy": "npx prisma migrate deploy",
     "db:init:prod": "tsx prisma/init_prod.ts",
     "db:seed": "node dist/prisma/seed.js",
-    "db:seed:dev": "npx prisma db seed"
+    "db:seed:dev": "npx prisma db seed",
+    "db:seed:okvet": "tsx prisma/seed_okvet.ts"
   },
   "prisma": {
     "seed": "node dist/prisma/seed.js"

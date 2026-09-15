@@ -10,6 +10,7 @@ export interface SoapClinicalOutput {
   diagnosis: string;
   treatment: string;
   observations: string;
+  engineSource: 'claude' | 'openai' | 'local-engine';
 }
 
 export class AiService {
@@ -19,7 +20,7 @@ export class AiService {
   static async transcribeAudio(audioBuffer: Buffer, filename: string): Promise<string> {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      return 'Paciente canino macho de 4 años acude a consulta por cuadro de sacudidas frecuentes de cabeza, prurito intenso en oreja derecha y secreción ceruminosa oscura de 4 días de evolución. Al examen físico se evidencia eritema en pabellón auricular y dolor a la palpación del conducto auditivo externo. T° 38.8°C, FC 110 lpm.';
+      throw new Error('AI_VOICE_NOT_CONFIGURED');
     }
 
     try {
@@ -94,7 +95,7 @@ Debes responder ESTRICTAMENTE en formato JSON con las siguientes claves:
           const text = data.content[0].text;
           const jsonMatch = text.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
-            return JSON.parse(jsonMatch[0]);
+            return { ...JSON.parse(jsonMatch[0]), engineSource: 'claude' };
           }
         }
       } catch (e) {
@@ -123,14 +124,14 @@ Debes responder ESTRICTAMENTE en formato JSON con las siguientes claves:
 
         if (response.ok) {
           const data: any = await response.json();
-          return JSON.parse(data.choices[0].message.content);
+          return { ...JSON.parse(data.choices[0].message.content), engineSource: 'openai' };
         }
       } catch (e) {
         console.warn('[AiService] Fallback de OpenAI:', e);
       }
     }
 
-    // 3. Motor Clínico Veterinario Integrado (Procesamiento inteligente sin dependencias externas)
+    // 3. Motor Clínico Veterinario Integrado (Procesamiento por reglas, sin conexión a IA externa)
     return this.parseVeterinaryDomain(transcription);
   }
 
@@ -144,7 +145,6 @@ Debes responder ESTRICTAMENTE en formato JSON con las siguientes claves:
     const isOtitis = lower.includes('oreja') || lower.includes('oido') || lower.includes('cabeza') || lower.includes('cerumen');
     const isGastro = lower.includes('vómito') || lower.includes('diarrea') || lower.includes('comida') || lower.includes('apetito');
     const isSkin = lower.includes('piel') || lower.includes('prurito') || lower.includes('rasca') || lower.includes('alopecia') || lower.includes('pulga');
-    const isVaccine = lower.includes('vacuna') || lower.includes('desparasit') || lower.includes('control') || lower.includes('sano');
 
     if (isOtitis) {
       return {
@@ -153,7 +153,8 @@ Debes responder ESTRICTAMENTE en formato JSON con las siguientes claves:
         physicalExam: 'Pabellón auricular derecho eritematoso. Presencia de exudado ceruminoso pardo no purulento en canal auditivo vertical. Dolor y quejido a la palpación profunda. Mucosas rosadas, T° 38.7°C, FC 110 lpm.',
         diagnosis: 'Otitis externa aguda unilateral de origen alérgico/bacteriano secundario.',
         treatment: '1. Limpieza de canal auricular con limpiador ótico ceruminolítico cada 24 horas por 7 días.\n2. Gotas óticas con antibiótico, antifúngico y antiinflamatorio (Gotas Óticas Vet) 4 gotas cada 12 horas por 10 días.\n3. Analgésico / antiinflamatorio según peso.',
-        observations: 'Evitar ingreso de agua al bañar a la mascota. Cita de control citológico en 10 días.'
+        observations: 'Evitar ingreso de agua al bañar a la mascota. Cita de control citológico en 10 días.',
+        engineSource: 'local-engine'
       };
     }
 
@@ -164,7 +165,8 @@ Debes responder ESTRICTAMENTE en formato JSON con las siguientes claves:
         physicalExam: 'Paciente alerta, deshidratación leve estimada en 5%. Mucosas subhúmedas. Dolor a la palpación mesogástrica. T° 38.6°C, FC 120 lpm.',
         diagnosis: 'Gastroenteritis aguda por indiscreción dietaria vs cuadro infeccioso bacteriano/parasitario.',
         treatment: '1. Dieta gastrointestinal blanda fraccionada en 4 tomas diarias por 5 días.\n2. Metoclopramida o Maropitant según peso cada 24h.\n3. Ranitidina/Omeprazol protector gástrico por 7 días.\n4. Probióticos orales.',
-        observations: 'Suspender snacks y alimentos grasos. Si presenta hematemesis o decaimiento severo, ingresar por urgencias.'
+        observations: 'Suspender snacks y alimentos grasos. Si presenta hematemesis o decaimiento severo, ingresar por urgencias.',
+        engineSource: 'local-engine'
       };
     }
 
@@ -175,7 +177,8 @@ Debes responder ESTRICTAMENTE en formato JSON con las siguientes claves:
         physicalExam: 'Alopecia periocular y eritema en zonas de pliegues axilares e inguinales. Sin ectoparásitos visibles al peinado fino.',
         diagnosis: 'Dermatitis alérgica (DAPP vs Atopia canina).',
         treatment: '1. Oclacitinib o corticoide tópico según pauta posológica.\n2. Baños con champú medicado con Clorhexidina cada 4 días.\n3. Antipulgas sistémico de última generación.',
-        observations: 'Evitar rascado excesivo. Uso de collar isabelino si hay automutilación.'
+        observations: 'Evitar rascado excesivo. Uso de collar isabelino si hay automutilación.',
+        engineSource: 'local-engine'
       };
     }
 
@@ -185,7 +188,8 @@ Debes responder ESTRICTAMENTE en formato JSON con las siguientes claves:
       physicalExam: 'Paciente normotérmico, alerta y responsivo. Mucosas rosadas y húmedas, TLLC < 2 seg. Auscultación cardiopulmonar sin soplos ni estertores. Palpación abdominal blanda e indolora.',
       diagnosis: 'Paciente clínicamente sano al momento de la exploración.',
       treatment: '1. Mantener esquema de medicina preventiva al día.\n2. Dieta balanceada acorde a edad, especie y nivel de actividad física.',
-      observations: 'Próximo control programado en 6 meses o ante cualquier cambio de comportamiento.'
+      observations: 'Próximo control programado en 6 meses o ante cualquier cambio de comportamiento.',
+      engineSource: 'local-engine'
     };
   }
 }

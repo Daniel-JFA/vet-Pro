@@ -41,6 +41,57 @@ const CreateMedicalRecordSchema = z.object({
 // ENDPOINTS
 // ─────────────────────────────────────────────
 
+// GET /api/v1/medical-records (Listado general de historias clínicas de la clínica)
+router.get('/', async (req: AuthRequest, res: Response) => {
+  const clinicId = req.user?.clinicId;
+  if (!clinicId) {
+    return res.status(401).json({ error: 'No autorizado.' });
+  }
+
+  try {
+    const page = Math.max(1, parseInt(String(req.query.page || '1'), 10));
+    const pageSize = Math.min(100, Math.max(1, parseInt(String(req.query.pageSize || '20'), 10)));
+    const type = req.query.type as string | undefined;
+    const search = req.query.search as string | undefined;
+
+    const whereClause: any = { clinicId };
+    if (type) {
+      whereClause.type = type;
+    }
+    if (search) {
+      whereClause.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { diagnosis: { contains: search, mode: 'insensitive' } },
+        { patient: { name: { contains: search, mode: 'insensitive' } } }
+      ];
+    }
+
+    const [records, total] = await prisma.$transaction([
+      prisma.medicalRecord.findMany({
+        where: whereClause,
+        include: {
+          patient: { select: { id: true, name: true, species: true, breed: true } },
+          vet: { select: { id: true, firstName: true, lastName: true, role: true } }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize
+      }),
+      prisma.medicalRecord.count({ where: whereClause })
+    ]);
+
+    const mapped = records.map(r => ({
+      ...r,
+      vetName: `Dr(a). ${r.vet.firstName} ${r.vet.lastName}`
+    }));
+
+    return res.json({ data: mapped, total, page, pageSize });
+  } catch (error: any) {
+    console.error('[MedicalRecordRoutes] Error al listar historias clínicas:', error);
+    return res.status(500).json({ error: 'Error al consultar las historias clínicas.' });
+  }
+});
+
 // GET /api/v1/medical-records/patient/:patientId (Historial cronológico de una mascota)
 router.get('/patient/:patientId', async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
@@ -92,9 +143,12 @@ router.post('/transcribe', async (req: AuthRequest, res: Response) => {
     return res.status(401).json({ error: 'No autorizado.' });
   }
 
-  const { durationSeconds, text } = req.body;
+  const { durationSeconds, text, audioBase64 } = req.body;
   if (!durationSeconds) {
     return res.status(400).json({ error: 'La duración del audio es obligatoria.' });
+  }
+  if (!text?.trim() && !audioBase64) {
+    return res.status(400).json({ error: 'Debe proporcionar el dictado en texto o un audio grabado para procesar.' });
   }
 
   try {
@@ -114,6 +168,23 @@ router.post('/transcribe', async (req: AuthRequest, res: Response) => {
       });
     }
 
+    let speechText = text?.trim();
+    if (!speechText && audioBase64) {
+      try {
+        const base64Data = String(audioBase64).replace(/^data:audio\/\w+;base64,/, '');
+        const audioBuffer = Buffer.from(base64Data, 'base64');
+        speechText = await AiService.transcribeAudio(audioBuffer, 'recording.webm');
+      } catch (err: any) {
+        if (err.message === 'AI_VOICE_NOT_CONFIGURED') {
+          return res.status(422).json({
+            error: 'La transcripción de voz por IA no está configurada en este servidor (falta OPENAI_API_KEY). Por favor dicta el texto manualmente.',
+            code: 'AI_VOICE_NOT_CONFIGURED'
+          });
+        }
+        throw err;
+      }
+    }
+
     // Descontar minutos consumidos
     await prisma.clinic.update({
       where: { id: clinicId },
@@ -124,10 +195,8 @@ router.post('/transcribe', async (req: AuthRequest, res: Response) => {
       }
     });
 
-    const speechText = text || 'Paciente canino acude a control general y vacunación.';
-
-    // Procesamiento real con AiService (Whisper / Claude / Engine clínico)
-    const structuredSoap = await AiService.structureSoap(speechText);
+    // Procesamiento con AiService (Claude / OpenAI / Motor clínico local)
+    const structuredSoap = await AiService.structureSoap(speechText!);
 
     const responseData = {
       title: structuredSoap.title,
@@ -137,6 +206,8 @@ router.post('/transcribe', async (req: AuthRequest, res: Response) => {
       treatment: structuredSoap.treatment,
       observations: structuredSoap.observations,
       aiGenerated: true,
+      aiEngine: structuredSoap.engineSource,
+      transcribedText: speechText,
       aiTranscriptionMinutes: minutesUsed
     };
 

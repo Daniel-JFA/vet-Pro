@@ -279,7 +279,7 @@ router.patch('/clinic', authMiddleware as any, roleMiddleware(['admin']) as any,
 // ─────────────────────────────────────────────
 
 // GET /auth/users (Listar usuarios de la clínica)
-router.get('/users', authMiddleware as any, roleMiddleware(['admin']) as any, async (req: AuthRequest, res: Response) => {
+router.get('/users', authMiddleware as any, roleMiddleware(['admin', 'vet', 'assistant', 'receptionist']) as any, async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
   if (!clinicId) return res.status(401).json({ error: 'No autorizado.' });
 

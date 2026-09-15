@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink, Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { PatientService } from '../../../core/services/patient.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { Patient, Tutor, Species, PatientStatus } from '../../../core/models';
 
 @Component({
@@ -17,6 +18,7 @@ export class PatientFormComponent implements OnInit {
   private svc = inject(PatientService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private toast = inject(ToastService);
 
   isEditMode = signal(false);
   patientId = signal<string | null>(null);
@@ -114,8 +116,7 @@ export class PatientFormComponent implements OnInit {
         this.tutors.set(res.data);
       },
       error: () => {
-        // Fallback mock data para tutores
-        this.tutors.set(MOCK_TUTORS_FORM);
+        this.toast.error('No se pudo cargar el listado de tutores. Intenta recargar la página.');
       }
     });
   }
@@ -128,12 +129,9 @@ export class PatientFormComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        // Fallback mock en caso de edición sin backend
-        const mockP = MOCK_PATIENTS_FORM.find(p => p.id === id);
-        if (mockP) {
-          this.fillForm(mockP);
-        }
         this.loading.set(false);
+        this.toast.error('No se pudo cargar la información del paciente a editar.');
+        this.router.navigate(['/patients']);
       }
     });
   }
@@ -208,24 +206,24 @@ export class PatientFormComponent implements OnInit {
       this.svc.updatePatient(this.patientId()!, patientData).subscribe({
         next: () => {
           this.submitting.set(false);
+          this.toast.success('Paciente actualizado exitosamente.');
           this.router.navigate(['/patients']);
         },
         error: () => {
-          // Fallback de éxito local offline
           this.submitting.set(false);
-          this.router.navigate(['/patients']);
+          this.toast.error('No se pudo actualizar el paciente. Verifica los datos e intenta de nuevo.');
         }
       });
     } else {
       this.svc.createPatient(patientData).subscribe({
         next: () => {
           this.submitting.set(false);
+          this.toast.success('Paciente registrado exitosamente.');
           this.router.navigate(['/patients']);
         },
         error: () => {
-          // Fallback de éxito local offline
           this.submitting.set(false);
-          this.router.navigate(['/patients']);
+          this.toast.error('No se pudo registrar el paciente. Verifica los datos e intenta de nuevo.');
         }
       });
     }
@@ -240,21 +238,3 @@ export class PatientFormComponent implements OnInit {
     });
   }
 }
-
-// ── MOCK DATA ─────────────────────────────────
-
-const MOCK_TUTORS_FORM: Tutor[] = [
-  { id: 't1', clinicId: 'c1', firstName: 'Carlos', lastName: 'Gómez', email: 'carlos@gmail.com', phone: '3124567890', documentId: '1018234567', address: 'Calle 100 #15-30, Bogotá', createdAt: new Date() },
-  { id: 't2', clinicId: 'c1', firstName: 'María', lastName: 'Rodríguez', email: 'maria@outlook.com', phone: '3157891234', documentId: '52345678', address: 'Carrera 7 #45-12, Medellín', createdAt: new Date() },
-  { id: 't3', clinicId: 'c1', firstName: 'Diana', lastName: 'Pérez', email: 'diana@hotmail.com', phone: '3209876543', documentId: '1032456789', address: 'Av. El Poblado #3-45, Envigado', createdAt: new Date() },
-  { id: 't4', clinicId: 'c1', firstName: 'Juan', lastName: 'Sánchez', email: 'juan@gmail.com', phone: '3001234567', documentId: '79876543', address: 'Transversal 5 #80-22, Cali', createdAt: new Date() }
-];
-
-const MOCK_PATIENTS_FORM: Patient[] = [
-  { id: 'p1', clinicId: 'c1', tutorId: 't1', tutor: MOCK_TUTORS_FORM[0], name: 'Toby', species: 'dog', breed: 'Golden Retriever', sex: 'male', sterilized: true, weight: 32.5, chipId: '985112003456789', photoUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&q=80&w=150', status: 'active', createdAt: new Date() },
-  { id: 'p2', clinicId: 'c1', tutorId: 't2', tutor: MOCK_TUTORS_FORM[1], name: 'Luna', species: 'cat', breed: 'Siamés', sex: 'female', sterilized: true, weight: 4.2, chipId: '985112003456780', photoUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=150', status: 'active', createdAt: new Date() },
-  { id: 'p3', clinicId: 'c1', tutorId: 't1', tutor: MOCK_TUTORS_FORM[0], name: 'Kira', species: 'dog', breed: 'Bulldog Francés', sex: 'female', sterilized: false, weight: 11.8, chipId: '985112003456781', status: 'active', createdAt: new Date() },
-  { id: 'p4', clinicId: 'c1', tutorId: 't3', tutor: MOCK_TUTORS_FORM[2], name: 'Copito', species: 'rabbit', breed: 'Angora', sex: 'male', sterilized: false, weight: 2.1, status: 'active', createdAt: new Date() },
-  { id: 'p5', clinicId: 'c1', tutorId: 't4', tutor: MOCK_TUTORS_FORM[3], name: 'Rocky', species: 'dog', breed: 'Pastor Alemán', sex: 'male', sterilized: true, weight: 38.0, chipId: '985112003456782', photoUrl: 'https://images.unsplash.com/photo-1589941013453-ec89f33b5e95?auto=format&fit=crop&q=80&w=150', status: 'inactive', createdAt: new Date() },
-  { id: 'p6', clinicId: 'c1', tutorId: 't2', tutor: MOCK_TUTORS_FORM[1], name: 'Mimi', species: 'cat', breed: 'Persa', sex: 'female', sterilized: true, weight: 3.8, status: 'active', createdAt: new Date() }
-];

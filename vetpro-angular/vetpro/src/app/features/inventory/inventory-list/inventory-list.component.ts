@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { InventoryService } from '../../../core/services/inventory.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { Product, ProductCategory } from '../../../core/models';
 import { CurrencyCopPipe } from '../../../shared/pipes/currency-cop.pipe';
 
@@ -15,6 +16,7 @@ import { CurrencyCopPipe } from '../../../shared/pipes/currency-cop.pipe';
 })
 export class InventoryListComponent implements OnInit {
   private svc = inject(InventoryService);
+  private toast = inject(ToastService);
 
   products = signal<Product[]>([]);
   loading = signal(true);
@@ -69,7 +71,7 @@ export class InventoryListComponent implements OnInit {
     this.loading.set(true);
     this.svc.getProducts({ page: this.page(), pageSize: this.pageSize }).subscribe({
       next: res => { this.products.set(res.data); this.total.set(res.total); this.loading.set(false); },
-      error: () => { this.loading.set(false); this.products.set(MOCK_PRODUCTS); this.total.set(MOCK_PRODUCTS.length); }
+      error: () => { this.loading.set(false); this.toast.error('No se pudo cargar el inventario. Verifica tu conexión e intenta de nuevo.'); }
     });
   }
 
@@ -91,15 +93,3 @@ export class InventoryListComponent implements OnInit {
 
   trackById(_: number, p: Product) { return p.id; }
 }
-
-// ── Mock data for development ──────────────────
-const MOCK_PRODUCTS: Product[] = [
-  { id:'1', clinicId:'c1', sku:'MED-001', name:'Amoxicilina 500mg', category:'medication', brand:'Pfizer', unit:'Tableta', requiresPrescription:true, controlled:false, minStock:20, currentStock:5, costPrice:800, salePrice:1500, taxRate:0, active:true, createdAt:new Date(), expiresAt:new Date(Date.now()+15*86400000) },
-  { id:'2', clinicId:'c1', sku:'VAC-001', name:'Vacuna Antirrábica', category:'vaccine', brand:'Nobivac', unit:'Dosis', requiresPrescription:false, controlled:false, minStock:10, currentStock:0, costPrice:12000, salePrice:25000, taxRate:0, active:true, createdAt:new Date(), expiresAt:new Date(Date.now()+60*86400000) },
-  { id:'3', clinicId:'c1', sku:'MED-002', name:'Prednisolona 5mg', category:'medication', brand:'MSD', unit:'Tableta', requiresPrescription:true, controlled:false, minStock:30, currentStock:45, costPrice:500, salePrice:1200, taxRate:0, active:true, createdAt:new Date() },
-  { id:'4', clinicId:'c1', sku:'INS-001', name:'Jeringa 3ml c/aguja', category:'consumable', brand:'Nipro', unit:'Unidad', requiresPrescription:false, controlled:false, minStock:50, currentStock:120, costPrice:300, salePrice:600, taxRate:0.19, active:true, createdAt:new Date() },
-  { id:'5', clinicId:'c1', sku:'MED-003', name:'Enrofloxacina 50mg/ml', category:'medication', brand:'Bayer', unit:'ml', requiresPrescription:true, controlled:false, minStock:5, currentStock:8, costPrice:3500, salePrice:7000, taxRate:0, active:true, createdAt:new Date(), expiresAt:new Date(Date.now()+45*86400000) },
-  { id:'6', clinicId:'c1', sku:'ALI-001', name:'Royal Canin Urinary SO', category:'food', brand:'Royal Canin', unit:'Kg', requiresPrescription:false, controlled:false, minStock:5, currentStock:12, costPrice:45000, salePrice:72000, taxRate:0, active:true, createdAt:new Date() },
-  { id:'7', clinicId:'c1', sku:'VAC-002', name:'Triple Felina (RCP)', category:'vaccine', brand:'Felocell', unit:'Dosis', requiresPrescription:false, controlled:false, minStock:8, currentStock:3, costPrice:15000, salePrice:35000, taxRate:0, active:true, createdAt:new Date(), expiresAt:new Date(Date.now()+90*86400000) },
-  { id:'8', clinicId:'c1', sku:'QUI-001', name:'Ketamina 500mg/10ml', category:'medication', brand:'Holliday', unit:'Vial', requiresPrescription:true, controlled:true, minStock:3, currentStock:6, costPrice:28000, salePrice:55000, taxRate:0, active:true, createdAt:new Date() },
-];

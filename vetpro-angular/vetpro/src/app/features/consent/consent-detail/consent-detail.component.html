@@ -3,6 +3,13 @@
     <div class="spinner"></div>
   </div>
 
+  <div class="empty-state" *ngIf="!loading() && !consent()">
+    <span class="material-symbols-outlined">cloud_off</span>
+    <h3>No se pudo cargar el consentimiento</h3>
+    <p>El documento no existe o hubo un problema de conexión con el servidor.</p>
+    <a routerLink="/consent" class="btn btn-ghost">Volver al listado</a>
+  </div>
+
   <div *ngIf="!loading() && consent()" class="content-container">
     <!-- BARRA DE ACCIONES SUPERIOR -->
     <div class="top-actions-bar no-print">

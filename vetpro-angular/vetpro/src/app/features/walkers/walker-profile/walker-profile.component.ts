@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { Walker } from '../../../core/models';
 
 @Component({
@@ -18,6 +19,10 @@ import { Walker } from '../../../core/models';
 
       <div *ngIf="loading()" class="loading-state">
         <span class="material-symbols-outlined spin">sync</span> Cargando perfil…
+      </div>
+
+      <div *ngIf="!loading() && !profile()" class="loading-state">
+        No se pudo cargar tu perfil. Verifica tu conexión e intenta de nuevo.
       </div>
 
       <div class="profile-grid" *ngIf="!loading() && profile()">
@@ -127,6 +132,7 @@ import { Walker } from '../../../core/models';
 })
 export class WalkerProfileComponent implements OnInit {
   private api = inject(ApiService);
+  private toast = inject(ToastService);
   auth = inject(AuthService);
 
   profile = signal<Walker | null>(null);
@@ -148,16 +154,9 @@ export class WalkerProfileComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        const demo: Walker = {
-          id: 'demo', clinicId: 'dev-clinic', userId: 'dev-walker',
-          bio: 'Apasionado por los animales.', photoUrl: undefined,
-          rating: 4.8, totalWalks: 127, pricePerHour: 25000,
-          maxDogs: 3, coverageZones: ['Laureles', 'El Poblado'], active: true, createdAt: new Date()
-        };
-        this.profile.set(demo);
-        this.form = { bio: demo.bio ?? '', pricePerHour: demo.pricePerHour,
-                      maxDogs: demo.maxDogs, coverageZones: [...demo.coverageZones] };
+        this.profile.set(null);
         this.loading.set(false);
+        this.toast.error('No se pudo cargar tu perfil de paseador.');
       }
     });
   }
@@ -187,8 +186,7 @@ export class WalkerProfileComponent implements OnInit {
       },
       error: () => {
         this.saving.set(false);
-        this.saved.set(true);
-        setTimeout(() => this.saved.set(false), 2500);
+        this.toast.error('No se pudo guardar tu perfil. Verifica los datos e intenta de nuevo.');
       }
     });
   }

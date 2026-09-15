@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { BillingService } from '../../../core/services/billing.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { Invoice } from '../../../core/models';
 
 @Component({
@@ -14,6 +15,7 @@ import { Invoice } from '../../../core/models';
 })
 export class BillingListComponent implements OnInit {
   private billingSvc = inject(BillingService);
+  private toast = inject(ToastService);
 
   loading = signal(true);
   search = signal('');
@@ -80,9 +82,8 @@ export class BillingListComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        // Fallback offline mock data
-        this.invoices.set(MOCK_INVOICES);
         this.loading.set(false);
+        this.toast.error('No se pudo cargar el listado de facturas. Verifica tu conexión e intenta de nuevo.');
       }
     });
   }
@@ -116,20 +117,11 @@ export class BillingListComponent implements OnInit {
     this.billingSvc.registerPayment(inv.id, this.paymentAmount(), this.paymentMethod()).subscribe({
       next: (updatedInvoice) => {
         this.updateInvoiceInList(updatedInvoice);
+        this.toast.success('Pago registrado exitosamente.');
         this.closePaymentModal();
       },
       error: () => {
-        // Mock offline response
-        const newPaid = inv.amountPaid + this.paymentAmount();
-        const newBalance = Math.max(0, inv.total - newPaid);
-        const updatedMock: Invoice = {
-          ...inv,
-          amountPaid: newPaid,
-          balance: newBalance,
-          status: newBalance === 0 ? 'paid' : 'partial'
-        };
-        this.updateInvoiceInList(updatedMock);
-        this.closePaymentModal();
+        this.toast.error('No se pudo registrar el pago. Verifica los datos e intenta de nuevo.');
       }
     });
   }
@@ -152,17 +144,11 @@ export class BillingListComponent implements OnInit {
     this.billingSvc.voidInvoice(inv.id, this.voidReason()).subscribe({
       next: (updatedInvoice) => {
         this.updateInvoiceInList(updatedInvoice);
+        this.toast.success('Factura anulada exitosamente.');
         this.closeVoidModal();
       },
       error: () => {
-        // Mock offline response
-        const updatedMock: Invoice = {
-          ...inv,
-          status: 'void',
-          balance: 0
-        };
-        this.updateInvoiceInList(updatedMock);
-        this.closeVoidModal();
+        this.toast.error('No se pudo anular la factura. Intenta de nuevo.');
       }
     });
   }
@@ -175,69 +161,3 @@ export class BillingListComponent implements OnInit {
     return item.id;
   }
 }
-
-// ── MOCK DATA ─────────────────────────────────
-
-const MOCK_INVOICES: Invoice[] = [
-  {
-    id: 'f1',
-    clinicId: 'c1',
-    invoiceNumber: 'FAC-000001',
-    tutorId: 't1',
-    tutor: { id: 't1', clinicId: 'c1', firstName: 'Carlos', lastName: 'Gómez', phone: '+57 312 456 7890', createdAt: new Date() },
-    status: 'paid',
-    items: [],
-    subtotal: 150000,
-    taxTotal: 28500,
-    total: 178500,
-    amountPaid: 178500,
-    balance: 0,
-    issuedAt: new Date(Date.now() - 2 * 86400000),
-    paidAt: new Date(Date.now() - 2 * 86400000)
-  },
-  {
-    id: 'f2',
-    clinicId: 'c1',
-    invoiceNumber: 'FAC-000002',
-    tutorId: 't2',
-    tutor: { id: 't2', clinicId: 'c1', firstName: 'Diana', lastName: 'Pérez', phone: '+57 300 987 6543', createdAt: new Date() },
-    status: 'partial',
-    items: [],
-    subtotal: 320000,
-    taxTotal: 60800,
-    total: 380800,
-    amountPaid: 200000,
-    balance: 180800,
-    issuedAt: new Date(Date.now() - 5 * 86400000)
-  },
-  {
-    id: 'f3',
-    clinicId: 'c1',
-    invoiceNumber: 'FAC-000003',
-    tutorId: 't1',
-    tutor: { id: 't1', clinicId: 'c1', firstName: 'Carlos', lastName: 'Gómez', phone: '+57 312 456 7890', createdAt: new Date() },
-    status: 'issued',
-    items: [],
-    subtotal: 80000,
-    taxTotal: 15200,
-    total: 95200,
-    amountPaid: 0,
-    balance: 95200,
-    issuedAt: new Date(Date.now() - 1 * 86400000)
-  },
-  {
-    id: 'f4',
-    clinicId: 'c1',
-    invoiceNumber: 'FAC-000004',
-    tutorId: 't3',
-    tutor: { id: 't3', clinicId: 'c1', firstName: 'Marta', lastName: 'Castro', phone: '+57 315 111 2222', createdAt: new Date() },
-    status: 'draft',
-    items: [],
-    subtotal: 45000,
-    taxTotal: 8550,
-    total: 53550,
-    amountPaid: 0,
-    balance: 53550,
-    issuedAt: new Date()
-  }
-];

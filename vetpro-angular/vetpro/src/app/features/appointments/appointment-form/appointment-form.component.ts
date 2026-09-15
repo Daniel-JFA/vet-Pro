@@ -4,6 +4,8 @@ import { RouterLink, Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AppointmentService } from '../../../core/services/appointment.service';
 import { PatientService } from '../../../core/services/patient.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { Appointment, Patient, User } from '../../../core/models';
 
 @Component({
@@ -17,6 +19,8 @@ export class AppointmentFormComponent implements OnInit {
   private fb = inject(FormBuilder);
   private svc = inject(AppointmentService);
   private patientSvc = inject(PatientService);
+  private authSvc = inject(AuthService);
+  private toast = inject(ToastService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
 
@@ -27,10 +31,7 @@ export class AppointmentFormComponent implements OnInit {
 
   // Listados relacionales
   patients = signal<Patient[]>([]);
-  vets = signal<User[]>([
-    { id: 'v1', clinicId: 'c1', firstName: 'Andrés', lastName: 'Espinoza', email: 'admin@vetpro.co', role: 'admin', active: true },
-    { id: 'v2', clinicId: 'c1', firstName: 'Laura', lastName: 'Cardona', email: 'vet@vetpro.co', role: 'vet', active: true }
-  ]);
+  vets = signal<User[]>([]);
 
   form!: FormGroup;
 
@@ -49,6 +50,7 @@ export class AppointmentFormComponent implements OnInit {
   ngOnInit() {
     this.initForm();
     this.loadPatients();
+    this.loadVets();
 
     // Comprobar parámetros de ruteo para pre-llenado desde el calendario
     const queryDate = this.route.snapshot.queryParamMap.get('date');
@@ -82,7 +84,14 @@ export class AppointmentFormComponent implements OnInit {
   private loadPatients() {
     this.patientSvc.getPatients().subscribe({
       next: res => this.patients.set(res.data),
-      error: () => this.patients.set(MOCK_PATIENTS_FORM)
+      error: () => this.toast.error('No se pudo cargar el listado de pacientes.')
+    });
+  }
+
+  private loadVets() {
+    this.authSvc.getUsers().subscribe({
+      next: users => this.vets.set(users.filter((u: User) => u.active && (u.role === 'vet' || u.role === 'admin'))),
+      error: () => this.toast.error('No se pudo cargar el listado de veterinarios.')
     });
   }
 
@@ -94,12 +103,9 @@ export class AppointmentFormComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        // Fallback local en caso de error
-        const mockApp = MOCK_APPOINTMENTS_FORM.find(a => a.id === id);
-        if (mockApp) {
-          this.fillForm(mockApp);
-        }
         this.loading.set(false);
+        this.toast.error('No se pudo cargar la cita a editar.');
+        this.router.navigate(['/appointments/calendar']);
       }
     });
   }
@@ -130,45 +136,39 @@ export class AppointmentFormComponent implements OnInit {
     this.submitting.set(true);
 
     const { date, time, ...rest } = this.form.value;
-    
+
     // Unir fecha y hora en un solo objeto Date
     const scheduledAt = new Date(`${date}T${time}:00`);
 
     const appointmentData: Partial<Appointment> = {
       ...rest,
       scheduledAt,
-      clinicId: 'c1',
-      branchId: 'b1', // default branch
+      branchId: this.authSvc.activeBranchId() || undefined,
       status: 'scheduled'
     };
 
     if (this.isEditMode()) {
       this.svc.updateAppointment(this.appointmentId()!, appointmentData).subscribe({
-        next: () => this.goBack(),
-        error: () => this.goBack() // Fallback de éxito local
+        next: () => this.goBack('Cita actualizada exitosamente.'),
+        error: () => {
+          this.submitting.set(false);
+          this.toast.error('No se pudo actualizar la cita. Verifica los datos e intenta de nuevo.');
+        }
       });
     } else {
       this.svc.createAppointment(appointmentData).subscribe({
-        next: () => this.goBack(),
-        error: () => this.goBack() // Fallback de éxito local
+        next: () => this.goBack('Cita agendada exitosamente.'),
+        error: () => {
+          this.submitting.set(false);
+          this.toast.error('No se pudo agendar la cita. Verifica los datos e intenta de nuevo.');
+        }
       });
     }
   }
 
-  private goBack() {
+  private goBack(successMessage: string) {
     this.submitting.set(false);
+    this.toast.success(successMessage);
     this.router.navigate(['/appointments/calendar']);
   }
 }
-
-// ── MOCK DATA ─────────────────────────────────
-
-const MOCK_PATIENTS_FORM: Patient[] = [
-  { id: 'p1', clinicId: 'c1', tutorId: 't1', name: 'Toby', species: 'dog', breed: 'Golden Retriever', sex: 'male', sterilized: true, status: 'active', createdAt: new Date() },
-  { id: 'p2', clinicId: 'c1', tutorId: 't2', name: 'Luna', species: 'cat', breed: 'Siamés', sex: 'female', sterilized: true, status: 'active', createdAt: new Date() },
-  { id: 'p3', clinicId: 'c1', tutorId: 't3', name: 'Copito', species: 'rabbit', breed: 'Angora', sex: 'male', sterilized: false, status: 'active', createdAt: new Date() }
-];
-
-const MOCK_APPOINTMENTS_FORM: Appointment[] = [
-  { id: 'a1', clinicId: 'c1', patientId: 'p1', vetId: 'v1', serviceType: 'Vacunación', scheduledAt: new Date(), durationMinutes: 30, status: 'scheduled', reason: 'Control anual.', createdAt: new Date() }
-];

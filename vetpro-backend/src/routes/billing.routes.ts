@@ -6,6 +6,8 @@ import { authMiddleware, AuthRequest } from '../middleware/auth.js';
 const router = Router();
 router.use(authMiddleware as any);
 
+class InsufficientStockError extends Error {}
+
 // ─────────────────────────────────────────────
 // ESQUEMAS DE VALIDACIÓN ZOD
 // ─────────────────────────────────────────────
@@ -373,6 +375,12 @@ router.post('/invoices', async (req: AuthRequest, res: Response) => {
               const prevStock = product.currentStock;
               const newStock = prevStock - item.quantity;
 
+              if (newStock < 0) {
+                throw new InsufficientStockError(
+                  `Inventario insuficiente para "${product.name}". Stock actual: ${prevStock}, solicitado: ${item.quantity}.`
+                );
+              }
+
               // Actualizar stock del producto
               await tx.product.update({
                 where: { id: product.id },
@@ -414,6 +422,9 @@ router.post('/invoices', async (req: AuthRequest, res: Response) => {
 
     return res.status(201).json(createdInvoice);
   } catch (error: any) {
+    if (error instanceof InsufficientStockError) {
+      return res.status(400).json({ error: error.message });
+    }
     console.error('[BillingRoutes] Error al crear factura transaccional:', error);
     return res.status(500).json({ error: 'Error al registrar la factura e inventario.' });
   }

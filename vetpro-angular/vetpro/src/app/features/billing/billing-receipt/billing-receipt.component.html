@@ -43,9 +43,14 @@
           {{ dianTransmitting() ? 'Transmitiendo a DIAN...' : 'Emitir Factura DIAN' }}
         </button>
 
-        <div class="dian-badge-ok" *ngIf="isDianIssued() || invoice()?.electronicId">
+        <div class="dian-badge-ok" *ngIf="invoice()?.electronicId && invoice()?.dianStatus === 'validated'">
           <span class="material-symbols-outlined">verified</span>
           FEV Validada DIAN
+        </div>
+
+        <div class="dian-badge-pending" *ngIf="invoice()?.electronicId && invoice()?.dianStatus !== 'validated'">
+          <span class="material-symbols-outlined">pending</span>
+          CUFE de Prueba (No Transmitido a la DIAN)
         </div>
 
         <!-- Compartir por WhatsApp -->
@@ -185,7 +190,7 @@
       </footer>
 
       <!-- SELLO FISCAL DIAN (CUFE & QR) -->
-      <section class="dian-fiscal-stamp" *ngIf="isDianIssued() || invoice()?.electronicId">
+      <section class="dian-fiscal-stamp" *ngIf="invoice()?.electronicId && invoice()?.dianStatus === 'validated'">
         <div class="dian-stamp-qr">
           <span class="material-symbols-outlined">qr_code_2</span>
         </div>
@@ -196,7 +201,23 @@
           </div>
           <p class="dian-cufe-hash">CUFE: {{ cufeCode() || invoice()?.electronicId }}</p>
           <span class="dian-legal-note">
-            Autorización de Numeración Facturación Electrónica DIAN Res. No. 18764000001 de 2026. Prefijo FAC del 000001 al 100000. Proveedor Tecnológico Autorizado.
+            Transmitido y validado por el Proveedor Tecnológico Autorizado configurado en la clínica.
+          </span>
+        </div>
+      </section>
+
+      <section class="dian-fiscal-stamp dian-fiscal-stamp--pending" *ngIf="invoice()?.electronicId && invoice()?.dianStatus !== 'validated'">
+        <div class="dian-stamp-qr">
+          <span class="material-symbols-outlined">pending</span>
+        </div>
+        <div class="dian-stamp-content">
+          <div class="dian-stamp-header">
+            <strong>CUFE DE PRUEBA — NO VALIDADO POR LA DIAN</strong>
+            <span class="dian-valid-chip dian-valid-chip--pending">ESTADO: PENDIENTE</span>
+          </div>
+          <p class="dian-cufe-hash">CUFE (referencial): {{ cufeCode() || invoice()?.electronicId }}</p>
+          <span class="dian-legal-note">
+            Este documento NO tiene validez fiscal. Configure un Proveedor Tecnológico Autorizado (Alegra, Siigo, Facture, etc.) para emitir Facturas Electrónicas de Venta reales ante la DIAN.
           </span>
         </div>
       </section>

@@ -2,6 +2,7 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ReportService } from '../../core/services/report.service';
+import { ToastService } from '../../core/services/toast.service';
 import { CurrencyCopPipe } from '../../shared/pipes/currency-cop.pipe';
 import { BaseChartDirective } from 'ng2-charts';
 import { Chart, ChartData, ChartOptions, registerables } from 'chart.js';
@@ -18,6 +19,7 @@ Chart.register(...registerables);
 })
 export class ReportsComponent implements OnInit {
   private reportSvc = inject(ReportService);
+  private toast = inject(ToastService);
 
   loading = signal(true);
   exporting = signal(false);
@@ -191,7 +193,7 @@ export class ReportsComponent implements OnInit {
   loadData() {
     this.loading.set(true);
 
-    this.reportSvc.getDashboardData().subscribe({
+    this.reportSvc.getDashboardData(this.selectedPeriod()).subscribe({
       next: (res) => {
         // 1. Asignar KPIs
         this.kpis.set(res.kpis);
@@ -237,52 +239,19 @@ export class ReportsComponent implements OnInit {
 
         this.loading.set(false);
       },
-      error: (err) => {
-        console.error('Error al cargar datos del reporte ejecutivo:', err);
+      error: () => {
         this.loading.set(false);
+        this.toast.error('No se pudieron cargar las métricas del reporte ejecutivo.');
       }
     });
   }
 
-  // Cambiar el filtro de periodos de tiempo con simulación reactiva de carga
+  // Cambiar el filtro de periodos de tiempo (vuelve a consultar el backend con el nuevo rango)
   changePeriod(periodId: string) {
     if (this.selectedPeriod() === periodId) return;
 
     this.selectedPeriod.set(periodId);
-    this.loading.set(true);
-
-    // Simular recalculo de métricas basándose en el filtro seleccionado
-    setTimeout(() => {
-      const baseKpis = { ...this.kpis() };
-      let multiplier = 1.0;
-
-      if (periodId === 'thisMonth') {
-        multiplier = 0.85;
-      } else if (periodId === 'thisYear') {
-        multiplier = 4.2;
-      }
-
-      this.kpis.set({
-        revenue: {
-          current: Math.round(baseKpis.revenue.current * multiplier),
-          previous: Math.round(baseKpis.revenue.previous * multiplier),
-          growth: baseKpis.revenue.growth
-        },
-        consultations: {
-          current: Math.round(baseKpis.consultations.current * multiplier),
-          previous: Math.round(baseKpis.consultations.previous * multiplier),
-          growth: baseKpis.consultations.growth
-        },
-        newPatients: {
-          current: Math.round(baseKpis.newPatients.current * multiplier),
-          previous: Math.round(baseKpis.newPatients.previous * multiplier),
-          growth: baseKpis.newPatients.growth
-        },
-        retentionRate: baseKpis.retentionRate
-      });
-
-      this.loading.set(false);
-    }, 350);
+    this.loadData();
   }
 
   // Descarga del reporte CSV/Excel

@@ -58,6 +58,64 @@ export function generateDianQrUrl(cufe: string): string {
   return `https://catalogo-vpfe.dian.gov.co/document/searchqr?documentkey=${cufe}`;
 }
 
+/**
+ * Adaptador genérico de transmisión a un Proveedor Tecnológico Autorizado por la DIAN
+ * (Alegra, Siigo, Facture, etc.). Solo se activa si DIAN_PROVIDER_URL y DIAN_PROVIDER_API_KEY
+ * están configurados en el entorno. Sin esta configuración, el sistema NO puede emitir
+ * documentos con validez fiscal real ante la DIAN.
+ */
+interface DianProviderResult {
+  transmitted: boolean;
+  cufe?: string;
+  qrCodeUrl?: string;
+  xmlUblUrl?: string;
+  error?: string;
+}
+
+async function transmitToDianProvider(payload: {
+  invoiceNumber: string;
+  issueDate: string;
+  issuerNit: string;
+  customerDoc: string;
+  subtotal: number;
+  taxAmount: number;
+  total: number;
+  environment: string;
+}): Promise<DianProviderResult> {
+  const providerUrl = process.env.DIAN_PROVIDER_URL;
+  const providerApiKey = process.env.DIAN_PROVIDER_API_KEY;
+
+  if (!providerUrl || !providerApiKey) {
+    return { transmitted: false, error: 'PROVIDER_NOT_CONFIGURED' };
+  }
+
+  try {
+    const response = await fetch(providerUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${providerApiKey}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      return { transmitted: false, error: `PROVIDER_ERROR_${response.status}` };
+    }
+
+    const data: any = await response.json();
+    return {
+      transmitted: true,
+      cufe: data.cufe,
+      qrCodeUrl: data.qrCodeUrl,
+      xmlUblUrl: data.xmlUblUrl
+    };
+  } catch (error: any) {
+    console.error('[DIAN] Error al transmitir al proveedor tecnológico:', error);
+    return { transmitted: false, error: 'PROVIDER_UNREACHABLE' };
+  }
+}
+
 // ─────────────────────────────────────────────
 // ESQUEMAS DE VALIDACIÓN ZOD
 // ─────────────────────────────────────────────
@@ -220,8 +278,22 @@ DIAN_ROUTES.post('/invoices/:id/issue', async (req: AuthRequest, res: Response) 
       environment: resolution.environment
     });
 
-    const qrCodeUrl = generateDianQrUrl(cufe);
-    const xmlUblUrl = `https://storage.vetpro.danielflorez.dev/invoices/xml/${fiscalNumber}-${cufe.substring(0, 12)}.xml`;
+    // Intentar transmisión real a un Proveedor Tecnológico Autorizado (si está configurado)
+    const providerResult = await transmitToDianProvider({
+      invoiceNumber: fiscalNumber,
+      issueDate,
+      issuerNit,
+      customerDoc,
+      subtotal: invoice.subtotal,
+      taxAmount: invoice.taxTotal,
+      total: invoice.total,
+      environment: resolution.environment
+    });
+
+    const wasTransmitted = providerResult.transmitted;
+    const finalCufe = providerResult.cufe || cufe;
+    const qrCodeUrl = providerResult.qrCodeUrl || generateDianQrUrl(finalCufe);
+    const xmlUblUrl = providerResult.xmlUblUrl;
 
     const updated = await prisma.$transaction(async tx => {
       // 1. Incrementar consecutivo en la resolución
@@ -235,11 +307,14 @@ DIAN_ROUTES.post('/invoices/:id/issue', async (req: AuthRequest, res: Response) 
         where: { id: invoice.id },
         data: {
           invoiceNumber: fiscalNumber,
-          electronicId: cufe,
-          cufe,
+          electronicId: finalCufe,
+          cufe: finalCufe,
           qrCodeUrl,
-          xmlUblUrl,
-          dianStatus: 'validated',
+          xmlUblUrl: xmlUblUrl || null,
+          // Solo se marca "validated" cuando un Proveedor Tecnológico Autorizado
+          // confirmó la transmisión real ante la DIAN. Sin esa confirmación el
+          // documento no tiene validez fiscal, aunque ya tenga un CUFE calculado.
+          dianStatus: wasTransmitted ? 'validated' : 'pending',
           dianResolutionId: resolution.id,
           status: invoice.status === 'draft' ? 'issued' : invoice.status
         }
@@ -248,16 +323,20 @@ DIAN_ROUTES.post('/invoices/:id/issue', async (req: AuthRequest, res: Response) 
 
     return res.json({
       success: true,
-      message: 'Factura Electrónica de Venta (FEV) emitida y validada exitosamente.',
+      transmittedToDian: wasTransmitted,
+      message: wasTransmitted
+        ? 'Factura Electrónica de Venta (FEV) transmitida y validada exitosamente ante la DIAN.'
+        : 'Documento generado en modo de pruebas internas con CUFE de referencia. NO ha sido transmitido ni validado por la DIAN: configure DIAN_PROVIDER_URL y DIAN_PROVIDER_API_KEY con un Proveedor Tecnológico Autorizado (Alegra, Siigo, Facture, etc.) para emitir documentos con validez fiscal real.',
       invoice: updated,
       dianDetails: {
-        cufe,
+        cufe: finalCufe,
         qrCodeUrl,
-        xmlUblUrl,
+        xmlUblUrl: xmlUblUrl || null,
         resolutionNumber: resolution.resolutionNumber,
         prefix: resolution.prefix,
         environment: resolution.environment,
-        validatedAt: now
+        transmittedToDian: wasTransmitted,
+        validatedAt: wasTransmitted ? now : null
       }
     });
   } catch (error: any) {

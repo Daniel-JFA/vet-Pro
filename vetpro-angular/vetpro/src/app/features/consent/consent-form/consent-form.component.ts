@@ -4,6 +4,7 @@ import { RouterLink, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ConsentService } from '../../../core/services/consent.service';
 import { PatientService } from '../../../core/services/patient.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { Patient } from '../../../core/models';
 
 interface ConsentTemplate {
@@ -23,6 +24,7 @@ export class ConsentFormComponent implements OnInit {
   private consentSvc = inject(ConsentService);
   private patientSvc = inject(PatientService);
   private router = inject(Router);
+  private toast = inject(ToastService);
 
   loading = signal(true);
   submitting = signal(false);
@@ -80,11 +82,8 @@ export class ConsentFormComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        // Fallback offline mock patients
-        this.patients.set(MOCK_PATIENTS_CONSENT);
-        this.selectedPatientId.set(MOCK_PATIENTS_CONSENT[0].id);
-        this.onPatientChange(MOCK_PATIENTS_CONSENT[0].id);
         this.loading.set(false);
+        this.toast.error('No se pudo cargar el listado de pacientes.');
       }
     });
   }
@@ -137,40 +136,15 @@ export class ConsentFormComponent implements OnInit {
     };
 
     this.consentSvc.createConsentForm(formData).subscribe({
-      next: (res) => {
+      next: () => {
         this.submitting.set(false);
+        this.toast.success('Consentimiento creado exitosamente.');
         this.router.navigate(['/consent']);
       },
       error: () => {
-        // Fallback local exitoso
         this.submitting.set(false);
-        this.router.navigate(['/consent']);
+        this.toast.error('No se pudo crear el consentimiento. Verifica los datos e intenta de nuevo.');
       }
     });
   }
 }
-
-// ── MOCK DATA ─────────────────────────────────
-
-const MOCK_PATIENTS_CONSENT: Patient[] = [
-  {
-    id: 'p1',
-    clinicId: 'c1',
-    tutorId: 't1',
-    name: 'Toby',
-    species: 'dog',
-    breed: 'Golden Retriever',
-    sex: 'male',
-    sterilized: true,
-    status: 'active',
-    createdAt: new Date(),
-    tutor: {
-      id: 't1',
-      clinicId: 'c1',
-      firstName: 'Carlos',
-      lastName: 'Gómez',
-      phone: '+57 312 456 7890',
-      createdAt: new Date()
-    }
-  }
-];

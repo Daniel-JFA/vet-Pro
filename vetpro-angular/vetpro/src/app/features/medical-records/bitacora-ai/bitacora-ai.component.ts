@@ -4,6 +4,8 @@ import { RouterLink, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { PatientService } from '../../../core/services/patient.service';
 import { AppointmentService } from '../../../core/services/appointment.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { Patient } from '../../../core/models';
 
 @Component({
@@ -18,6 +20,8 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private appointmentSvc = inject(AppointmentService);
+  private authSvc = inject(AuthService);
+  private toast = inject(ToastService);
 
   patientId = signal<string | null>(null);
   appointmentId = signal<string | null>(null);
@@ -51,8 +55,9 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
   newTemplateDescription = signal('');
 
   // Límite e Historial de minutos de IA
-  aiMinutesUsed = signal(25.5);
-  aiMinutesLimit = 120;
+  aiMinutesUsed = signal(0);
+  aiMinutesLimit = signal(0);
+  aiVoiceUnavailable = signal(false);
 
   // Formulario editable de resultados generados por la IA
   title = signal('');
@@ -126,6 +131,17 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
       this.appointmentId.set(appId);
     }
     this.loadCustomTemplates();
+    this.loadAiUsage();
+  }
+
+  private loadAiUsage() {
+    this.authSvc.getClinic().subscribe({
+      next: clinic => {
+        this.aiMinutesUsed.set(clinic.aiMinutesUsed);
+        this.aiMinutesLimit.set(clinic.aiMinutesLimit);
+      },
+      error: () => this.toast.error('No se pudo cargar el consumo de minutos de IA.')
+    });
   }
 
   ngOnDestroy() {
@@ -140,10 +156,9 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
         this.loading.set(false);
       },
       error: () => {
-        // Fallback mock en caso de edición sin backend
-        const mockP = MOCK_PATIENTS_AI.find(p => p.id === id) || MOCK_PATIENTS_AI[0];
-        this.patient.set(mockP);
+        this.patient.set(null);
         this.loading.set(false);
+        this.toast.error('No se pudo cargar la información del paciente.');
       }
     });
   }
@@ -228,50 +243,67 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Enviar audio a la API de Inteligencia Artificial (Whisper + Claude)
+  // Enviar audio real (Whisper) o texto dictado a la API de IA (Claude/OpenAI/motor local)
   processVoice() {
+    const duration = this.recordingTime() || 0;
+    const isTextTab = this.activeInputTab() === 'text';
+    const textDictation = isTextTab ? this.freeTextNotes().trim() : '';
+    const blob = this.audioBlob();
+
+    if (isTextTab && !textDictation) {
+      this.toast.error('Escribe el dictado de la consulta antes de procesarlo con IA.');
+      return;
+    }
+    if (!isTextTab && !blob) {
+      this.toast.error('Graba el audio de la consulta antes de procesarlo con IA.');
+      return;
+    }
+
     this.processing.set(true);
     this.resultReady.set(false);
 
-    const duration = this.recordingTime() || 45;
-    const textDictation = this.activeInputTab() === 'text' 
-      ? (this.freeTextNotes() || "El tutor asiste para control preventivo.") 
-      : "Toby asiste a consulta de urgencias, tutor indica vómito y diarrea líquida de 8 horas de evolución. Al examen físico se encuentra alerta, deshidratado en 6%, mucosas secas, Temp: 39°C. Diagnóstico de gastroenteritis aguda. Plan terapéutico: Metoclopramida inyectada, Amoxicilina 500mg vía oral c/12h por 7 días y dieta blanda.";
-
-    this.patientSvc.transcribeVoice(duration, textDictation).subscribe({
-      next: (res) => {
-        this.title.set(res.title);
-        this.anamnesis.set(res.anamnesis);
-        this.physicalExam.set(res.physicalExam);
-        this.diagnosis.set(res.diagnosis);
-        this.treatment.set(res.treatment);
-        this.aiMinutesUsed.update(m => m + res.aiTranscriptionMinutes);
-        this.processing.set(false);
-        this.resultReady.set(true);
-      },
-      error: () => {
-        // Fallback offline
-        const minutesUsed = parseFloat((duration / 60).toFixed(2));
-        if (this.activeInputTab() === 'text' && this.freeTextNotes()) {
-          const rawText = this.freeTextNotes();
-          this.title.set('Consulta General Estructurada por IA');
-          this.anamnesis.set(rawText);
-          this.physicalExam.set('Examen físico general normal. Paciente alerta, responsivo y clínicamente estable.');
-          this.diagnosis.set('Focos de atención detectados por notas manuales.');
-          this.treatment.set('1. Monitoreo de síntomas.\n2. Dieta blanda de ser necesario.\n3. Control en consulta si los síntomas persisten.');
-        } else {
-          this.title.set('Urgencia por Intoxicación Alimentaria');
-          this.anamnesis.set('Tutor asiste con Toby a urgencias, reporta vómito y diarrea líquida (bilis) de 8 horas de evolución. Sospecha de indiscreción alimentaria en el parque.');
-          this.physicalExam.set('Paciente alerta y responsivo. Ligera deshidratación (6%). Mucosas secas, dolor abdominal a la palpación profunda. FC: 115 lpm, Temp: 39.0°C.');
-          this.diagnosis.set('Gastroenteritis bacteriana aguda por indiscreción alimentaria.');
-          this.treatment.set('1. Aplicación de antiemético (Metoclopramida) SC en clínica.\n2. Amoxicilina 500mg oral (1 tableta c/12h por 7 días).\n3. Hidratación oral con suero electrolítico en casa.\n4. Dieta blanda (arroz y pollo hervido sin sal) por 3 días.');
+    const sendToAi = (audioBase64?: string) => {
+      this.patientSvc.transcribeVoice(duration || 1, isTextTab ? textDictation : undefined, audioBase64).subscribe({
+        next: (res) => {
+          this.title.set(res.title);
+          this.anamnesis.set(res.anamnesis);
+          this.physicalExam.set(res.physicalExam);
+          this.diagnosis.set(res.diagnosis);
+          this.treatment.set(res.treatment);
+          this.aiMinutesUsed.update(m => m + res.aiTranscriptionMinutes);
+          this.processing.set(false);
+          this.resultReady.set(true);
+          if (res.aiEngine === 'local-engine') {
+            this.toast.warning('Resultado generado con el motor clínico local (sin conexión a IA externa configurada). Revísalo antes de guardar.');
+          } else {
+            this.toast.success('Historia clínica estructurada exitosamente con IA.');
+          }
+        },
+        error: (err) => {
+          this.processing.set(false);
+          this.resultReady.set(false);
+          if (err?.error?.code === 'AI_VOICE_NOT_CONFIGURED') {
+            this.aiVoiceUnavailable.set(true);
+            this.activeInputTab.set('text');
+            this.toast.warning('La transcripción de voz por IA no está configurada en este servidor. Dicta el texto manualmente.');
+          } else {
+            this.toast.error('No se pudo procesar la consulta con IA. Intenta de nuevo o redacta el expediente manualmente.');
+          }
         }
-        
-        this.aiMinutesUsed.update(m => m + minutesUsed);
+      });
+    };
+
+    if (!isTextTab && blob) {
+      const reader = new FileReader();
+      reader.onload = () => sendToAi(reader.result as string);
+      reader.onerror = () => {
         this.processing.set(false);
-        this.resultReady.set(true);
-      }
-    });
+        this.toast.error('No se pudo leer el audio grabado. Intenta grabar de nuevo.');
+      };
+      reader.readAsDataURL(blob);
+    } else {
+      sendToAi();
+    }
   }
 
   // Cargar una plantilla de forma instantánea en los campos SOAP correspondientes
@@ -309,13 +341,12 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
       next: () => {
         this.finalizeAppointmentIfAny();
         this.submitting.set(false);
+        this.toast.success('Historia clínica guardada exitosamente.');
         this.router.navigate(['/patients', this.patientId()]);
       },
       error: () => {
-        // Fallback local exitoso
-        this.finalizeAppointmentIfAny();
         this.submitting.set(false);
-        this.router.navigate(['/patients', this.patientId()]);
+        this.toast.error('No se pudo guardar la historia clínica. Verifica los datos e intenta de nuevo.');
       }
     });
   }
@@ -419,9 +450,3 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
     }
   }
 }
-
-// ── MOCK DATA ─────────────────────────────────
-
-const MOCK_PATIENTS_AI: Patient[] = [
-  { id: 'p1', clinicId: 'c1', tutorId: 't1', name: 'Toby', species: 'dog', breed: 'Golden Retriever', sex: 'male', sterilized: true, status: 'active', createdAt: new Date() }
-];

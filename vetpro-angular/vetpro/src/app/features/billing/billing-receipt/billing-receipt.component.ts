@@ -4,6 +4,7 @@ import { RouterLink, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { BillingService } from '../../../core/services/billing.service';
 import { DianService } from '../../../core/services/dian.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { Invoice } from '../../../core/models';
 
 @Component({
@@ -16,6 +17,7 @@ import { Invoice } from '../../../core/models';
 export class BillingReceiptComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private billingSvc = inject(BillingService);
+  private toast = inject(ToastService);
 
   invoiceId = signal<string | null>(null);
   invoice = signal<Invoice | null>(null);
@@ -52,10 +54,8 @@ export class BillingReceiptComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        // Fallback mock data offline
-        const mockInv = MOCK_INVOICES_DETAILS.find(i => i.id === id) || MOCK_INVOICES_DETAILS[0];
-        this.invoice.set(mockInv);
         this.loading.set(false);
+        this.toast.error('No se pudo cargar el comprobante de la factura.');
       }
     });
   }
@@ -67,10 +67,10 @@ export class BillingReceiptComponent implements OnInit {
     this.billingSvc.issueInvoice(inv.id).subscribe({
       next: (updated) => {
         this.invoice.set(updated);
+        this.toast.success('Factura emitida exitosamente.');
       },
       error: () => {
-        // Mock issue success
-        this.invoice.update(current => current ? { ...current, status: 'issued', issuedAt: new Date() } : null);
+        this.toast.error('No se pudo emitir la factura. Intenta de nuevo.');
       }
     });
   }
@@ -87,18 +87,18 @@ export class BillingReceiptComponent implements OnInit {
       next: (res) => {
         this.cufeCode.set(res.dianDetails.cufe);
         this.isDianIssued.set(true);
-        this.dianStatus.set('accepted');
+        this.dianStatus.set(res.transmittedToDian ? 'accepted' : 'pending');
         this.dianTransmitting.set(false);
         this.invoice.set(res.invoice);
+        if (res.transmittedToDian) {
+          this.toast.success(res.message);
+        } else {
+          this.toast.warning(res.message);
+        }
       },
-      error: (err) => {
-        console.warn('[DIAN] Error al conectar con servicio fiscal:', err);
-        const generatedCufe = '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08d27ecbb2776c5b96791e8470559f5f0e';
-        this.cufeCode.set(generatedCufe);
-        this.isDianIssued.set(true);
-        this.dianStatus.set('accepted');
+      error: () => {
         this.dianTransmitting.set(false);
-        this.invoice.update(curr => curr ? { ...curr, electronicId: generatedCufe } : null);
+        this.toast.error('No se pudo procesar la emisión electrónica ante la DIAN. Intenta de nuevo.');
       }
     });
   }
@@ -121,20 +121,11 @@ export class BillingReceiptComponent implements OnInit {
     this.billingSvc.registerPayment(inv.id, this.paymentAmount(), this.paymentMethod()).subscribe({
       next: (updated) => {
         this.invoice.set(updated);
+        this.toast.success('Pago registrado exitosamente.');
         this.closePaymentModal();
       },
       error: () => {
-        // Mock payment offline success
-        const newPaid = inv.amountPaid + this.paymentAmount();
-        const newBalance = Math.max(0, inv.total - newPaid);
-        this.invoice.update(current => current ? {
-          ...current,
-          amountPaid: newPaid,
-          balance: newBalance,
-          status: newBalance === 0 ? 'paid' : 'partial',
-          notes: current.notes + `\n[Pago registrado: ${this.paymentAmount()} mediante ${this.paymentMethod()}]`
-        } : null);
-        this.closePaymentModal();
+        this.toast.error('No se pudo registrar el pago. Verifica los datos e intenta de nuevo.');
       }
     });
   }
@@ -178,46 +169,3 @@ export class BillingReceiptComponent implements OnInit {
     window.print();
   }
 }
-
-// ── MOCK DATA ─────────────────────────────────
-
-const MOCK_INVOICES_DETAILS: Invoice[] = [
-  {
-    id: 'f1',
-    clinicId: 'c1',
-    invoiceNumber: 'FAC-000001',
-    tutorId: 't1',
-    tutor: { id: 't1', clinicId: 'c1', firstName: 'Carlos', lastName: 'Gómez', phone: '+57 312 456 7890', email: 'carlos.gomez@correo.co', address: 'Calle 100 #15-30, Bogotá D.C.', createdAt: new Date() },
-    status: 'paid',
-    subtotal: 150000,
-    taxTotal: 28500,
-    total: 178500,
-    amountPaid: 178500,
-    balance: 0,
-    issuedAt: new Date(Date.now() - 2 * 86400000),
-    paidAt: new Date(Date.now() - 2 * 86400000),
-    notes: 'Abono cancelado completo en caja. Toby se portó muy juicioso durante su control.',
-    items: [
-      { description: 'Consulta General Veterinaria', quantity: 1, unitPrice: 75000, taxRate: 0.19, discount: 0, total: 89250 },
-      { description: 'Vacuna Antirrábica Nobivac (Lote RAB-2026)', quantity: 1, unitPrice: 75000, taxRate: 0.19, discount: 0, total: 89250 }
-    ]
-  },
-  {
-    id: 'f2',
-    clinicId: 'c1',
-    invoiceNumber: 'FAC-000002',
-    tutorId: 't2',
-    tutor: { id: 't2', clinicId: 'c1', firstName: 'Diana', lastName: 'Pérez', phone: '+57 300 987 6543', email: 'diana@correo.co', address: 'Av. Chile #72-10, Bogotá', createdAt: new Date() },
-    status: 'partial',
-    subtotal: 320000,
-    taxTotal: 60800,
-    total: 380800,
-    amountPaid: 200000,
-    balance: 180800,
-    issuedAt: new Date(Date.now() - 5 * 86400000),
-    notes: 'Pago parcial realizado por transferencia. Pendiente saldo de $180.800.',
-    items: [
-      { description: 'Esterilización Canina Hembra (< 15kg)', quantity: 1, unitPrice: 320000, taxRate: 0.19, discount: 0, total: 380800 }
-    ]
-  }
-];

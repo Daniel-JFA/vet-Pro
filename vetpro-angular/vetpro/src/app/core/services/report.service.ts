@@ -11,8 +11,8 @@ export class ReportService {
   private base = environment.apiUrl;
 
   // Obtener agregaciones y datasets del dashboard
-  getDashboardData(): Observable<any> {
-    return this.api.get<any>('/reports/dashboard');
+  getDashboardData(period?: string): Observable<any> {
+    return this.api.get<any>('/reports/dashboard', period ? { period } : undefined);
   }
 
   // Descargar el reporte consolidado CSV compatible con Excel

@@ -4,6 +4,7 @@ import { RouterLink, Router } from '@angular/router';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { BillingService } from '../../../core/services/billing.service';
 import { PatientService } from '../../../core/services/patient.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { Tutor } from '../../../core/models';
 
 interface BillingItemInput {
@@ -24,6 +25,7 @@ interface BillingItemInput {
 export class BillingFormComponent implements OnInit {
   private billingSvc = inject(BillingService);
   private patientSvc = inject(PatientService);
+  private toast = inject(ToastService);
   private router = inject(Router);
 
   loading = signal(true);
@@ -99,10 +101,8 @@ export class BillingFormComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        // Fallback offline mock tutors
-        this.tutors.set(MOCK_TUTORS_FORM);
-        this.selectedTutorId.set(MOCK_TUTORS_FORM[0].id);
         this.loading.set(false);
+        this.toast.error('No se pudo cargar el listado de tutores. Verifica tu conexión e intenta de nuevo.');
       }
     });
   }
@@ -173,21 +173,13 @@ export class BillingFormComponent implements OnInit {
     this.billingSvc.createInvoice(invoiceData).subscribe({
       next: (createdInvoice) => {
         this.submitting.set(false);
+        this.toast.success('Factura creada exitosamente.');
         this.router.navigate(['/billing', createdInvoice.id]);
       },
-      error: () => {
-        // Fallback local exitoso offline
+      error: (err) => {
         this.submitting.set(false);
-        this.router.navigate(['/billing']);
+        this.toast.error(err?.error?.error || 'No se pudo crear la factura. Verifica los datos e intenta de nuevo.');
       }
     });
   }
 }
-
-// ── MOCK DATA ─────────────────────────────────
-
-const MOCK_TUTORS_FORM: Tutor[] = [
-  { id: 't1', clinicId: 'c1', firstName: 'Carlos', lastName: 'Gómez', phone: '+57 312 456 7890', createdAt: new Date() },
-  { id: 't2', clinicId: 'c1', firstName: 'Diana', lastName: 'Pérez', phone: '+57 300 987 6543', createdAt: new Date() },
-  { id: 't3', clinicId: 'c1', firstName: 'Marta', lastName: 'Castro', phone: '+57 315 111 2222', createdAt: new Date() }
-];

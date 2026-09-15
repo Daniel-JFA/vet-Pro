@@ -4,6 +4,12 @@
     <div class="spinner"></div>
   </div>
 
+  <div class="empty-state" *ngIf="!loading() && !record()">
+    <span class="material-symbols-outlined">cloud_off</span>
+    <h3>No se pudo cargar la historia clínica</h3>
+    <p>El registro no existe o hubo un problema de conexión con el servidor.</p>
+  </div>
+
   <div *ngIf="!loading() && record()" class="content-container">
     <!-- Barra de Navegación y Acciones -->
     <div class="top-nav-bar no-print">

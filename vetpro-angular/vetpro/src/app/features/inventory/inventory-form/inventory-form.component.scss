@@ -113,3 +113,10 @@ textarea { resize: vertical; }
 }
 .btn-primary { background: var(--primary-color); color: #fff; &:hover:not(:disabled) { filter: brightness(1.08); } }
 .btn-ghost { background: var(--surface-card); border: 1px solid var(--surface-border); color: var(--text-color); &:hover { background: var(--surface-hover); } }
+
+@media (max-width: 640px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .category-grid { grid-template-columns: repeat(2, 1fr); }
+  .tab-bar { overflow-x: auto; }
+  .form-footer { flex-direction: column-reverse; .btn { width: 100%; justify-content: center; } }
+}

@@ -8,6 +8,30 @@ const router = Router();
 router.use(authMiddleware as any);
 router.use(roleMiddleware(['admin', 'vet']) as any);
 
+/**
+ * Calcula los rangos de fecha "actual" y "anterior" (para comparación) según
+ * el periodo seleccionado en el filtro del dashboard ejecutivo.
+ */
+function getPeriodRanges(period: string, now: Date) {
+  if (period === 'thisYear') {
+    const currentStart = new Date(now.getFullYear(), 0, 1);
+    const previousStart = new Date(now.getFullYear() - 1, 0, 1);
+    const previousEnd = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate(), 23, 59, 59);
+    return { currentStart, currentEnd: now, previousStart, previousEnd };
+  }
+  if (period === 'thisMonth') {
+    const currentStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const previousStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const previousEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+    return { currentStart, currentEnd: now, previousStart, previousEnd };
+  }
+  // '30days' (por defecto): últimos 30 días vs los 30 días anteriores
+  const currentStart = new Date(now.getTime() - 30 * 86400000);
+  const previousStart = new Date(now.getTime() - 60 * 86400000);
+  const previousEnd = currentStart;
+  return { currentStart, currentEnd: now, previousStart, previousEnd };
+}
+
 // GET /api/v1/reports/dashboard — Métricas de Negocio & Datasets de Gráficas
 router.get('/dashboard', async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
@@ -16,69 +40,56 @@ router.get('/dashboard', async (req: AuthRequest, res: Response) => {
   }
 
   try {
-    // Intentar consultar base de datos real
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+    const period = (req.query.period as string) || '30days';
+    const { currentStart, currentEnd, previousStart, previousEnd } = getPeriodRanges(period, now);
 
-    // 1. KPIs Generales
-    // Facturación este mes
+    // 1. KPIs Generales (según el periodo seleccionado)
     const billingThisMonth = await prisma.invoice.aggregate({
       where: {
         clinicId,
         status: { not: 'void' },
-        issuedAt: { gte: startOfMonth }
+        issuedAt: { gte: currentStart, lte: currentEnd }
       },
       _sum: { total: true }
     });
 
-    // Facturación mes anterior (para comparación MoM)
     const billingLastMonth = await prisma.invoice.aggregate({
       where: {
         clinicId,
         status: { not: 'void' },
-        issuedAt: {
-          gte: startOfLastMonth,
-          lte: endOfLastMonth
-        }
+        issuedAt: { gte: previousStart, lte: previousEnd }
       },
       _sum: { total: true }
     });
 
-    // Consultas médicas este mes
+    // Consultas médicas en el periodo
     const recordsThisMonth = await prisma.medicalRecord.count({
       where: {
         clinicId,
-        createdAt: { gte: startOfMonth }
+        createdAt: { gte: currentStart, lte: currentEnd }
       }
     });
 
     const recordsLastMonth = await prisma.medicalRecord.count({
       where: {
         clinicId,
-        createdAt: {
-          gte: startOfLastMonth,
-          lte: endOfLastMonth
-        }
+        createdAt: { gte: previousStart, lte: previousEnd }
       }
     });
 
-    // Pacientes nuevos
+    // Pacientes nuevos en el periodo
     const newPatientsThisMonth = await prisma.patient.count({
       where: {
         clinicId,
-        createdAt: { gte: startOfMonth }
+        createdAt: { gte: currentStart, lte: currentEnd }
       }
     });
 
     const newPatientsLastMonth = await prisma.patient.count({
       where: {
         clinicId,
-        createdAt: {
-          gte: startOfLastMonth,
-          lte: endOfLastMonth
-        }
+        createdAt: { gte: previousStart, lte: previousEnd }
       }
     });
 
@@ -101,8 +112,10 @@ router.get('/dashboard', async (req: AuthRequest, res: Response) => {
       where: { clinicId, status: 'active' }
     });
 
-    // Tasa de retención (Pacientes atendidos en los últimos 90 días)
+    // Tasa de retención (Pacientes atendidos en los últimos 90 días vs. los 90 días previos)
     const date90DaysAgo = new Date(Date.now() - 90 * 86400000);
+    const date180DaysAgo = new Date(Date.now() - 180 * 86400000);
+
     const activeAttendedCount = await prisma.medicalRecord.groupBy({
       by: ['patientId'],
       where: {
@@ -111,9 +124,54 @@ router.get('/dashboard', async (req: AuthRequest, res: Response) => {
       }
     });
 
-    const retentionRate = totalPatientsCount > 0 
-      ? parseFloat(((activeAttendedCount.length / totalPatientsCount) * 100).toFixed(1)) 
-      : 85.0; // Valor de referencia saludable por defecto
+    const previousActiveAttendedCount = await prisma.medicalRecord.groupBy({
+      by: ['patientId'],
+      where: {
+        clinicId,
+        createdAt: { gte: date180DaysAgo, lt: date90DaysAgo }
+      }
+    });
+
+    const retentionRate = totalPatientsCount > 0
+      ? parseFloat(((activeAttendedCount.length / totalPatientsCount) * 100).toFixed(1))
+      : 0;
+
+    const previousRetentionRate = totalPatientsCount > 0
+      ? parseFloat(((previousActiveAttendedCount.length / totalPatientsCount) * 100).toFixed(1))
+      : 0;
+
+    // Rentabilidad real por categoría de servicio (ítems facturados en el periodo actual)
+    const periodInvoiceItems = await prisma.invoiceItem.findMany({
+      where: {
+        invoice: { clinicId, status: { not: 'void' }, issuedAt: { gte: currentStart, lte: currentEnd } }
+      },
+      select: { productId: true, total: true }
+    });
+
+    const productIds = [...new Set(periodInvoiceItems.map(i => i.productId).filter((id): id is string => !!id))];
+    const products = productIds.length
+      ? await prisma.product.findMany({ where: { id: { in: productIds } }, select: { id: true, category: true } })
+      : [];
+    const categoryById = new Map(products.map(p => [p.id, p.category]));
+
+    const categoryLabels: Record<string, string> = {
+      medication: 'Medicamentos',
+      vaccine: 'Vacunación',
+      surgical_supply: 'Cirugías/Insumos Quirúrgicos',
+      consumable: 'Consumibles',
+      food: 'Alimentos',
+      accessory: 'Accesorios',
+      lab_reagent: 'Laboratorios/Ecografías',
+      other: 'Otros Insumos',
+      services: 'Consultas y Servicios'
+    };
+
+    const rentabilityByCategory = new Map<string, number>();
+    for (const item of periodInvoiceItems) {
+      const category = item.productId ? (categoryById.get(item.productId) || 'other') : 'services';
+      rentabilityByCategory.set(category, (rentabilityByCategory.get(category) || 0) + item.total);
+    }
+    const sortedRentability = [...rentabilityByCategory.entries()].sort((a, b) => b[1] - a[1]);
 
     // Historial de Ingresos de los últimos 6 meses
     const monthsData = [];
@@ -159,8 +217,8 @@ router.get('/dashboard', async (req: AuthRequest, res: Response) => {
         },
         retentionRate: {
           current: retentionRate,
-          previous: 82.4, // Referencial histórico
-          growth: 2.1
+          previous: previousRetentionRate,
+          growth: parseFloat((retentionRate - previousRetentionRate).toFixed(1))
         }
       },
       charts: {
@@ -168,16 +226,12 @@ router.get('/dashboard', async (req: AuthRequest, res: Response) => {
           labels: monthsData.map(m => m.label),
           data: monthsData.map(m => m.amount)
         },
-        serviceRentability: {
-          labels: ['Consultas', 'Cirugías', 'Vacunación', 'Laboratorios/Ecografías', 'Otros Insumos'],
-          data: [
-            Math.round((billingThisMonth._sum.total || 1000000) * 0.4),
-            Math.round((billingThisMonth._sum.total || 1000000) * 0.3),
-            Math.round((billingThisMonth._sum.total || 1000000) * 0.15),
-            Math.round((billingThisMonth._sum.total || 1000000) * 0.1),
-            Math.round((billingThisMonth._sum.total || 1000000) * 0.05)
-          ]
-        },
+        serviceRentability: sortedRentability.length
+          ? {
+              labels: sortedRentability.map(([cat]) => categoryLabels[cat] || cat),
+              data: sortedRentability.map(([, total]) => Math.round(total))
+            }
+          : { labels: [], data: [] },
         appointmentStatus: {
           labels: ['Completadas', 'Agendadas', 'En Espera', 'Canceladas'],
           data: [
@@ -197,18 +251,35 @@ router.get('/dashboard', async (req: AuthRequest, res: Response) => {
           ]
         }
       },
-      inventoryRotation: await prisma.product.findMany({
-        where: { clinicId, active: true },
-        orderBy: { currentStock: 'asc' },
-        take: 5
-      }).then(prods => prods.map(p => ({
-        sku: p.sku,
-        name: p.name,
-        category: p.category,
-        stock: p.currentStock,
-        minStock: p.minStock,
-        salesCount: 0
-      })))
+      inventoryRotation: await (async () => {
+        const lowStockProducts = await prisma.product.findMany({
+          where: { clinicId, active: true },
+          orderBy: { currentStock: 'asc' },
+          take: 5
+        });
+
+        const last30Days = new Date(Date.now() - 30 * 86400000);
+        const salesByProduct = await prisma.inventoryMovement.groupBy({
+          by: ['productId'],
+          where: {
+            clinicId,
+            type: 'out',
+            performedAt: { gte: last30Days },
+            productId: { in: lowStockProducts.map(p => p.id) }
+          },
+          _sum: { quantity: true }
+        });
+        const salesByProductId = new Map(salesByProduct.map(s => [s.productId, s._sum.quantity || 0]));
+
+        return lowStockProducts.map(p => ({
+          sku: p.sku,
+          name: p.name,
+          category: p.category,
+          stock: p.currentStock,
+          minStock: p.minStock,
+          salesCount: salesByProductId.get(p.id) || 0
+        }));
+      })()
     });
   } catch (dbError) {
     console.error('Error al calcular métricas de reporte:', dbError);
