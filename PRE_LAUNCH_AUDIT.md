@@ -79,9 +79,11 @@
 ## Pendientes recomendados
 
 1. ✅ **Hecho** — Página de "Tutores" (listado + edición) en el staff app.
-2. 🔲 Separar métodos de pago en el cierre de caja (efectivo vs. tarjeta vs. transferencia) y filtrar por sede.
+2. ✅ **Hecho** — Cierre de caja separa efectivo/tarjeta/transferencia (nuevo modelo `InvoicePayment`) y filtra por sede (`Invoice.branchId`, resuelto con fallback). Verificado extremo a extremo.
 3. 🔲 Configurar un Proveedor Tecnológico Autorizado real para reactivar DIAN (acción de negocio — necesita decisión/credenciales tuyas).
 4. ✅ **Hecho** — Anular una factura ahora revierte el movimiento de inventario.
 5. ✅ **Hecho** — Cohorte de "cumpleaños" del CRM implementada con datos reales; "desparasitación" retirada del enum (no explotable, sin datos para calcularla).
 6. ✅ **Hecho** — URL de Swagger corregida a relativa.
-7. 🔲 Subida de fotos real (mascotas) — necesita decidir infraestructura (volumen local vs. S3/R2).
+7. ✅ **Hecho** — Subida real de fotos de mascotas (multer + volumen Docker persistente `vetpro_uploads`, servido en `/api/uploads`). Verificado que sobrevive a un restart del contenedor.
+
+**Único pendiente real: configurar el proveedor DIAN (punto 3) — es una decisión de negocio tuya, no de código.**
