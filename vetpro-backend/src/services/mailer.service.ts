@@ -20,6 +20,10 @@ export interface ActivationEmailData {
   activationLink: string;
 }
 
+export interface BetaInviteEmailData {
+  to: string;
+}
+
 export interface PasswordResetEmailData {
   to: string;
   firstName: string;
@@ -436,6 +440,110 @@ Este enlace es personal y expira en 7 días.
       return true;
     } catch (error: any) {
       console.error(`❌ [Mailer] Error al enviar enlace de acceso a ${data.to}:`, error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Enviar invitación a la fase beta privada — para prospectos que aún no tienen
+   * cuenta, invitándolos a registrarse por su cuenta y explorar el sistema.
+   */
+  public static async sendBetaInviteEmail(data: BetaInviteEmailData): Promise<boolean> {
+    const transporter = this.getTransporter();
+    const appUrl = process.env.APP_URL || 'https://vetpro.danielflorez.dev';
+    const from = process.env.SMTP_FROM || `VetPro SaaS <${process.env.SMTP_USER || 'no-reply@vetpro.co'}>`;
+
+    if (!transporter) {
+      console.warn('⚠️ [Mailer] No se envió invitación beta a', data.to, ': SMTP_USER o SMTP_PASS no configurados.');
+      return false;
+    }
+
+    const registerUrl = `${appUrl}/auth/register`;
+
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Tienes acceso anticipado a VetPro</title>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px; color: #1e293b; }
+        .container { max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+        .header { background: linear-gradient(135deg, #1e40af, #2563eb); padding: 32px 24px; text-align: center; color: #ffffff; }
+        .header h1 { margin: 8px 0 0; font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+        .logo-badge { display: inline-block; background: rgba(255, 255, 255, 0.2); padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+        .content { padding: 32px 28px; }
+        .greeting { font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #0f172a; }
+        .text { font-size: 14px; line-height: 1.6; color: #475569; margin: 0 0 20px; }
+        .list-card { background: #f1f5f9; border-radius: 8px; border-left: 4px solid #2563eb; padding: 18px 20px; margin: 24px 0; }
+        .list-card p { margin: 0 0 8px; font-size: 13.5px; color: #334155; }
+        .list-card p:last-child { margin-bottom: 0; }
+        .btn-container { text-align: center; margin: 28px 0; }
+        .btn { display: inline-block; background: #2563eb; color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 15px; font-weight: 700; letter-spacing: 0.2px; }
+        .notice { font-size: 13px; color: #0d9488; background: #e6fffa; border: 1px solid rgba(20, 184, 166, 0.2); border-radius: 6px; padding: 12px 14px; line-height: 1.5; }
+        .footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 24px; text-align: center; font-size: 11.5px; color: #94a3b8; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <span class="logo-badge">Acceso Anticipado · Beta Privada</span>
+          <h1>¡Bienvenido a VetPro!</h1>
+        </div>
+        <div class="content">
+          <p class="greeting">Hola:</p>
+          <p class="text">
+            Te escribimos porque hoy estás entre el grupo reducido que tiene <strong>acceso anticipado</strong> a VetPro, el nuevo software de gestión veterinaria, antes de su lanzamiento oficial.
+          </p>
+
+          <div class="list-card">
+            <p>🔍 <strong>Revisa el sistema con calma</strong> — regístrate, entra y cacharrea con lo que quieras: agenda una cita, crea una historia clínica, genera una factura de prueba, explora el portal de tutores.</p>
+            <p>💬 <strong>Cuéntanos qué mejorarías</strong> — cualquier cosa que se vea rara, que falte, o que se te ocurra que serviría, compártela en el grupo de WhatsApp donde ya estás. Tu opinión define cómo queda la versión final.</p>
+          </div>
+
+          <div class="btn-container">
+            <a href="${registerUrl}" class="btn" target="_blank">Registrarme y Explorar VetPro</a>
+          </div>
+
+          <div class="notice">
+            ✅ El registro es gratuito y toma menos de 2 minutos. No hay problema si algo falla o se ve incompleto — para eso estamos en esta fase de pruebas.
+          </div>
+        </div>
+        <div class="footer">
+          Este mensaje fue enviado a ${data.to} como parte del programa de acceso anticipado de VetPro.
+        </div>
+      </div>
+    </body>
+    </html>
+    `;
+
+    const textContent = `
+¡Bienvenido a VetPro! (Acceso anticipado — Beta privada)
+
+Hola:
+Estás entre el grupo reducido que tiene acceso anticipado a VetPro antes del lanzamiento oficial.
+
+Regístrate y explora todo el sistema con calma: agenda una cita, crea una historia clínica, genera una factura de prueba, revisa el portal de tutores.
+${registerUrl}
+
+Cualquier cosa que veas que se podría mejorar, cuéntanosla en el grupo de WhatsApp donde ya estás — tu opinión es clave para la versión final.
+    `.trim();
+
+    try {
+      await transporter.sendMail({
+        from,
+        to: data.to,
+        ...(this.getBcc() ? { bcc: this.getBcc() } : {}),
+        subject: `Tienes acceso anticipado a VetPro — cuéntanos qué mejorarías`,
+        text: textContent,
+        html: htmlContent
+      });
+
+      console.log(`✉️ [Mailer] Invitación beta enviada a: ${data.to}`);
+      return true;
+    } catch (error: any) {
+      console.error(`❌ [Mailer] Error al enviar invitación beta a ${data.to}:`, error.message);
       return false;
     }
   }
