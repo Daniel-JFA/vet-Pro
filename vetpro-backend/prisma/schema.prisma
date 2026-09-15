@@ -150,6 +150,7 @@ model Branch {
   hospitalizations   Hospitalization[]
   cashRegisterShifts CashRegisterShift[]
   groomingServices   GroomingService[]
+  invoices           Invoice[]
 
   @@index([clinicId])
   @@map("branches")
@@ -671,6 +672,8 @@ model Invoice {
   clinicId      String
   clinic        Clinic        @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   invoiceNumber String // Consecutivo interno de facturación
+  branchId      String? // Sede donde se emitió — necesaria para el arqueo de caja por sede
+  branch        Branch?       @relation(fields: [branchId], references: [id], onDelete: SetNull)
   tutorId       String
   tutor         Tutor         @relation(fields: [tutorId], references: [id], onDelete: Restrict)
   appointmentId String?
@@ -696,13 +699,35 @@ model Invoice {
   deletedAt        DateTime?
 
   // Relaciones
-  items InvoiceItem[]
+  items    InvoiceItem[]
+  payments InvoicePayment[]
 
   @@unique([clinicId, invoiceNumber])
   @@index([clinicId])
   @@index([tutorId])
   @@index([dianResolutionId])
+  @@index([branchId])
   @@map("invoices")
+}
+
+// Registro estructurado de cada abono/pago recibido — necesario para poder
+// separar efectivo de tarjeta/transferencia en el arqueo de caja (antes solo
+// quedaba anotado como texto libre dentro de Invoice.notes).
+model InvoicePayment {
+  id         String   @id @default(uuid())
+  clinicId   String
+  invoiceId  String
+  invoice    Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  branchId   String?
+  amount     Float
+  method     String // "Efectivo", "Tarjeta Débito", "Tarjeta Crédito", "Transferencia Bancaria (Nequi/Daviplata)"
+  paidAt     DateTime @default(now())
+  recordedBy String
+
+  @@index([clinicId])
+  @@index([invoiceId])
+  @@index([branchId])
+  @@map("invoice_payments")
 }
 
 model InvoiceItem {

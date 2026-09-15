@@ -137,6 +137,38 @@
 
     <!-- Columna Lateral -->
     <div class="side-column">
+      <!-- Sección: Foto de la Mascota -->
+      <div class="card photo-section">
+        <div class="section-title">
+          <span class="material-symbols-outlined section-icon">photo_camera</span>
+          <h2>Foto de Perfil</h2>
+        </div>
+
+        <div class="photo-uploader" *ngIf="isEditMode(); else photoDisabledHint">
+          <div class="photo-preview" *ngIf="previewPhotoUrl()">
+            <img [src]="previewPhotoUrl()" alt="Mascota" />
+          </div>
+          <div class="photo-placeholder" *ngIf="!previewPhotoUrl()">
+            <span class="material-symbols-outlined">pets</span>
+            <p>Sin foto cargada</p>
+          </div>
+
+          <input #photoInput type="file" accept="image/jpeg,image/png,image/webp" (change)="onPhotoSelected($event)" hidden />
+          <button type="button" class="btn btn-ghost btn-photo-upload" (click)="photoInput.click()" [disabled]="uploadingPhoto()">
+            <span class="material-symbols-outlined">upload_file</span>
+            {{ uploadingPhoto() ? 'Subiendo...' : 'Subir Foto' }}
+          </button>
+          <p class="photo-hint">JPG, PNG o WEBP — máximo 5MB.</p>
+        </div>
+
+        <ng-template #photoDisabledHint>
+          <div class="photo-placeholder">
+            <span class="material-symbols-outlined">pets</span>
+            <p>Guarda la mascota primero para poder subirle una foto.</p>
+          </div>
+        </ng-template>
+      </div>
+
       <!-- Sección: Tutor de la Mascota -->
       <div class="card tutor-section">
         <div class="section-title">

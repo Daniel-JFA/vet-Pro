@@ -384,6 +384,13 @@
   justify-content: center;
 }
 
+.photo-hint {
+  font-size: 11.5px;
+  color: var(--text-color-secondary, #94a3b8);
+  text-align: center;
+  margin: 8px 0 0;
+}
+
 // ── Pestañas de Tutor (Lateral) ──────────────────────
 .tutor-mode-tabs {
   display: flex;

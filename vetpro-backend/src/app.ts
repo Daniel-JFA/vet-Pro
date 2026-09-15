@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import cors from 'cors';
 import morgan from 'morgan';
 import helmet from 'helmet';
@@ -73,6 +74,11 @@ app.use(
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Archivos subidos (fotos de mascotas, etc.) — montados en un volumen persistente.
+// Se sirven bajo /api/uploads (no /uploads) porque Traefik solo enruta
+// PathPrefix('/api') hacia este contenedor; todo lo demás va al frontend.
+app.use('/api/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));

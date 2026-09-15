@@ -424,16 +424,23 @@ DIAN_ROUTES.post('/pos/shift-close', async (req: AuthRequest, res: Response) => 
     });
     if (!shift) return res.status(404).json({ error: 'Turno de caja abierto no encontrado.' });
 
-    // Calcular ventas realizadas durante el turno
-    const invoices = await prisma.invoice.findMany({
+    // Calcular pagos recibidos durante el turno, en esta sede — separando
+    // efectivo (afecta el arqueo físico) de tarjeta/transferencia (no).
+    const payments = await prisma.invoicePayment.findMany({
       where: {
         clinicId,
-        issuedAt: { gte: shift.openedAt },
-        status: { in: ['issued', 'paid', 'partial'] }
+        branchId: shift.branchId,
+        paidAt: { gte: shift.openedAt }
       }
     });
 
-    const cashSales = invoices.reduce((acc, inv) => acc + (inv.amountPaid || 0), 0);
+    const cashSales = payments
+      .filter(p => p.method === 'Efectivo')
+      .reduce((acc, p) => acc + p.amount, 0);
+    const electronicSales = payments
+      .filter(p => p.method !== 'Efectivo')
+      .reduce((acc, p) => acc + p.amount, 0);
+
     const expectedBalance = shift.openingBalance + cashSales;
     const difference = data.actualBalance - expectedBalance;
 
@@ -442,6 +449,7 @@ DIAN_ROUTES.post('/pos/shift-close', async (req: AuthRequest, res: Response) => 
       data: {
         closedAt: new Date(),
         cashSales,
+        electronicSales,
         expectedBalance,
         actualBalance: data.actualBalance,
         difference,

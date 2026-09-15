@@ -22,6 +22,7 @@ const InvoiceItemSchema = z.object({
 
 const CreateInvoiceSchema = z.object({
   tutorId: z.string().uuid('ID de tutor inválido'),
+  branchId: z.string().uuid('ID de sucursal inválido').optional().nullable(),
   appointmentId: z.string().uuid('ID de cita inválido').optional().nullable(),
   items: z.array(InvoiceItemSchema).min(1, 'La factura debe contener al menos un ítem'),
   notes: z.string().optional(),
@@ -282,7 +283,6 @@ router.get('/invoices/:id', async (req: AuthRequest, res: Response) => {
 router.post('/invoices', async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
   const userId = req.user?.id || 'system';
-  const branchId = req.user?.branchId;
 
   if (!clinicId) {
     return res.status(401).json({ error: 'No autorizado.' });
@@ -306,6 +306,14 @@ router.post('/invoices', async (req: AuthRequest, res: Response) => {
 
     if (!tutor) {
       return res.status(404).json({ error: 'El tutor no existe o no pertenece a su clínica.' });
+    }
+
+    // Resolver la sede de la venta — necesaria para el arqueo de caja por sede.
+    // Preferencia: sede enviada explícitamente > sede del usuario > primera sede activa de la clínica.
+    let branchId = parsed.data.branchId || req.user?.branchId || null;
+    if (!branchId) {
+      const defaultBranch = await prisma.branch.findFirst({ where: { clinicId, active: true } });
+      branchId = defaultBranch?.id || null;
     }
 
     // 2. Ejecutar transacción atómica: Consecutivo + Factura + Salida de Inventario
@@ -343,6 +351,7 @@ router.post('/invoices', async (req: AuthRequest, res: Response) => {
         data: {
           clinicId,
           invoiceNumber,
+          branchId: branchId || null,
           tutorId,
           appointmentId: appointmentId || null,
           status: 'draft',
@@ -387,8 +396,8 @@ router.post('/invoices', async (req: AuthRequest, res: Response) => {
                 data: { currentStock: newStock }
               });
 
-              // Determinar la sede del movimiento
-              let movementBranchId = branchId;
+              // Determinar la sede del movimiento (branchId ya viene resuelto arriba)
+              let movementBranchId: string | undefined = branchId ?? undefined;
               if (!movementBranchId) {
                 const defaultBranch = await tx.branch.findFirst({ where: { clinicId } });
                 movementBranchId = defaultBranch?.id;
@@ -509,20 +518,36 @@ router.patch('/invoices/:id/pay', async (req: AuthRequest, res: Response) => {
     const newBalance = Math.max(0, invoice.total - newAmountPaid);
     const newStatus = newBalance === 0 ? 'paid' : 'partial';
 
-    const updated = await prisma.invoice.update({
-      where: { id },
-      data: {
-        status: newStatus,
-        amountPaid: parseFloat(newAmountPaid.toFixed(2)),
-        balance: parseFloat(newBalance.toFixed(2)),
-        paidAt: newStatus === 'paid' ? new Date() : null,
-        notes: (invoice.notes ? invoice.notes + '\n' : '') +
-          `[Pago: $${amount.toFixed(2)} vía ${method} en ${new Date().toLocaleDateString('es-CO')}]`
-      },
-      include: {
-        tutor: true,
-        items: true
-      }
+    const updated = await prisma.$transaction(async (tx) => {
+      // Registro estructurado del pago — necesario para poder separar
+      // efectivo de tarjeta/transferencia en el cierre de caja (antes solo
+      // quedaba anotado como texto libre en las notas de la factura).
+      await tx.invoicePayment.create({
+        data: {
+          clinicId,
+          invoiceId: id,
+          branchId: invoice.branchId,
+          amount,
+          method,
+          recordedBy: req.user?.id || 'system'
+        }
+      });
+
+      return tx.invoice.update({
+        where: { id },
+        data: {
+          status: newStatus,
+          amountPaid: parseFloat(newAmountPaid.toFixed(2)),
+          balance: parseFloat(newBalance.toFixed(2)),
+          paidAt: newStatus === 'paid' ? new Date() : null,
+          notes: (invoice.notes ? invoice.notes + '\n' : '') +
+            `[Pago: $${amount.toFixed(2)} vía ${method} en ${new Date().toLocaleDateString('es-CO')}]`
+        },
+        include: {
+          tutor: true,
+          items: true
+        }
+      });
     });
 
     return res.json(updated);

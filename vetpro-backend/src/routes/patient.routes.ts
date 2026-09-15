@@ -1,11 +1,38 @@
 import { Router, Response } from 'express';
 import { z } from 'zod';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import crypto from 'crypto';
 import { prisma } from '../config/database.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
 import { PatientSpecies, PatientSex, PatientStatus } from '@prisma/client';
 
 const router = Router();
 router.use(authMiddleware as any);
+
+// ─────────────────────────────────────────────
+// SUBIDA DE FOTO DE MASCOTA (almacenamiento local, volumen persistente)
+// ─────────────────────────────────────────────
+const UPLOADS_DIR = path.join(process.cwd(), 'uploads', 'patients');
+fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase();
+      cb(null, `${crypto.randomUUID()}${ext}`);
+    }
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowed.includes(file.mimetype)) {
+      return cb(new Error('Formato de imagen no soportado. Usa JPG, PNG o WEBP.'));
+    }
+    cb(null, true);
+  }
+});
 
 // ─────────────────────────────────────────────
 // ESQUEMAS DE VALIDACIÓN ZOD
@@ -20,7 +47,7 @@ const CreatePatientSchema = z.object({
   sterilized: z.boolean().default(false),
   weight: z.number().positive().optional().nullable(),
   chipId: z.string().optional().nullable(),
-  photoUrl: z.string().url().optional().nullable().or(z.literal('')),
+  photoUrl: z.string().optional().nullable().or(z.literal('')), // URL absoluta o ruta relativa (/uploads/...)
   allergies: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   status: z.nativeEnum(PatientStatus).default(PatientStatus.active)
@@ -292,6 +319,37 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
     console.error('[PatientRoutes] Error al eliminar paciente:', error);
     return res.status(500).json({ error: 'Error al eliminar el expediente del paciente.' });
   }
+});
+
+// POST /patients/:id/photo (Subir foto de perfil de la mascota)
+router.post('/:id/photo', (req: AuthRequest, res: Response) => {
+  upload.single('photo')(req, res, async (err: any) => {
+    if (err) {
+      return res.status(400).json({ error: err.message || 'Error al subir la imagen.' });
+    }
+
+    const clinicId = req.user?.clinicId;
+    const { id } = req.params;
+
+    if (!clinicId) return res.status(401).json({ error: 'No autorizado.' });
+    if (!req.file) return res.status(400).json({ error: 'No se recibió ningún archivo.' });
+
+    try {
+      const existing = await prisma.patient.findFirst({ where: { id, clinicId, deletedAt: null } });
+      if (!existing) return res.status(404).json({ error: 'Paciente no encontrado.' });
+
+      const photoUrl = `/api/uploads/patients/${req.file.filename}`;
+      const updated = await prisma.patient.update({
+        where: { id },
+        data: { photoUrl }
+      });
+
+      return res.json({ photoUrl: updated.photoUrl });
+    } catch (error: any) {
+      console.error('[PatientRoutes] Error al guardar foto:', error);
+      return res.status(500).json({ error: 'Error al guardar la foto del paciente.' });
+    }
+  });
 });
 
 export const PATIENT_ROUTES = router;

@@ -172,19 +172,31 @@ export class PatientFormComponent implements OnInit {
     this.previewPhotoUrl.set(p.photoUrl || null);
   }
 
-  // Simular la carga de foto de mascota (elige una foto aleatoria premium según la especie)
-  simulatePhotoUpload() {
-    const spec = this.form.get('species')?.value as Species;
-    let url = 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=200'; // perro default
-    if (spec === 'cat') {
-      url = 'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&q=80&w=200';
-    } else if (spec === 'rabbit') {
-      url = 'https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?auto=format&fit=crop&q=80&w=200';
-    } else if (spec === 'bird') {
-      url = 'https://images.unsplash.com/photo-1452570053594-1b985d6ea890?auto=format&fit=crop&q=80&w=200';
-    }
-    this.form.patchValue({ photoUrl: url });
-    this.previewPhotoUrl.set(url);
+  uploadingPhoto = signal(false);
+
+  onPhotoSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    const patientId = this.patientId();
+    if (!patientId) return;
+
+    this.uploadingPhoto.set(true);
+    this.svc.uploadPatientPhoto(patientId, file).subscribe({
+      next: (res) => {
+        this.uploadingPhoto.set(false);
+        this.previewPhotoUrl.set(res.photoUrl);
+        this.form.patchValue({ photoUrl: res.photoUrl });
+        this.toast.success('Foto actualizada exitosamente.');
+        input.value = '';
+      },
+      error: (err) => {
+        this.uploadingPhoto.set(false);
+        this.toast.error(err?.error?.error || 'No se pudo subir la foto. Intenta de nuevo.');
+        input.value = '';
+      }
+    });
   }
 
   removePhoto() {
