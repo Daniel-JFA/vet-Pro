@@ -172,6 +172,21 @@ export class AuthService {
     return this.api.patch<any>(`/auth/users/${id}/reset-password`, { newPassword });
   }
 
+  // El propio usuario termina de ingresar sus datos tras el primer login
+  completeProfile(data: {
+    documentType: 'CC' | 'CE' | 'PA' | 'TI';
+    documentNumber: string;
+    phone: string;
+    address: string;
+    birthDate?: string | null;
+  }): Observable<{ message: string; user: User }> {
+    return this.api.patch<{ message: string; user: User }>('/auth/complete-profile', data).pipe(
+      tap(res => {
+        this.state.update(s => ({ ...s, user: res.user }));
+      })
+    );
+  }
+
   // Consulta y actualización de configuración de empresa (Clínica vs Vet Independiente)
   getClinic(): Observable<Clinic> {
     return this.api.get<Clinic>('/auth/clinic');

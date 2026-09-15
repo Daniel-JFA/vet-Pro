@@ -24,6 +24,12 @@ function toUserResponse(user: {
   role: string;
   avatarUrl: string | null;
   active: boolean;
+  profileCompleted?: boolean;
+  documentType?: string | null;
+  documentNumber?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  birthDate?: Date | null;
 }) {
   return {
     id: user.id,
@@ -34,7 +40,13 @@ function toUserResponse(user: {
     email: user.email,
     role: user.role,
     avatarUrl: user.avatarUrl,
-    active: user.active
+    active: user.active,
+    profileCompleted: user.profileCompleted ?? false,
+    documentType: user.documentType ?? null,
+    documentNumber: user.documentNumber ?? null,
+    phone: user.phone ?? null,
+    address: user.address ?? null,
+    birthDate: user.birthDate ?? null
   };
 }
 
@@ -111,7 +123,10 @@ router.post('/register', async (req, res) => {
           email,
           passwordHash,
           role: 'admin',
-          active: true
+          active: true,
+          phone: phone || null,
+          // El admin ya provee sus datos en este mismo registro + el onboarding de la clínica
+          profileCompleted: true
         }
       });
 
@@ -209,6 +224,44 @@ router.get('/me', authMiddleware as any, async (req: AuthRequest, res: Response)
   } catch (error) {
     console.error('Error en /auth/me:', error);
     return res.status(500).json({ error: 'Error interno del servidor.' });
+  }
+});
+
+// PATCH /auth/complete-profile (El propio usuario termina de ingresar sus datos tras el primer login)
+router.patch('/complete-profile', authMiddleware as any, async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id;
+  if (!userId) return res.status(401).json({ error: 'No autorizado.' });
+
+  const { documentType, documentNumber, phone, address, birthDate } = req.body;
+
+  const validDocTypes = ['CC', 'CE', 'PA', 'TI'];
+  if (!documentType || !validDocTypes.includes(documentType)) {
+    return res.status(400).json({ error: `Tipo de documento inválido. Valores permitidos: ${validDocTypes.join(', ')}` });
+  }
+  if (!documentNumber || !phone || !address) {
+    return res.status(400).json({ error: 'Documento, teléfono y dirección son obligatorios.' });
+  }
+
+  try {
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        documentType,
+        documentNumber: documentNumber.trim(),
+        phone: phone.trim(),
+        address: address.trim(),
+        birthDate: birthDate ? new Date(birthDate) : null,
+        profileCompleted: true
+      }
+    });
+
+    return res.json({
+      message: 'Perfil completado exitosamente.',
+      user: toUserResponse(updated)
+    });
+  } catch (error: any) {
+    console.error('Error al completar perfil:', error);
+    return res.status(500).json({ error: 'Error al guardar los datos del perfil.' });
   }
 });
 

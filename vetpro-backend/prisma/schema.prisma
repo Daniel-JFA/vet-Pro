@@ -132,6 +132,14 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  // Datos completados por el propio usuario en su primer ingreso
+  profileCompleted Boolean   @default(false)
+  documentType     String? // CC, CE, PA, TI
+  documentNumber   String?
+  phone            String?
+  address          String?
+  birthDate        DateTime?
+
   // Relaciones
   appointments       Appointment[]        @relation("VetAppointments")
   medicalRecords     MedicalRecord[]

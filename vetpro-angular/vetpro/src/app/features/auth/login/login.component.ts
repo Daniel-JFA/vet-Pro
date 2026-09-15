@@ -195,6 +195,8 @@ export class LoginComponent {
         const isOnboarded = localStorage.getItem('vetpro_clinic_onboarded') === 'true';
         if (res.user.role === 'admin' && !isOnboarded) {
           this.router.navigate(['/onboarding']);
+        } else if (!res.user.profileCompleted) {
+          this.router.navigate(['/complete-profile']);
         } else {
           this.router.navigate(['/']);
         }

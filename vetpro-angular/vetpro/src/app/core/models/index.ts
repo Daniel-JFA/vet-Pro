@@ -28,6 +28,12 @@ export interface User {
   role: 'admin' | 'vet' | 'assistant' | 'receptionist' | 'walker' | 'groomer';
   avatarUrl?: string;
   active: boolean;
+  profileCompleted?: boolean;
+  documentType?: 'CC' | 'CE' | 'PA' | 'TI' | null;
+  documentNumber?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  birthDate?: string | null;
 }
 
 // ── WALKERS (PASEADORES) ───────────────────────

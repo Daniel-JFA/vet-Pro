@@ -1,11 +1,17 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
+import { profileCompleteGuard } from './core/guards/profile-complete.guard';
 
 export const routes: Routes = [
   {
     path: 'auth',
     loadChildren: () => import('./features/auth/auth.routes').then(m => m.AUTH_ROUTES)
+  },
+  {
+    path: 'complete-profile',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/profile/complete-profile.component').then(m => m.CompleteProfileComponent)
   },
   {
     path: 'consent/sign/:id',
@@ -25,7 +31,7 @@ export const routes: Routes = [
   },
   {
     path: '',
-    canActivate: [authGuard],
+    canActivate: [authGuard, profileCompleteGuard],
     loadComponent: () => import('./layout/shell.component').then(m => m.ShellComponent),
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
