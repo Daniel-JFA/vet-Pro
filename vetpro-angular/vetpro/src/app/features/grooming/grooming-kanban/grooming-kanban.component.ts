@@ -199,51 +199,7 @@ import { GroomingService, GroomingItem } from '../../../core/services/grooming.s
 export class GroomingKanbanComponent implements OnInit {
   private groomingService = inject(GroomingService);
 
-  services = signal<GroomingItem[]>([
-    {
-      id: 'g-1',
-      patientId: 'p1',
-      patient: { id: 'p1', name: 'Max', species: 'dog', breed: 'Shih Tzu', tutor: { id: 't1', firstName: 'Laura', lastName: 'Restrepo', phone: '3104561234' } },
-      branch: { id: 'b1', name: 'Sede Principal' },
-      serviceType: 'Baño Completo + Corte Asiático',
-      medicatedShampoo: 'Aroma Lavanda',
-      status: 'checked_in',
-      price: 55000,
-      checkedInAt: new Date().toISOString()
-    },
-    {
-      id: 'g-2',
-      patientId: 'p2',
-      patient: { id: 'p2', name: 'Copito', species: 'cat', breed: 'Persa', tutor: { id: 't2', firstName: 'Juan', lastName: 'Botero', phone: '3209876543' } },
-      branch: { id: 'b1', name: 'Sede Principal' },
-      serviceType: 'Deslanado Profundo y Baño Seco',
-      status: 'bathing',
-      price: 65000,
-      checkedInAt: new Date().toISOString()
-    },
-    {
-      id: 'g-3',
-      patientId: 'p3',
-      patient: { id: 'p3', name: 'Rocky', species: 'dog', breed: 'Schnauzer', tutor: { id: 't3', firstName: 'Sofía', lastName: 'Dávila', phone: '3167894561' } },
-      branch: { id: 'b1', name: 'Sede Principal' },
-      serviceType: 'Corte Estándar de Raza Schnauzer',
-      behaviorNotes: 'Nervioso en patas',
-      status: 'drying_styling',
-      price: 50000,
-      checkedInAt: new Date().toISOString()
-    },
-    {
-      id: 'g-4',
-      patientId: 'p4',
-      patient: { id: 'p4', name: 'Milo', species: 'dog', breed: 'Poodle', tutor: { id: 't4', firstName: 'Esteban', lastName: 'Duque', phone: '3112345678' } },
-      branch: { id: 'b1', name: 'Sede Principal' },
-      serviceType: 'Baño Medicado Dermatológico',
-      medicatedShampoo: 'Clorhexidina 3%',
-      status: 'ready_for_pickup',
-      price: 60000,
-      checkedInAt: new Date().toISOString()
-    }
-  ]);
+  services = signal<GroomingItem[]>([]);
 
   ngOnInit() {
     this.loadServices();
@@ -251,12 +207,11 @@ export class GroomingKanbanComponent implements OnInit {
 
   loadServices() {
     this.groomingService.getServices().subscribe({
-      next: (data) => {
-        if (data && data.length > 0) {
-          this.services.set(data);
-        }
-      },
-      error: (e) => console.warn('[Grooming] Usando estado local:', e)
+      next: (data) => this.services.set(data || []),
+      error: (e) => {
+        console.error('[Grooming] No se pudo cargar el listado de servicios:', e);
+        this.services.set([]);
+      }
     });
   }
 
@@ -275,7 +230,7 @@ export class GroomingKanbanComponent implements OnInit {
         }
       },
       error: () => {
-        this.services.update(list => list.map(s => s.id === item.id ? { ...s, status: newStatus } : s));
+        alert('No se pudo actualizar el estado del servicio. Intenta de nuevo.');
       }
     });
   }

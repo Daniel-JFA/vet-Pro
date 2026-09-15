@@ -437,80 +437,7 @@ export class HospitalizationKardexComponent implements OnInit {
   selectedPatient = signal<HospitalizedPatient | null>(null);
   isLoading = signal<boolean>(false);
 
-  patients = signal<HospitalizedPatient[]>([
-    {
-      id: 'hosp-1',
-      cageNumber: 'Jaula 01',
-      cageType: 'Caninos UCI',
-      bedId: 'bed-1',
-      status: 'critical',
-      patientId: 'p1',
-      patientName: 'Toby',
-      patientSpecies: 'dog',
-      patientBreed: 'Golden Retriever',
-      weight: 28.5,
-      tutorName: 'Carlos Gómez',
-      tutorPhone: '3124567890',
-      admittedAt: new Date(Date.now() - 2 * 86400000),
-      daysHospitalized: 2,
-      admissionReason: 'Gastroenteritis hemorrágica severa + deshidratación 8%',
-      fluidTherapy: 'Ringer Lactato 65ml/h + KCl',
-      temperature: 39.4,
-      heartRate: 135,
-      medications: [
-        { id: 'm1', timeSlot: '08:00 AM', drugName: 'Ampicilina + Sulbactam', dose: '1.5ml', route: 'IV', applied: true, appliedAt: new Date() },
-        { id: 'm2', timeSlot: '02:00 PM', drugName: 'Metoclopramida', dose: '0.8ml', route: 'IV', applied: true, appliedAt: new Date() },
-        { id: 'm3', timeSlot: '08:00 PM', drugName: 'Omeprazol', dose: '2ml', route: 'IV', applied: false }
-      ]
-    },
-    {
-      id: 'hosp-2',
-      cageNumber: 'Jaula 03',
-      cageType: 'Felinos Aislado',
-      bedId: 'bed-2',
-      status: 'stable',
-      patientId: 'p2',
-      patientName: 'Luna',
-      patientSpecies: 'cat',
-      patientBreed: 'Siamés',
-      weight: 3.8,
-      tutorName: 'María Rodríguez',
-      tutorPhone: '3157891234',
-      admittedAt: new Date(Date.now() - 1 * 86400000),
-      daysHospitalized: 1,
-      admissionReason: 'Manejo post-quirúrgico de OVH y fluidoterapia preventiva',
-      fluidTherapy: 'Cloruro de Sodio 0.9% 15ml/h',
-      temperature: 38.6,
-      heartRate: 160,
-      medications: [
-        { id: 'm4', timeSlot: '08:00 AM', drugName: 'Meloxicam 0.5%', dose: '0.4ml', route: 'SC', applied: true },
-        { id: 'm5', timeSlot: '06:00 PM', drugName: 'Tramadol', dose: '0.2ml', route: 'SC', applied: false }
-      ]
-    },
-    {
-      id: 'hosp-3',
-      cageNumber: 'Jaula 05',
-      cageType: 'Observación General',
-      bedId: 'bed-3',
-      status: 'ready_for_discharge',
-      patientId: 'p3',
-      patientName: 'Simba',
-      patientSpecies: 'dog',
-      patientBreed: 'Bulldog Francés',
-      weight: 12.1,
-      tutorName: 'Andrés Morales',
-      tutorPhone: '3001234567',
-      admittedAt: new Date(Date.now() - 3 * 86400000),
-      daysHospitalized: 3,
-      admissionReason: 'Recuperación de intoxicación por chocolate. Evolución favorable.',
-      fluidTherapy: 'Retirada',
-      temperature: 38.5,
-      heartRate: 110,
-      medications: [
-        { id: 'm6', timeSlot: '08:00 AM', drugName: 'Protector Hepático', dose: '1 tab', route: 'Oral', applied: true }
-      ]
-    }
-  ]);
+  patients = signal<HospitalizedPatient[]>([]);
 
   criticalCount = computed(() => this.patients().filter(p => p.status === 'critical').length);
   observationCount = computed(() => this.patients().filter(p => p.status === 'admitted' || p.status === 'stable').length);
@@ -524,16 +451,14 @@ export class HospitalizationKardexComponent implements OnInit {
     this.isLoading.set(true);
     this.hospitalizationService.getActiveHospitalizations().subscribe({
       next: (data) => {
-        if (data && data.length > 0) {
-          this.patients.set(data);
-          if (!this.selectedPatient() && data.length > 0) {
-            this.selectedPatient.set(data[0]);
-          }
-        }
+        this.patients.set(data || []);
+        this.selectedPatient.set(data && data.length > 0 ? data[0] : null);
         this.isLoading.set(false);
       },
       error: (err) => {
-        console.warn('[Kardex] No se pudo cargar desde API, usando estado local:', err);
+        console.error('[Kardex] No se pudo cargar la lista de hospitalizaciones:', err);
+        this.patients.set([]);
+        this.selectedPatient.set(null);
         this.isLoading.set(false);
       }
     });

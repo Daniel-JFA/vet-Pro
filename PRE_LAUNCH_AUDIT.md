@@ -45,7 +45,7 @@
 | Tutores | 🟡 LISTO CON OBSERVACIÓN | Backend de edición agregado hoy (`GET/PATCH /tutors/:id`), pero **no existe página de "Tutores" en el staff app** — solo se crean inline desde el formulario de paciente. Si el día 1 alguien necesita corregir un teléfono mal escrito, hoy no hay dónde hacerlo desde la UI. Backlog cercano. |
 | Citas (Appointments) | ✅ LISTO | Corregidos hoy: nombre de vet hardcodeado, filtro de vet del calendario, flujo de mascota nueva. Gaps de bajo riesgo (no explotables hoy): `PUT /appointments/:id` y `PATCH /appointments/:id/cancel` no existen en el backend, pero ningún botón de la UI los llama todavía — solo cuidado si alguien conecta un botón de "editar/cancelar cita" más adelante. |
 | Historias Clínicas / Bitácora IA | ✅ LISTO | Transcripción real (Whisper/Claude) con fallback honesto a motor de reglas local si no hay API key configurada. Sin datos falsos. |
-| Hospitalización / Kardex | ✅ LISTO | Diseño de solo-inserción (auditoría clínica), bien scoped. |
+| Hospitalización / Kardex | ✅ CORREGIDO HOY | Tenía 3 pacientes falsos hardcodeados (Toby, Luna, Simba) que quedaban visibles si la API fallaba o devolvía lista vacía real. Corregido: ahora siempre confía en el dato real de la API, incluida una lista vacía legítima, y limpia el estado en error. |
 | Laboratorio | ✅ LISTO | Catálogo, órdenes y resultados bien conectados. |
 
 ### Negocio / Operaciones
@@ -57,7 +57,7 @@
 | Caja / Cierre de Turno | 🟡 NEEDS FIX (backlog) | El cierre de caja no separa efectivo de tarjeta/transferencia (todo se suma como "cashSales"), y no filtra por sede — en una clínica multi-sede el arqueo de una sede mezcla las demás. El arqueo físico de efectivo no va a cuadrar si hubo pagos no-efectivo. Recomendado corregir antes de depender de este número para el cierre diario. |
 | Inventario | ✅ LISTO | CRUD completo, SQL parametrizado. Código muerto sin riesgo: métodos de órdenes de compra en el frontend sin endpoint backend (no alcanzable desde ninguna pantalla). |
 | CRM / Reactivación | ✅ LISTO | WhatsApp real con fallback honesto a enlaces `wa.me`. Nota: el backend tiene un bug de lógica en las cohortes de "cumpleaños"/"desparasitación" (siempre usan la cohorte de vacunas), pero **el frontend nunca ofrece esas dos opciones** — no es alcanzable por ningún usuario hoy. Cifras de "ingreso potencial recuperable" son una estimación genérica fija, no un cálculo real — aclarar en la UI en el futuro. |
-| Peluquería (Grooming) | ✅ LISTO | Backend limpio, WhatsApp vía enlace manual (correcto, no finge auto-envío). |
+| Peluquería (Grooming) | ⛔ OCULTADO | Backend limpio, pero el frontend tenía 4 servicios falsos hardcodeados que quedaban visibles en error/vacío, y `advanceStatus()` fingía éxito al avanzar el estado aunque el API fallara. Corregido hoy (ya no finge datos ni éxito) por si se reactiva, pero sigue oculto del menú/rutas. |
 | Paseadores / On-Demand | ✅ LISTO | Backend limpio y bien scoped. |
 | Notificaciones (Centro + Plantillas) | ⛔ OCULTADO | 100% simulado, sin backend real (el propio código los marcaba como "Mock para desarrollo"). El botón de "Probar" fabricaba una confirmación falsa de envío. Removido del menú y de las rutas hoy. |
 
@@ -69,7 +69,7 @@
 | Super-Admin de Plataforma | ✅ LISTO | Aislamiento verificado en ambas direcciones (un token de plataforma no puede colarse en rutas de clínica y viceversa). Estadísticas agregadas son reales (`prisma.count()`), no inventadas. |
 | Portal de Tutores | ✅ CORREGIDO HOY | El enlace mágico ahora se envía de verdad por correo. Se eliminaron los botones de "demo" con datos de una persona real expuestos sin condición en producción. |
 | Onboarding | ✅ CORREGIDO HOY | Ya no finge éxito si falla, y ya no descarta los datos de sede/veterinario adicional que el propio formulario pedía. |
-| Consentimientos Digitales | ✅ LISTO | Enlace público con token UUID no adivinable, valida expiración y evita refirmar. |
+| Consentimientos Digitales | ✅ CORREGIDO HOY | Enlace público con token UUID no adivinable, valida expiración y evita refirmar. Bug grave encontrado y corregido: si fallaba la carga del consentimiento real, la página de firma pública mostraba un documento legal **inventado** (tutor "Carlos Gómez", paciente "Toby", texto de autorización de cirugía falso) y dejaba firmar sobre él; y si fallaba el envío de la firma, igual mostraba "¡Firmado con éxito!" sin haberse guardado. Ambos casos ahora muestran un error real. También se quitó un nombre hardcodeado ("Carlos Gómez") y un "hash de integridad" falso (no era un hash real, solo texto concatenado) de la vista de detalle. |
 | Reportes | ✅ LISTO | Sin datos simulados, bien scoped por clínica. |
 | Sedes (Branches) | ✅ LISTO | CRUD básico correcto. |
 | Docs (Swagger) | 🟡 BAJA PRIORIDAD | URL de servidor hardcodeada a localhost (el botón "Try it out" no funcionaría en producción) y solo documenta ~5 de ~20 grupos de rutas. No está enlazado desde ningún lado del frontend — riesgo bajo de que un cliente real lo encuentre, pero conviene corregir o quitar del despliegue de producción cuando haya tiempo. |

@@ -21,6 +21,8 @@ export class ConsentSignComponent implements AfterViewInit {
   loading = signal(true);
   submitting = signal(false);
   signedSuccess = signal(false);
+  loadError = signal<string | null>(null);
+  submitError = signal<string | null>(null);
 
   // Lógica de Canvas Drawing Board
   private ctx!: CanvasRenderingContext2D;
@@ -38,6 +40,7 @@ export class ConsentSignComponent implements AfterViewInit {
 
   loadConsentDetails(id: string) {
     this.loading.set(true);
+    this.loadError.set(null);
     this.consentSvc.getConsentForm(id).subscribe({
       next: (data) => {
         this.consent.set(data);
@@ -50,19 +53,14 @@ export class ConsentSignComponent implements AfterViewInit {
         }
       },
       error: (err) => {
-        // Fallback mock data offline
-        const mockConsent = {
-          id: id,
-          title: 'Autorización para Anestesia y Cirugía',
-          patientName: 'Toby',
-          tutorName: 'Carlos Gómez',
-          content: 'Por medio del presente documento, yo Carlos Gómez autorizo a la clínica veterinaria VetPro a realizar el procedimiento de castración bajo anestesia general para mi mascota Toby. Entiendo los riesgos quirúrgicos implícitos...',
-          signed: false,
-          expiresAt: new Date(Date.now() + 2 * 86400000)
-        };
-        this.consent.set(mockConsent);
+        console.error('[ConsentSign] No se pudo cargar el consentimiento:', err);
+        this.consent.set(null);
         this.loading.set(false);
-        setTimeout(() => this.initCanvas(), 100);
+        this.loadError.set(
+          err?.status === 404
+            ? 'Este enlace no es válido o el documento ya no existe.'
+            : 'No se pudo cargar el documento de consentimiento. Verifica tu conexión e intenta de nuevo, o contacta a la clínica.'
+        );
       }
     });
   }
@@ -165,9 +163,10 @@ export class ConsentSignComponent implements AfterViewInit {
   submitSignature() {
     if (!this.canvasRef) return;
     this.submitting.set(true);
+    this.submitError.set(null);
 
     const canvas = this.canvasRef.nativeElement;
-    
+
     // Obtener la firma Base64 PNG
     const signatureBase64 = canvas.toDataURL('image/png');
 
@@ -177,11 +176,10 @@ export class ConsentSignComponent implements AfterViewInit {
         this.signedSuccess.set(true);
         this.consent.update(curr => curr ? { ...curr, signed: true, signature: signatureBase64 } : null);
       },
-      error: () => {
-        // Fallback local
+      error: (err) => {
+        console.error('[ConsentSign] No se pudo registrar la firma:', err);
         this.submitting.set(false);
-        this.signedSuccess.set(true);
-        this.consent.update(curr => curr ? { ...curr, signed: true, signature: signatureBase64 } : null);
+        this.submitError.set('No se pudo registrar tu firma. Verifica tu conexión e intenta de nuevo.');
       }
     });
   }

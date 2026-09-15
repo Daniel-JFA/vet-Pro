@@ -3,6 +3,22 @@
     <div class="spinner"></div>
   </div>
 
+  <!-- ESTADO: ERROR AL CARGAR (enlace inválido/expirado o falla de red) -->
+  <div *ngIf="!loading() && !consent() && loadError()" class="sign-container">
+    <header class="sign-header">
+      <div class="logo">
+        <span class="material-symbols-outlined logo-icon">draw</span>
+        <strong>VETPRO</strong>
+        <span class="portal-badge">Portal de Firmas</span>
+      </div>
+    </header>
+    <div class="sign-card error-card">
+      <span class="material-symbols-outlined error-icon">error</span>
+      <h2>No se pudo cargar el documento</h2>
+      <p class="error-subtitle">{{ loadError() }}</p>
+    </div>
+  </div>
+
   <div *ngIf="!loading() && consent()" class="sign-container">
     <!-- CABECERA PORTAL PÚBLICO -->
     <header class="sign-header">
@@ -49,14 +65,16 @@
           <span class="canvas-helper-text">Línea de firma</span>
         </div>
 
+        <p class="submit-error-text" *ngIf="submitError()">{{ submitError() }}</p>
+
         <div class="canvas-actions">
           <button type="button" class="btn btn-ghost btn-sm" (click)="clearSignature()">
             <span class="material-symbols-outlined">delete</span>
             Borrar y Reintentar
           </button>
-          <button 
-            type="button" 
-            class="btn btn-primary" 
+          <button
+            type="button"
+            class="btn btn-primary"
             (click)="submitSignature()"
             [disabled]="submitting()"
           >
@@ -79,7 +97,6 @@
         <div class="sig-preview-img-container">
           <img [src]="consent()?.signature" alt="Tu Firma" />
         </div>
-        <span class="crypto-hash">Hash Seguro: SHA-256/VP-SECURE-{{ consent()?.id }}</span>
       </div>
 
       <div class="info-alert">

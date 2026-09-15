@@ -87,10 +87,9 @@
             <img [src]="consent()?.signature || 'assets/placeholder-sig.png'" alt="Firma Tutor" class="sig-image" />
           </div>
           <div class="signature-details">
-            <strong>Carlos Gómez</strong>
+            <strong>{{ consent()?.tutorName }}</strong>
             <span>Cédula / Identificación del Tutor</span>
             <span class="signed-time">Firmado digitalmente el {{ consent()?.signedAt | date:'medium' }}</span>
-            <span class="crypto-hash">Hash de integridad: SHA-256/VP-SECURE-{{ consent()?.id }}</span>
           </div>
         </div>
 
