@@ -75,6 +75,8 @@ export class AuthService {
     phone?: string;
     municipioId: string;
     nit?: string;
+    documentType?: 'CC' | 'CE' | 'TI' | 'PA';
+    documentNumber?: string;
   }): Observable<{ token: string; user: User; clinic: Clinic }> {
     return this.api.post<{ token: string; user: User; clinic: Clinic }>(
       '/auth/register', data
@@ -202,7 +204,7 @@ export class AuthService {
     nit?: string;
     phone?: string;
     address?: string;
-    city?: string;
+    municipioId?: string;
   }): Observable<{ message: string; clinic: Clinic }> {
     return this.api.patch<{ message: string; clinic: Clinic }>('/auth/clinic', data).pipe(
       tap(res => {

@@ -102,9 +102,27 @@ import { PrivacyModalComponent } from '../../../shared/components/privacy-modal/
             </div>
           </div>
 
-          <div class="field">
-            <label>NIT / Cédula (Opcional)</label>
+          <!-- Clínica: NIT obligatorio -->
+          <div class="field" *ngIf="selectedType() === 'clinic'">
+            <label>NIT *</label>
             <input type="text" formControlName="nit" placeholder="900.123.456-1" />
+          </div>
+
+          <!-- Vet Independiente: documento de identidad personal obligatorio -->
+          <div class="row-2" *ngIf="selectedType() === 'independent_vet'">
+            <div class="field" style="flex: 1;">
+              <label>Tipo Doc. *</label>
+              <select formControlName="documentType">
+                <option value="CC">CC</option>
+                <option value="CE">CE</option>
+                <option value="TI">TI</option>
+                <option value="PA">Pasaporte</option>
+              </select>
+            </div>
+            <div class="field" style="flex: 2;">
+              <label>Número de Documento *</label>
+              <input type="text" formControlName="documentNumber" placeholder="Ej: 1035800000" />
+            </div>
           </div>
 
           <button type="submit" class="btn-register" [disabled]="loading() || form.invalid">
@@ -335,15 +353,34 @@ export class RegisterComponent implements OnInit {
     phone: ['', [Validators.required]],
     departamentoCode: ['', [Validators.required]],
     municipioId: ['', [Validators.required]],
-    nit: ['']
+    nit: [''],
+    documentType: ['CC'],
+    documentNumber: ['']
   });
 
   ngOnInit() {
     this.geo.getDepartamentos().subscribe(list => this.departamentos.set(list));
+    this.applyTypeValidators('clinic');
   }
 
   setType(type: 'clinic' | 'independent_vet') {
     this.selectedType.set(type);
+    this.applyTypeValidators(type);
+  }
+
+  private applyTypeValidators(type: 'clinic' | 'independent_vet') {
+    const nitCtrl = this.form.get('nit');
+    const docNumberCtrl = this.form.get('documentNumber');
+
+    if (type === 'clinic') {
+      nitCtrl?.setValidators([Validators.required]);
+      docNumberCtrl?.clearValidators();
+    } else {
+      nitCtrl?.clearValidators();
+      docNumberCtrl?.setValidators([Validators.required]);
+    }
+    nitCtrl?.updateValueAndValidity();
+    docNumberCtrl?.updateValueAndValidity();
   }
 
   onDepartamentoChange() {
@@ -378,7 +415,9 @@ export class RegisterComponent implements OnInit {
       password: val.password!,
       phone: val.phone?.trim(),
       municipioId: val.municipioId!,
-      nit: val.nit?.trim() || undefined
+      nit: val.nit?.trim() || undefined,
+      documentType: this.selectedType() === 'independent_vet' ? (val.documentType as 'CC' | 'CE' | 'TI' | 'PA' | undefined) : undefined,
+      documentNumber: this.selectedType() === 'independent_vet' ? val.documentNumber?.trim() || undefined : undefined
     }).subscribe({
       next: () => {
         // Redirigir al inicio del sistema

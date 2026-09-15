@@ -89,11 +89,21 @@ function signToken(user: {
 
 // POST /auth/register (Registro de nueva clínica o veterinario independiente)
 router.post('/register', async (req, res) => {
-  const { clinicName, businessType, firstName, lastName, password, phone, municipioId, nit } = req.body;
+  const { clinicName, businessType, firstName, lastName, password, phone, municipioId, nit, documentType, documentNumber } = req.body;
   const email: string | undefined = req.body.email?.trim().toLowerCase();
 
   if (!clinicName || !firstName || !lastName || !email || !password || !municipioId) {
     return res.status(400).json({ error: 'Todos los campos obligatorios deben ser completados, incluyendo el municipio.' });
+  }
+
+  const bType = businessType === 'independent_vet' ? 'independent_vet' : 'clinic';
+
+  if (bType === 'clinic' && !nit) {
+    return res.status(400).json({ error: 'El NIT es obligatorio para registrar una clínica.' });
+  }
+  const validDocTypes = ['CC', 'CE', 'PA', 'TI'];
+  if (bType === 'independent_vet' && (!documentNumber || !validDocTypes.includes(documentType))) {
+    return res.status(400).json({ error: 'El documento de identidad es obligatorio para un veterinario independiente.' });
   }
 
   try {
@@ -109,8 +119,6 @@ router.post('/register', async (req, res) => {
 
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
-
-    const bType = businessType === 'independent_vet' ? 'independent_vet' : 'clinic';
 
     // Crear clínica, sede base y usuario administrador en una transacción atómica
     const result = await prisma.$transaction(async (tx) => {
@@ -150,6 +158,10 @@ router.post('/register', async (req, res) => {
           role: 'admin',
           active: true,
           phone: phone || null,
+          documentType: bType === 'independent_vet' ? documentType : null,
+          documentNumber: bType === 'independent_vet' ? documentNumber : null,
+          departamentoCode: municipio.deptoCode,
+          municipioId: municipio.id,
           // El admin ya provee sus datos en este mismo registro + el onboarding de la clínica
           profileCompleted: true
         }
@@ -329,9 +341,16 @@ router.patch('/clinic', authMiddleware as any, roleMiddleware(['admin']) as any,
   const clinicId = req.user?.clinicId;
   if (!clinicId) return res.status(401).json({ error: 'No autorizado.' });
 
-  const { name, businessType, nit, phone, address, city } = req.body;
+  const { name, businessType, nit, phone, address, municipioId } = req.body;
 
   try {
+    let municipioData = {};
+    if (municipioId) {
+      const municipio = await prisma.municipio.findUnique({ where: { id: municipioId } });
+      if (!municipio) return res.status(400).json({ error: 'El municipio seleccionado no es válido.' });
+      municipioData = { city: municipio.nombre, departamentoCode: municipio.deptoCode, municipioId: municipio.id };
+    }
+
     const updated = await prisma.clinic.update({
       where: { id: clinicId },
       data: {
@@ -340,7 +359,7 @@ router.patch('/clinic', authMiddleware as any, roleMiddleware(['admin']) as any,
         ...(nit !== undefined ? { nit } : {}),
         ...(phone ? { phone } : {}),
         ...(address ? { address } : {}),
-        ...(city ? { city } : {})
+        ...municipioData
       },
       include: {
         branches: {

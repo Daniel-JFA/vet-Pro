@@ -39,6 +39,7 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-}
+      EMAIL_BCC: ${EMAIL_BCC:-}
       APP_URL: ${APP_URL:-https://vetpro.danielflorez.dev}
     volumes:
       - vetpro_uploads:/app/uploads

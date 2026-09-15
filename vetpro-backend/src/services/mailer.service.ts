@@ -63,6 +63,10 @@ export class MailerService {
     return this.transporter;
   }
 
+  private static getBcc(): string | undefined {
+    return process.env.EMAIL_BCC || undefined;
+  }
+
   /**
    * Verificar la conectividad y autenticación SMTP
    */
@@ -187,6 +191,7 @@ Por seguridad, te recomendamos cambiar tu contraseña temporal tras tu primer in
       await transporter.sendMail({
         from,
         to: data.to,
+        ...(this.getBcc() ? { bcc: this.getBcc() } : {}),
         subject: `Bienvenido a VetPro — Credenciales de acceso (${data.clinicName})`,
         text: textContent,
         html: htmlContent
@@ -248,6 +253,7 @@ Por seguridad, te recomendamos cambiar tu contraseña temporal tras tu primer in
       await transporter.sendMail({
         from,
         to: data.to,
+        ...(this.getBcc() ? { bcc: this.getBcc() } : {}),
         subject: `Tu contraseña de VetPro ha sido restablecida (${data.clinicName})`,
         text: `Hola ${data.firstName}, tu nueva contraseña para ${data.clinicName} es: ${data.newPasswordPlain}. Accede en ${appUrl}/auth/login`,
         html: htmlContent
@@ -299,6 +305,7 @@ Por seguridad, te recomendamos cambiar tu contraseña temporal tras tu primer in
       await transporter.sendMail({
         from,
         to: data.to,
+        ...(this.getBcc() ? { bcc: this.getBcc() } : {}),
         subject: `Tu acceso al Portal de Tutores — ${data.clinicName}`,
         text: `Hola ${data.firstName}, ingresa a tu portal en: ${data.magicLink} (válido por 1 hora, un solo uso).`,
         html: htmlContent

@@ -1,8 +1,9 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { GeoService, Departamento, Municipio } from '../../core/services/geo.service';
 
 @Component({
   selector: 'app-onboarding',
@@ -58,12 +59,23 @@ import { AuthService } from '../../core/services/auth.service';
           </div>
 
           <div class="form-group">
-            <label>Ciudad Principal</label>
-            <input type="text" [(ngModel)]="city" placeholder="Ej: Medellín" />
+            <label>Departamento</label>
+            <select [(ngModel)]="departamentoCode" (ngModelChange)="onDepartamentoChange()">
+              <option value="" disabled selected>Selecciona...</option>
+              <option *ngFor="let d of departamentos()" [value]="d.code">{{ d.nombre }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Municipio / Ciudad</label>
+            <select [(ngModel)]="municipioId" [disabled]="!departamentoCode() || loadingMunicipios()">
+              <option value="" disabled selected>{{ loadingMunicipios() ? 'Cargando...' : 'Selecciona...' }}</option>
+              <option *ngFor="let m of municipios()" [value]="m.id">{{ m.nombre }}</option>
+            </select>
           </div>
 
           <div class="actions">
-            <button class="next-btn" (click)="goToStep(2)" [disabled]="!nit() || !phone() || !city()">
+            <button class="next-btn" (click)="goToStep(2)" [disabled]="!nit() || !phone() || !municipioId()">
               Siguiente Paso
               <span class="material-symbols-outlined">arrow_forward</span>
             </button>
@@ -287,7 +299,12 @@ import { AuthService } from '../../core/services/auth.service';
         letter-spacing: 0.5px;
       }
 
-      input {
+      select option {
+        background: #111827;
+        color: #ffffff;
+      }
+
+      input, select {
         background: rgba(10, 15, 26, 0.5);
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 12px;
@@ -301,6 +318,11 @@ import { AuthService } from '../../core/services/auth.service';
         &:focus {
           border-color: #10b981;
           box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+        }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
       }
     }
@@ -469,8 +491,9 @@ import { AuthService } from '../../core/services/auth.service';
     }
   `]
 })
-export class OnboardingComponent {
+export class OnboardingComponent implements OnInit {
   private router = inject(Router);
+  private geo = inject(GeoService);
   auth = inject(AuthService);
 
   currentStep = signal(1);
@@ -479,7 +502,31 @@ export class OnboardingComponent {
   businessType = signal<'clinic' | 'independent_vet'>('clinic');
   nit = signal('');
   phone = signal('');
-  city = signal('');
+  departamentoCode = signal('');
+  municipioId = signal('');
+  departamentos = signal<Departamento[]>([]);
+  municipios = signal<Municipio[]>([]);
+  loadingMunicipios = signal(false);
+
+  ngOnInit() {
+    this.geo.getDepartamentos().subscribe(list => this.departamentos.set(list));
+  }
+
+  onDepartamentoChange() {
+    const code = this.departamentoCode();
+    this.municipioId.set('');
+    this.municipios.set([]);
+    if (!code) return;
+
+    this.loadingMunicipios.set(true);
+    this.geo.getMunicipios(code).subscribe({
+      next: (list) => {
+        this.municipios.set(list);
+        this.loadingMunicipios.set(false);
+      },
+      error: () => this.loadingMunicipios.set(false)
+    });
+  }
 
   // Paso 2
   branchName = signal('');
@@ -503,7 +550,7 @@ export class OnboardingComponent {
     this.auth.updateClinic({
       businessType: this.businessType(),
       phone: this.phone(),
-      city: this.city(),
+      municipioId: this.municipioId(),
       nit: this.nit()
     }).subscribe({
       next: () => this.createBranchThenVet(),
