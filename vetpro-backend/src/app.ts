@@ -1,7 +1,7 @@
 import express from 'express';
 import path from 'path';
 import cors from 'cors';
-import morgan from 'morgan';
+import { httpLogger } from './utils/logger.js';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
@@ -26,11 +26,15 @@ import { CRM_ROUTES } from './routes/crm.routes.js';
 import { PLATFORM_ROUTES } from './routes/platform.routes.js';
 import { GEO_ROUTES } from './routes/geo.routes.js';
 import { SERVICE_CATALOG_ROUTES } from './routes/service-catalog.routes.js';
-import { errorHandler } from './middleware/error.js';
+import { errorHandler, requestId } from './middleware/error.js';
+import { initSentry } from './utils/sentry.js';
 
 dotenv.config();
+initSentry();
 
 const app = express();
+
+app.use(requestId);
 
 // ─────────────────────────────────────────────
 // SEGURIDAD & CABECERAS HTTP (OWASP)
@@ -80,9 +84,8 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // PathPrefix('/api') hacia este contenedor; todo lo demás va al frontend.
 app.use('/api/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
-if (process.env.NODE_ENV !== 'production') {
-  app.use(morgan('dev'));
-}
+// Logger estructurado con Pino (con ID de petición X-Request-Id)
+app.use(httpLogger);
 
 // ─────────────────────────────────────────────
 // RATE LIMITING (Control de Abusos y Brute-Force)

@@ -14,6 +14,7 @@ const getApiUrl = () => {
 
 export const environment = {
   production: false,
-  apiUrl: getApiUrl()
+  apiUrl: getApiUrl(),
+  sentryDsn: (typeof window !== 'undefined' && (window as any)?.__VETPRO_CONFIG__?.SENTRY_DSN) || ''
 };
 

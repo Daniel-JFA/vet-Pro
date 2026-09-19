@@ -95,6 +95,7 @@ export interface Tutor {
   address?: string;
   notes?: string;
   createdAt: Date;
+  patients?: { id: string; name: string; species: Species }[];
 }
 
 export type Species = 'dog' | 'cat' | 'rabbit' | 'bird' | 'reptile' | 'horse' | 'cow' | 'pig' | 'other';

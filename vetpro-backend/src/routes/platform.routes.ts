@@ -1,11 +1,10 @@
 import { Router, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import { prisma } from '../config/database.js';
 import { platformAuthMiddleware, PlatformAuthRequest } from '../middleware/platformAuth.js';
+import { TokenService } from '../services/token.service.js';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET!;
 
 // POST /platform/auth/login
 router.post('/auth/login', async (req, res) => {
@@ -27,11 +26,7 @@ router.post('/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Credenciales inválidas.' });
     }
 
-    const token = jwt.sign(
-      { id: admin.id, email: admin.email, role: 'platform_admin' },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    const token = TokenService.signPlatform({ id: admin.id, email: admin.email, role: 'platform_admin' });
 
     return res.json({
       token,

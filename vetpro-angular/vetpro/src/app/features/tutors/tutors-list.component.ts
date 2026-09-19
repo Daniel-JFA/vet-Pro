@@ -1,6 +1,7 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { PatientService } from '../../core/services/patient.service';
 import { ToastService } from '../../core/services/toast.service';
 import { Tutor } from '../../core/models';
@@ -31,6 +32,7 @@ import { Tutor } from '../../core/models';
           <thead>
             <tr>
               <th>Nombre</th>
+              <th>Mascotas</th>
               <th>Teléfono</th>
               <th>Correo</th>
               <th>Documento</th>
@@ -41,18 +43,25 @@ import { Tutor } from '../../core/models';
           <tbody>
             <tr *ngFor="let t of filtered()">
               <td><strong>{{ t.firstName }} {{ t.lastName }}</strong></td>
+              <td>
+                <span *ngFor="let p of t.patients; let last = last">{{ p.name }}{{ last ? '' : ', ' }}</span>
+                <span *ngIf="!t.patients?.length">—</span>
+              </td>
               <td>{{ t.phone }}</td>
               <td>{{ t.email || '—' }}</td>
               <td>{{ t.documentId || '—' }}</td>
               <td>{{ t.address || '—' }}</td>
               <td class="actions-col">
+                <button class="btn-icon" (click)="addPet(t)" title="Agregar mascota">
+                  <span class="material-symbols-outlined">pets</span>
+                </button>
                 <button class="btn-icon" (click)="openEdit(t)" title="Editar tutor">
                   <span class="material-symbols-outlined">edit</span>
                 </button>
               </td>
             </tr>
             <tr *ngIf="!filtered().length">
-              <td colspan="6" class="empty-row">No hay tutores que coincidan con la búsqueda.</td>
+              <td colspan="7" class="empty-row">No hay tutores que coincidan con la búsqueda.</td>
             </tr>
           </tbody>
         </table>
@@ -241,6 +250,7 @@ import { Tutor } from '../../core/models';
 export class TutorsListComponent implements OnInit {
   private svc = inject(PatientService);
   private toast = inject(ToastService);
+  private router = inject(Router);
 
   tutors = signal<Tutor[]>([]);
   loading = signal(true);
@@ -275,6 +285,10 @@ export class TutorsListComponent implements OnInit {
         this.toast.error('No se pudo cargar el listado de tutores.');
       }
     });
+  }
+
+  addPet(t: Tutor) {
+    this.router.navigate(['/patients/new'], { queryParams: { tutorId: t.id } });
   }
 
   openEdit(t: Tutor) {

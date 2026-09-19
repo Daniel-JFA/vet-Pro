@@ -39,6 +39,9 @@ export class PatientFormComponent implements OnInit {
   // Formulario de nuevo tutor
   tutorForm!: FormGroup;
 
+  // Tutor existente con el mismo teléfono/documento (aviso antes de duplicar)
+  duplicateTutor = signal<Tutor | null>(null);
+
   speciesOptions: { value: Species; label: string }[] = [
     { value: 'dog', label: 'Perro' },
     { value: 'cat', label: 'Gato' },
@@ -115,6 +118,18 @@ export class PatientFormComponent implements OnInit {
       notes: ['']
     });  }
 
+  // El tutor ya existía: se usa ese en vez de crear uno duplicado
+  useExistingTutor() {
+    const existing = this.duplicateTutor();
+    if (!existing) return;
+    if (!this.tutors().some(t => t.id === existing.id)) {
+      this.tutors.update(list => [...list, existing]);
+    }
+    this.duplicateTutor.set(null);
+    this.setTutorMode('select');
+    this.form.patchValue({ tutorId: existing.id });
+  }
+
   setTutorMode(mode: 'select' | 'new') {
     this.tutorMode.set(mode);
     const tutorIdCtrl = this.form.get('tutorId');
@@ -128,9 +143,12 @@ export class PatientFormComponent implements OnInit {
 
 
   private loadTutors() {
-    this.svc.getTutors().subscribe({
+    this.svc.getTutors({ pageSize: 500 }).subscribe({
       next: res => {
         this.tutors.set(res.data);
+        // Viene de "Agregar mascota" en la página de Tutores
+        const preselected = this.route.snapshot.queryParamMap.get('tutorId');
+        if (preselected && !this.isEditMode()) this.form.patchValue({ tutorId: preselected });
       },
       error: () => {
         this.toast.error('No se pudo cargar el listado de tutores. Intenta recargar la página.');
@@ -204,7 +222,7 @@ export class PatientFormComponent implements OnInit {
     this.previewPhotoUrl.set(null);
   }
 
-  submit() {
+  submit(allowDuplicate = false) {
     if (this.form.invalid && this.tutorMode() === 'select') {
       this.markAllAsTouched(this.form);
       return;
@@ -221,10 +239,15 @@ export class PatientFormComponent implements OnInit {
     // backend (antes no se hacía: se inventaba un id falso en el navegador
     // y el backend siempre rechazaba la creación del paciente).
     if (this.tutorMode() === 'new') {
-      this.svc.createTutor(this.tutorForm.value).subscribe({
+      this.duplicateTutor.set(null);
+      this.svc.createTutor({ ...this.tutorForm.value, allowDuplicate }).subscribe({
         next: (newTutor) => this.savePatient({ ...this.form.value, tutorId: newTutor.id }),
-        error: () => {
+        error: (err) => {
           this.submitting.set(false);
+          if (err?.status === 409 && err.error?.code === 'DUPLICATE_TUTOR') {
+            this.duplicateTutor.set(err.error.existing);
+            return;
+          }
           this.toast.error('No se pudo registrar el tutor. Verifica los datos e intenta de nuevo.');
         }
       });

@@ -1,7 +1,5 @@
 import { Response, NextFunction, Request } from 'express';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'vetpro_super_secret_signing_key_2026_dev';
+import { TokenService } from '../services/token.service.js';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -23,23 +21,14 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
   const token = authHeader.split(' ')[1];
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as {
-      id: string;
-      email: string;
-      role: string;
-      clinicId: string;
-      branchId?: string | null;
-    };
-
-    // Defensa en profundidad: un token de super-admin de plataforma (o de tutor)
-    // firma válido con el mismo JWT_SECRET pero nunca debe colar en rutas de clínica.
-    if (decoded.role === 'platform_admin' || decoded.role === 'tutor') {
-      return res.status(403).json({ error: 'Este token no tiene acceso a rutas de clínica.' });
-    }
+    // Solo valida tokens emitidos para el personal de clínica (audience 'staff'):
+    // los de tutor y super-admin de plataforma no pasan aunque compartan la firma.
+    const decoded = TokenService.verifyStaff(token);
 
     req.user = decoded;
     next();
   } catch (error) {
-    return res.status(403).json({ error: 'Token inválido o expirado.' });
+    // 401 (no 403) para que el frontend cierre la sesión y pida iniciar de nuevo
+    return res.status(401).json({ error: 'Sesión inválida o expirada. Inicia sesión de nuevo.' });
   }
 };

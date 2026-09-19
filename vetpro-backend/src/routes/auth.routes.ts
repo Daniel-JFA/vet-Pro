@@ -1,14 +1,13 @@
 import { Router, Response } from 'express';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import { prisma } from '../config/database.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
 import { roleMiddleware } from '../middleware/role.js';
 import { MailerService } from '../services/mailer.service.js';
+import { TokenService } from '../services/token.service.js';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET!;
 
 // Token de activación/recuperación — nunca se escribe ni se copia a mano,
 // solo viaja dentro de un enlace, así que no hay forma de transcribirlo mal.
@@ -17,11 +16,6 @@ function generateActivationToken(): string {
 }
 
 const ACTIVATION_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
-
-if (!JWT_SECRET) {
-  console.error('FATAL: JWT_SECRET env var is not set. Refusing to start.');
-  process.exit(1);
-}
 
 function toUserResponse(user: {
   id: string;
@@ -70,17 +64,13 @@ function signToken(user: {
   clinicId: string;
   branchId?: string | null;
 }) {
-  return jwt.sign(
-    {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      clinicId: user.clinicId,
-      branchId: user.branchId
-    },
-    JWT_SECRET,
-    { expiresIn: '7d' }
-  );
+  return TokenService.signStaff({
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    clinicId: user.clinicId,
+    branchId: user.branchId
+  });
 }
 
 // POST /auth/register (Registro de nueva clínica o veterinario independiente)

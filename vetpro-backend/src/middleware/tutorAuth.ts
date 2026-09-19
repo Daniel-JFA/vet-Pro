@@ -1,7 +1,5 @@
 import { Response, NextFunction, Request } from 'express';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'vetpro_super_secret_signing_key_2026_dev';
+import { TokenService } from '../services/token.service.js';
 
 export interface TutorAuthRequest extends Request {
   tutor?: {
@@ -21,20 +19,11 @@ export const tutorAuthMiddleware = (req: TutorAuthRequest, res: Response, next: 
   const token = authHeader.split(' ')[1];
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as {
-      id: string;
-      phone: string;
-      clinicId: string;
-      role?: string;
-    };
-    
-    if (decoded.role !== 'tutor') {
-      return res.status(403).json({ error: 'Acceso restringido. Se requiere rol de tutor.' });
-    }
+    const decoded = TokenService.verifyTutorSession(token);
 
     req.tutor = decoded;
     next();
   } catch (error) {
-    return res.status(403).json({ error: 'Token de tutor inválido o expirado.' });
+    return res.status(401).json({ error: 'Sesión de tutor inválida o expirada.' });
   }
 };

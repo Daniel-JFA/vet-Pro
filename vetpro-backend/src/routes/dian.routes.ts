@@ -4,10 +4,12 @@ import crypto from 'crypto';
 import { prisma } from '../config/database.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
 import { roleMiddleware } from '../middleware/role.js';
+import { PERMISSIONS as P } from '../config/permissions.js';
 
 export const DIAN_ROUTES = Router();
 
 DIAN_ROUTES.use(authMiddleware as any);
+DIAN_ROUTES.use(roleMiddleware(P.BILLING as unknown as string[]) as any);
 
 // ─────────────────────────────────────────────
 // UTILIDADES CRIPTOGRÁFICAS DIAN (COLOMBIA)

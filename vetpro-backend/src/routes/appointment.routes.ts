@@ -2,6 +2,8 @@ import { Router, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../config/database.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
+import { roleMiddleware } from '../middleware/role.js';
+import { PERMISSIONS as P } from '../config/permissions.js';
 import { AppointmentStatus, ServiceModality, TrackingStatus } from '@prisma/client';
 
 const router = Router();
@@ -77,7 +79,7 @@ const UpdateAppointmentSchema = AppointmentBaseSchema.partial().extend({
 // ─────────────────────────────────────────────
 
 // GET /api/v1/appointments (Listado con Filtros)
-router.get('/', async (req: AuthRequest, res: Response) => {
+router.get('/', roleMiddleware(P.CLINIC_READ as unknown as string[]) as any, async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
   if (!clinicId) {
     return res.status(401).json({ error: 'No autorizado.' });
@@ -153,7 +155,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 });
 
 // GET /api/v1/appointments/today (Citas del Día)
-router.get('/today', async (req: AuthRequest, res: Response) => {
+router.get('/today', roleMiddleware(P.CLINIC_READ as unknown as string[]) as any, async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
   if (!clinicId) {
     return res.status(401).json({ error: 'No autorizado.' });
@@ -194,7 +196,7 @@ router.get('/today', async (req: AuthRequest, res: Response) => {
 });
 
 // GET /api/v1/appointments/waitlist (Sala de Espera Digital)
-router.get('/waitlist', async (req: AuthRequest, res: Response) => {
+router.get('/waitlist', roleMiddleware(P.CLINIC_READ as unknown as string[]) as any, async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
   if (!clinicId) {
     return res.status(401).json({ error: 'No autorizado.' });
@@ -246,7 +248,7 @@ router.get('/waitlist', async (req: AuthRequest, res: Response) => {
 });
 
 // GET /api/v1/appointments/:id (Detalle de Cita)
-router.get('/:id', async (req: AuthRequest, res: Response) => {
+router.get('/:id', roleMiddleware(P.CLINIC_READ as unknown as string[]) as any, async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
   const { id } = req.params;
 
@@ -280,7 +282,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 });
 
 // POST /api/v1/appointments (Agendar Cita con Protección IDOR)
-router.post('/', async (req: AuthRequest, res: Response) => {
+router.post('/', roleMiddleware(P.FRONT_DESK as unknown as string[]) as any, async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
   if (!clinicId) {
     return res.status(401).json({ error: 'No autorizado.' });
@@ -380,7 +382,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 });
 
 // PATCH /api/v1/appointments/:id/status (Cambiar Estado de Cita / Sala de Espera)
-router.patch('/:id/status', async (req: AuthRequest, res: Response) => {
+router.patch('/:id/status', roleMiddleware(P.FRONT_DESK as unknown as string[]) as any, async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
   const { id } = req.params;
   const { status, trackingStatus } = req.body;
@@ -431,7 +433,7 @@ router.patch('/:id/status', async (req: AuthRequest, res: Response) => {
 
 // PATCH /api/v1/appointments/:id/link-patient
 // Vincula una cita de "mascota nueva" al paciente ya registrado al iniciar la atención
-router.patch('/:id/link-patient', async (req: AuthRequest, res: Response) => {
+router.patch('/:id/link-patient', roleMiddleware(P.FRONT_DESK as unknown as string[]) as any, async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
   const { id } = req.params;
   const { patientId } = req.body;
@@ -475,7 +477,7 @@ router.patch('/:id/link-patient', async (req: AuthRequest, res: Response) => {
 });
 
 // DELETE /api/v1/appointments/:id (Soft Delete / Cancelar)
-router.delete('/:id', async (req: AuthRequest, res: Response) => {
+router.delete('/:id', roleMiddleware(P.CLINIC_DELETE as unknown as string[]) as any, async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
   const { id } = req.params;
 

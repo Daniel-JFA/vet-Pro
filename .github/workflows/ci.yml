@@ -35,6 +35,10 @@ jobs:
           npm ci --legacy-peer-deps || npm ci
           npm run build
 
+      - name: Test backend
+        working-directory: ./vetpro-backend
+        run: npm test
+
       - name: Login to registry
         uses: docker/login-action@v2
         with:

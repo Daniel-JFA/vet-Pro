@@ -234,6 +234,16 @@
 
         <!-- Caso B: Registrar nuevo tutor inline -->
         <div class="tutor-new-container" *ngIf="tutorMode() === 'new' && !isEditMode()" [formGroup]="tutorForm">
+          <div class="duplicate-tutor-alert" *ngIf="duplicateTutor() as dup" role="alert">
+            <p>
+              <strong>Ya existe un tutor con estos datos:</strong>
+              {{ dup.firstName }} {{ dup.lastName }} — Tel: {{ dup.phone }}
+            </p>
+            <div class="duplicate-actions">
+              <button type="button" class="btn btn-primary" (click)="useExistingTutor()">Usar este tutor</button>
+              <button type="button" class="btn btn-secondary" (click)="submit(true)" [disabled]="submitting()">Es otra persona, crear de todas formas</button>
+            </div>
+          </div>
           <div class="fields-row">
             <div class="field" [class.error]="tutorForm.get('firstName')?.invalid && tutorForm.get('firstName')?.touched">
               <label>Nombre *</label>

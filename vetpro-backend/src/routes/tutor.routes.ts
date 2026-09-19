@@ -1,6 +1,8 @@
 import { Router, Response } from 'express';
 import { prisma } from '../config/database.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
+import { roleMiddleware } from '../middleware/role.js';
+import { PERMISSIONS as P } from '../config/permissions.js';
 
 const router = Router();
 
@@ -8,7 +10,7 @@ const router = Router();
 router.use(authMiddleware as any);
 
 // GET /tutors (Listado de tutores de la clínica)
-router.get('/', async (req: AuthRequest, res: Response) => {
+router.get('/', roleMiddleware(P.CLINIC_READ as unknown as string[]) as any, async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
 
   if (!clinicId) {
@@ -36,6 +38,13 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     const [tutors, total] = await prisma.$transaction([
       prisma.tutor.findMany({
         where: whereClause,
+        include: {
+          patients: {
+            where: { deletedAt: null },
+            select: { id: true, name: true, species: true },
+            orderBy: { name: 'asc' }
+          }
+        },
         orderBy: { firstName: 'asc' },
         skip,
         take: pageSize
@@ -56,9 +65,9 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 });
 
 // POST /tutors (Crear nuevo tutor)
-router.post('/', async (req: AuthRequest, res: Response) => {
+router.post('/', roleMiddleware(P.FRONT_DESK as unknown as string[]) as any, async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
-  const { firstName, lastName, email, phone, documentId, address, notes } = req.body;
+  const { firstName, lastName, email, phone, documentId, address, notes, allowDuplicate } = req.body;
 
   if (!clinicId) {
     return res.status(401).json({ error: 'No autorizado.' });
@@ -69,6 +78,32 @@ router.post('/', async (req: AuthRequest, res: Response) => {
   }
 
   try {
+    // Evitar duplicar clientes: mismo teléfono o mismo documento dentro de la clínica.
+    // El cliente puede confirmar que es otra persona con allowDuplicate.
+    if (!allowDuplicate) {
+      const trimmedPhone = String(phone).trim();
+      const trimmedDocument = documentId ? String(documentId).trim() : '';
+      const existing = await prisma.tutor.findFirst({
+        where: {
+          clinicId,
+          deletedAt: null,
+          OR: [
+            { phone: trimmedPhone },
+            ...(trimmedDocument ? [{ documentId: trimmedDocument }] : [])
+          ]
+        },
+        select: { id: true, firstName: true, lastName: true, phone: true, documentId: true }
+      });
+
+      if (existing) {
+        return res.status(409).json({
+          code: 'DUPLICATE_TUTOR',
+          error: `Ya existe un tutor con ese ${existing.phone === trimmedPhone ? 'teléfono' : 'documento'}: ${existing.firstName} ${existing.lastName}.`,
+          existing
+        });
+      }
+    }
+
     const tutor = await prisma.tutor.create({
       data: {
         clinicId,
@@ -90,7 +125,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 });
 
 // GET /tutors/:id (Detalle de un tutor)
-router.get('/:id', async (req: AuthRequest, res: Response) => {
+router.get('/:id', roleMiddleware(P.CLINIC_READ as unknown as string[]) as any, async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
   const { id } = req.params;
   if (!clinicId) return res.status(401).json({ error: 'No autorizado.' });
@@ -106,7 +141,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 });
 
 // PATCH /tutors/:id (Editar datos de contacto del tutor)
-router.patch('/:id', async (req: AuthRequest, res: Response) => {
+router.patch('/:id', roleMiddleware(P.FRONT_DESK as unknown as string[]) as any, async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
   const { id } = req.params;
   const { firstName, lastName, email, phone, documentId, address, notes } = req.body;

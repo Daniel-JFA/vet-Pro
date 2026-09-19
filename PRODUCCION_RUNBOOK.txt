@@ -312,6 +312,51 @@ Después del primer deploy, cada push a main dispara GitHub Actions que:
 
 No es necesario intervención manual en deploys posteriores.
 
+────────────────────────────────────────────────────────────────────────────────
+3.5 Configuración de backups y restauración (Servidor Propio)
+────────────────────────────────────────────────────────────────────────────────
+
+Los respaldos se realizan localmente en el servidor con rotación automática de 30 días.
+
+1. Directorio por defecto de respaldos:
+   /var/backups/vetpro/
+
+2. Programar tarea diaria en el cron del host (ejecutar crontab -e en el servidor):
+   # Respaldo diario de VetPro a las 2:00 AM (rotación 30 días)
+   0 2 * * * /home/djfa/Dev/projects/Propios/Vet/vetpro-backend/scripts/backup-local.sh >> /var/log/vetpro-backup.log 2>&1
+
+3. Probar un respaldo manual:
+   cd /home/djfa/Dev/projects/Propios/Vet/vetpro-backend/scripts
+   ./backup-local.sh
+
+4. Procedimiento de restauración (Recovery / Restore):
+   Para restaurar la base de datos a partir de un volcado .sql.gz:
+   ./restore-local.sh /var/backups/vetpro/vetpro_backup_YYYY-MM-DD_HH-MM-SS.sql.gz
+
+   El script detecta automáticamente el contenedor Docker 'vetpro-postgres' y restaura
+   los datos de forma atómica.
+
+────────────────────────────────────────────────────────────────────────────────
+3.6 Monitoreo con Sentry y Alerta de Uptime (/api/health)
+────────────────────────────────────────────────────────────────────────────────
+
+1. Sentry (Captura de Excepciones en Tiempo Real):
+   Tanto el backend como el frontend están instrumentados con Sentry.
+   Para activarlo, agrega la variable SENTRY_DSN en el archivo .env:
+     SENTRY_DSN=https://<public_key>@o<org_id>.ingest.sentry.io/<project_id>
+
+   - En el backend: los errores 500 y excepciones no controladas se capturan
+     automáticamente asociadas al X-Request-Id.
+   - En el frontend: los errores de renderizado o llamadas HTTP fallidas se envían
+     al panel de Sentry con trazas de Angular.
+
+2. Monitoreo de Uptime (Alerta de Caída de Servicio):
+   Configurar un monitor externo (BetterStack, Uptime Kuma o Pingdom) apuntando a:
+     URL: https://vetpro.danielflorez.dev/api/health
+     Frecuencia: Cada 60 segundos
+     Respuesta esperada: HTTP 200 con {"status":"ok"}
+     Canal de alertas: Correo electrónico / Slack / Telegram
+
 ================================================================================
 PARTE 4 — PRIMER USO (después de producción)
 ================================================================================
@@ -348,6 +393,10 @@ PARTE 5 — CHECKLIST FINAL ANTES DE ABRIR AL PÚBLICO
 [ ] .env está en .gitignore (ya lo está)
 [ ] prisma migrate deploy corrió exitosamente (no db:seed)
 [ ] Seed NO fue ejecutado en producción
+[ ] Cron de backup configurado (backup-local.sh)
+[ ] Prueba de restauración (restore-local.sh) verificada en base de prueba
+[ ] SENTRY_DSN configurado en .env (opcional pero recomendado)
+[ ] Monitor de Uptime configurado sobre /api/health
 
 ================================================================================
 NOTAS IMPORTANTES PARA EL AGENTE QUE EJECUTE ESTO

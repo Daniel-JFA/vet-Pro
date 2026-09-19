@@ -57,7 +57,7 @@ export class PatientService {
     return this.api.getPaged<Tutor>('/tutors', params);
   }
 
-  createTutor(data: Partial<Tutor>): Observable<Tutor> {
+  createTutor(data: Partial<Tutor> & { allowDuplicate?: boolean }): Observable<Tutor> {
     return this.api.post<Tutor>('/tutors', data);
   }
 

@@ -1,11 +1,10 @@
 import { Router, Response } from 'express';
-import jwt from 'jsonwebtoken';
 import { prisma } from '../config/database.js';
 import { tutorAuthMiddleware, TutorAuthRequest } from '../middleware/tutorAuth.js';
 import { MailerService } from '../services/mailer.service.js';
+import { TokenService } from '../services/token.service.js';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'vetpro_super_secret_signing_key_2026_dev';
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
 // Helper para asegurar que exista una clínica y tutor demo en desarrollo
@@ -191,16 +190,12 @@ router.post('/auth/magic-link', async (req, res) => {
     }
 
     // 3. Generar token de magic link temporal (expira en 1 hora)
-    const token = jwt.sign(
-      {
-        id: tutor.id,
-        phone: tutor.phone,
-        clinicId: tutor.clinicId,
-        role: 'tutor'
-      },
-      JWT_SECRET,
-      { expiresIn: '1h' }
-    );
+    const token = TokenService.signTutorMagicLink({
+      id: tutor.id,
+      phone: tutor.phone,
+      clinicId: tutor.clinicId,
+      role: 'tutor'
+    });
 
     const appUrl = process.env.APP_URL || 'http://localhost:4200';
     const magicLink = `${appUrl}/portal/auth?token=${token}`;
@@ -252,16 +247,7 @@ router.post('/auth/verify', async (req, res) => {
 
   try {
     // 1. Verificar token temporal
-    const decoded = jwt.verify(token, JWT_SECRET) as {
-      id: string;
-      phone: string;
-      clinicId: string;
-      role: string;
-    };
-
-    if (decoded.role !== 'tutor') {
-      return res.status(403).json({ error: 'Token inválido para acceso de tutor.' });
-    }
+    const decoded = TokenService.verifyTutorMagicLink(token);
 
     // 2. Buscar tutor y clínica
     let tutor = await prisma.tutor.findUnique({
@@ -282,16 +268,12 @@ router.post('/auth/verify', async (req, res) => {
     });
 
     // 3. Generar JWT de sesión prolongado (7 días)
-    const sessionToken = jwt.sign(
-      {
-        id: tutor.id,
-        phone: tutor.phone,
-        clinicId: tutor.clinicId,
-        role: 'tutor'
-      },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    const sessionToken = TokenService.signTutorSession({
+      id: tutor.id,
+      phone: tutor.phone,
+      clinicId: tutor.clinicId,
+      role: 'tutor'
+    });
 
     return res.json({
       token: sessionToken,

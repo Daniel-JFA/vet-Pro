@@ -12,13 +12,16 @@
     "db:init:prod": "tsx prisma/init_prod.ts",
     "db:seed": "node dist/prisma/seed.js",
     "db:seed:dev": "npx prisma db seed",
-    "db:seed:okvet": "tsx prisma/seed_okvet.ts"
+    "db:seed:okvet": "tsx prisma/seed_okvet.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "prisma": {
     "seed": "node dist/prisma/seed.js"
   },
   "dependencies": {
     "@prisma/client": "^5.12.1",
+    "@sentry/node": "^10.75.0",
     "@types/multer": "^2.2.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
@@ -30,6 +33,8 @@
     "morgan": "^1.10.0",
     "multer": "^2.4.0",
     "nodemailer": "^10.0.10",
+    "pino": "^10.3.1",
+    "pino-http": "^11.0.0",
     "prisma": "^5.12.1",
     "zod": "^4.5.2"
   },
@@ -41,9 +46,13 @@
     "@types/morgan": "^1.9.9",
     "@types/node": "^20.12.7",
     "@types/nodemailer": "^8.0.1",
+    "@types/supertest": "^7.2.1",
     "nodemon": "^3.1.0",
+    "pino-pretty": "^13.1.3",
+    "supertest": "^7.2.2",
     "ts-node": "^10.9.2",
     "tsx": "^4.22.3",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "vitest": "^3.2.7"
   }
 }

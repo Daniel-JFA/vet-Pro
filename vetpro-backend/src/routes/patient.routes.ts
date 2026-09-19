@@ -6,6 +6,9 @@ import fs from 'fs';
 import crypto from 'crypto';
 import { prisma } from '../config/database.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
+import { roleMiddleware } from '../middleware/role.js';
+import { PERMISSIONS as P } from '../config/permissions.js';
+import { detectImageFileType } from '../utils/image-type.js';
 import { PatientSpecies, PatientSex, PatientStatus } from '@prisma/client';
 
 const router = Router();
@@ -19,10 +22,8 @@ fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 const upload = multer({
   storage: multer.diskStorage({
     destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
-    filename: (_req, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase();
-      cb(null, `${crypto.randomUUID()}${ext}`);
-    }
+    // Sin extensión: la extensión final se decide tras verificar el contenido real
+    filename: (_req, _file, cb) => cb(null, crypto.randomUUID())
   }),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (_req, file, cb) => {
@@ -60,7 +61,7 @@ const UpdatePatientSchema = CreatePatientSchema.partial();
 // ─────────────────────────────────────────────
 
 // GET /api/v1/patients (Listado de Pacientes con Búsqueda y Paginación)
-router.get('/', async (req: AuthRequest, res: Response) => {
+router.get('/', roleMiddleware(P.CLINIC_READ as unknown as string[]) as any, async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
   if (!clinicId) {
     return res.status(401).json({ error: 'No autorizado.' });
@@ -134,7 +135,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 });
 
 // GET /api/v1/patients/:id (Ficha Completa de Mascota)
-router.get('/:id', async (req: AuthRequest, res: Response) => {
+router.get('/:id', roleMiddleware(P.CLINIC_READ as unknown as string[]) as any, async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
   const { id } = req.params;
 
@@ -174,7 +175,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 });
 
 // POST /api/v1/patients (Crear Nueva Mascota con Protección IDOR)
-router.post('/', async (req: AuthRequest, res: Response) => {
+router.post('/', roleMiddleware(P.FRONT_DESK as unknown as string[]) as any, async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
   if (!clinicId) {
     return res.status(401).json({ error: 'No autorizado.' });
@@ -228,7 +229,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 });
 
 // PUT /api/v1/patients/:id (Editar Mascota)
-router.put('/:id', async (req: AuthRequest, res: Response) => {
+router.put('/:id', roleMiddleware(P.FRONT_DESK as unknown as string[]) as any, async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
   const { id } = req.params;
 
@@ -292,7 +293,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
 });
 
 // DELETE /api/v1/patients/:id (Soft Delete de Mascota)
-router.delete('/:id', async (req: AuthRequest, res: Response) => {
+router.delete('/:id', roleMiddleware(P.PATIENT_DELETE as unknown as string[]) as any, async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
   const { id } = req.params;
 
@@ -322,7 +323,7 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
 });
 
 // POST /patients/:id/photo (Subir foto de perfil de la mascota)
-router.post('/:id/photo', (req: AuthRequest, res: Response) => {
+router.post('/:id/photo', roleMiddleware(P.FRONT_DESK as unknown as string[]) as any, (req: AuthRequest, res: Response) => {
   upload.single('photo')(req, res, async (err: any) => {
     if (err) {
       return res.status(400).json({ error: err.message || 'Error al subir la imagen.' });
@@ -330,22 +331,50 @@ router.post('/:id/photo', (req: AuthRequest, res: Response) => {
 
     const clinicId = req.user?.clinicId;
     const { id } = req.params;
+    const file = req.file;
 
-    if (!clinicId) return res.status(401).json({ error: 'No autorizado.' });
-    if (!req.file) return res.status(400).json({ error: 'No se recibió ningún archivo.' });
+    const discard = () => {
+      if (file) fs.promises.unlink(file.path).catch(() => undefined);
+    };
+
+    if (!clinicId) {
+      discard();
+      return res.status(401).json({ error: 'No autorizado.' });
+    }
+    if (!file) return res.status(400).json({ error: 'No se recibió ningún archivo.' });
 
     try {
       const existing = await prisma.patient.findFirst({ where: { id, clinicId, deletedAt: null } });
-      if (!existing) return res.status(404).json({ error: 'Paciente no encontrado.' });
+      if (!existing) {
+        discard();
+        return res.status(404).json({ error: 'Paciente no encontrado.' });
+      }
 
-      const photoUrl = `/api/uploads/patients/${req.file.filename}`;
+      // El tipo declarado por el cliente no es confiable: se valida el contenido real
+      const detected = detectImageFileType(file.path);
+      if (!detected) {
+        discard();
+        return res.status(400).json({ error: 'El archivo no es una imagen válida. Usa JPG, PNG o WEBP.' });
+      }
+
+      const finalName = `${file.filename}${detected.ext}`;
+      await fs.promises.rename(file.path, path.join(UPLOADS_DIR, finalName));
+
+      const photoUrl = `/api/uploads/patients/${finalName}`;
       const updated = await prisma.patient.update({
         where: { id },
         data: { photoUrl }
       });
 
+      // Borrar la foto anterior para no acumular archivos huérfanos
+      const previous = existing.photoUrl;
+      if (previous && previous.startsWith('/api/uploads/patients/')) {
+        fs.promises.unlink(path.join(UPLOADS_DIR, path.basename(previous))).catch(() => undefined);
+      }
+
       return res.json({ photoUrl: updated.photoUrl });
     } catch (error: any) {
+      discard();
       console.error('[PatientRoutes] Error al guardar foto:', error);
       return res.status(500).json({ error: 'Error al guardar la foto del paciente.' });
     }

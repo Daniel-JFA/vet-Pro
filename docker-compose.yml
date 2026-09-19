@@ -23,7 +23,7 @@ services:
     environment:
       PORT: ${PORT:-3000}
       DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@db:5432/vetpro?schema=public}
-      JWT_SECRET: ${JWT_SECRET:-vetpro_super_secret_signing_key_2026_dev}
+      JWT_SECRET: ${JWT_SECRET:?Error: JWT_SECRET no está definido. Genera uno con: openssl rand -hex 64}
       NODE_ENV: production
     ports:
       - "${VETPRO_BACKEND_PORT:-3000}:3000"

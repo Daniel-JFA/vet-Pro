@@ -474,3 +474,15 @@
     padding-top: 0;
   }
 }
+
+.duplicate-tutor-alert {
+  background: #fffbeb;
+  border: 1px solid #f59e0b;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 0.9rem;
+
+  p { margin: 0 0 10px; }
+  .duplicate-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+}

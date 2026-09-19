@@ -1,6 +1,8 @@
 import { Router, Response } from 'express';
 import { z } from 'zod';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
+import { roleMiddleware } from '../middleware/role.js';
+import { PERMISSIONS as P } from '../config/permissions.js';
 import { prisma } from '../config/database.js';
 
 const router = Router();
@@ -27,7 +29,7 @@ const SignConsentSchema = z.object({
 // ─────────────────────────────────────────────
 
 // GET /api/v1/consent-forms (Lista de consentimientos de la clínica)
-router.get('/', authMiddleware as any, async (req: AuthRequest, res: Response) => {
+router.get('/', authMiddleware as any, roleMiddleware(P.CONSENTS as unknown as string[]) as any, async (req: AuthRequest, res: Response) => {
   try {
     const clinicId = req.user?.clinicId;
     if (!clinicId) {
@@ -72,7 +74,7 @@ router.get('/', authMiddleware as any, async (req: AuthRequest, res: Response) =
 });
 
 // POST /api/v1/consent-forms (Emitir nuevo consentimiento)
-router.post('/', authMiddleware as any, async (req: AuthRequest, res: Response) => {
+router.post('/', authMiddleware as any, roleMiddleware(P.CONSENTS as unknown as string[]) as any, async (req: AuthRequest, res: Response) => {
   try {
     const clinicId = req.user?.clinicId;
     if (!clinicId) {

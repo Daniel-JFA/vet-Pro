@@ -2,9 +2,12 @@ import { Router, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../config/database.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
+import { roleMiddleware } from '../middleware/role.js';
+import { PERMISSIONS as P } from '../config/permissions.js';
 
 const router = Router();
 router.use(authMiddleware as any);
+router.use(roleMiddleware(P.BILLING as unknown as string[]) as any);
 
 class InsufficientStockError extends Error {}
 
@@ -558,7 +561,7 @@ router.patch('/invoices/:id/pay', async (req: AuthRequest, res: Response) => {
 });
 
 // PATCH /api/v1/billing/invoices/:id/void (Anular Factura)
-router.patch('/invoices/:id/void', async (req: AuthRequest, res: Response) => {
+router.patch('/invoices/:id/void', roleMiddleware(P.ADMIN as unknown as string[]) as any, async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
   const { id } = req.params;
   const { reason } = req.body;

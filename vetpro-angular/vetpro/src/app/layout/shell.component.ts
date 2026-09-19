@@ -151,12 +151,15 @@ export class ShellComponent implements OnInit {
   // Filtrado reactivo de links principales de navegación según el Rol
   mainNav = computed(() => {
     const role = this.auth.currentUser?.role;
-    const baseNav: NavItem[] = [
-      { label: 'Inicio',               icon: 'home',           path: '/dashboard' },
-      { label: 'Pacientes',            icon: 'pets',           path: '/patients' },
-      { label: 'Tutores',              icon: 'group',          path: '/tutors' },
-      { label: 'Citas & Agenda',       icon: 'calendar_month', path: '/appointments', badge: this.pendingAppointmentsToday() }
-    ];
+    // Los paseadores solo trabajan con sus paseos: el backend les niega pacientes, tutores y citas
+    const baseNav: NavItem[] = role === 'walker'
+      ? [{ label: 'Inicio', icon: 'home', path: '/dashboard' }]
+      : [
+          { label: 'Inicio',               icon: 'home',           path: '/dashboard' },
+          { label: 'Pacientes',            icon: 'pets',           path: '/patients' },
+          { label: 'Tutores',              icon: 'group',          path: '/tutors' },
+          { label: 'Citas & Agenda',       icon: 'calendar_month', path: '/appointments', badge: this.pendingAppointmentsToday() }
+        ];
 
     // Solo roles clínicos ven historia clínica, hospitalización y laboratorio
     if (role === 'admin' || role === 'vet' || role === 'assistant') {
