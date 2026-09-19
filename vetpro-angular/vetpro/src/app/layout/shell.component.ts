@@ -4,6 +4,7 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../core/services/auth.service';
 import { AppointmentService } from '../core/services/appointment.service';
+import { PwaService } from '../core/services/pwa.service';
 import { ToastContainerComponent } from '../shared/components/toast/toast-container.component';
 
 interface NavItem {
@@ -146,6 +147,25 @@ interface NavItem {
               </div>
             }
 
+            @if (!pwa.isOnline()) {
+              <div class="offline-pill" title="Trabajando sin conexión">
+                <span class="material-symbols-outlined">wifi_off</span>
+                <span>Offline</span>
+              </div>
+            }
+            @if (pwa.updateAvailable()) {
+              <button class="pwa-update-btn" (click)="pwa.applyUpdate()" title="Nueva versión lista">
+                <span class="material-symbols-outlined">update</span>
+                <span>Actualizar</span>
+              </button>
+            }
+            @if (pwa.installPromptAvailable()) {
+              <button class="pwa-install-btn" (click)="pwa.promptInstall()" title="Instalar aplicación en tu equipo">
+                <span class="material-symbols-outlined">install_desktop</span>
+                <span>Instalar App</span>
+              </button>
+            }
+
             <button class="icon-btn" aria-label="Notificaciones">
               <span class="material-symbols-outlined">notifications</span>
               <span class="notif-dot"></span>
@@ -170,6 +190,7 @@ interface NavItem {
 })
 export class ShellComponent implements OnInit {
   auth = inject(AuthService);
+  pwa = inject(PwaService);
   private appointmentSvc = inject(AppointmentService);
   sidebarCollapsed = signal(false);
   mobileSidebarOpen = signal(false);

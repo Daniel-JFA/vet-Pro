@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { TutorAuthService } from '../../core/services/tutor-auth.service';
+import { PwaService } from '../../core/services/pwa.service';
 
 @Component({
   selector: 'app-portal-shell',
@@ -27,6 +28,34 @@ import { TutorAuthService } from '../../core/services/tutor-auth.service';
           </div>
         }
       </header>
+
+      <!-- Banners PWA: Offline, Actualización e Instalación -->
+      @if (!pwa.isOnline()) {
+        <div class="offline-banner animate-fade-in">
+          <span class="material-symbols-outlined">wifi_off</span>
+          <span>Modo sin conexión — Mostrando información guardada</span>
+        </div>
+      }
+
+      @if (pwa.updateAvailable()) {
+        <div class="update-banner animate-fade-in">
+          <span>Nueva versión disponible</span>
+          <button (click)="pwa.applyUpdate()" class="btn-update">Actualizar</button>
+        </div>
+      }
+
+      @if (pwa.installPromptAvailable()) {
+        <div class="pwa-install-bar animate-fade-in">
+          <div class="pwa-install-info">
+            <span class="material-symbols-outlined install-icon">install_mobile</span>
+            <div>
+              <strong>Instala la App de VetPro</strong>
+              <p>Accede rápido a tus mascotas y citas desde tu pantalla de inicio</p>
+            </div>
+          </div>
+          <button (click)="pwa.promptInstall()" class="btn-install">Instalar</button>
+        </div>
+      }
 
       <!-- Área de Contenido Principal -->
       <main class="portal-main">
@@ -223,6 +252,105 @@ import { TutorAuthService } from '../../core/services/tutor-auth.service';
         }
       }
 
+      /* ── BANNERS PWA ──────────────────────────────────────── */
+      .offline-banner {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        background: rgba(234, 179, 8, 0.15);
+        border-bottom: 1px solid rgba(234, 179, 8, 0.3);
+        color: #facc15;
+        padding: 8px 16px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-align: center;
+        span.material-symbols-outlined {
+          font-size: 1.1rem;
+        }
+      }
+
+      .update-banner {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        background: rgba(16, 185, 129, 0.2);
+        border-bottom: 1px solid rgba(16, 185, 129, 0.4);
+        color: #34d399;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        .btn-update {
+          background: #10b981;
+          color: #fff;
+          border: none;
+          padding: 4px 12px;
+          border-radius: 6px;
+          font-size: 0.78rem;
+          font-weight: 700;
+          cursor: pointer;
+        }
+      }
+
+      .pwa-install-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 12px 16px 0;
+        padding: 12px 16px;
+        border-radius: 14px;
+        background: rgba(17, 24, 39, 0.8);
+        border: 1px solid rgba(16, 185, 129, 0.25);
+        backdrop-filter: blur(10px);
+
+        .pwa-install-info {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          .install-icon {
+            color: #34d399;
+            font-size: 1.6rem;
+          }
+          strong {
+            display: block;
+            font-size: 0.85rem;
+            color: #fff;
+          }
+          p {
+            margin: 0;
+            font-size: 0.75rem;
+            color: #9ca3af;
+          }
+        }
+
+        .btn-install {
+          background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+          color: #fff;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 8px;
+          font-size: 0.82rem;
+          font-weight: 700;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: transform 0.2s;
+          &:hover {
+            transform: scale(1.03);
+          }
+        }
+      }
+
+      .animate-fade-in {
+        animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-6px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
       /* Adaptabilidad a pantallas de escritorio */
       @media (min-width: 768px) {
         .portal-topbar {
@@ -234,12 +362,16 @@ import { TutorAuthService } from '../../core/services/tutor-auth.service';
         .portal-tabbar {
           bottom: 32px;
         }
+        .pwa-install-bar {
+          margin: 16px 48px 0;
+        }
       }
     `,
   ],
 })
 export class PortalShellComponent {
   authSvc = inject(TutorAuthService);
+  pwa = inject(PwaService);
 
   onLogout() {
     this.authSvc.logout();

@@ -132,7 +132,7 @@ Ordenado por valor para las clínicas. Sin fechas hasta terminar el Go-Live.
 2. **Importador de pacientes y tutores desde Excel/CSV**, clave para migrar clínicas de otro sistema.
 3. **DIAN:** configurar proveedor autorizado (decisión de negocio), reactivar el flujo y agregar notas crédito y documento soporte.
 4. **Cita → factura y cita → historia clínica en un clic.**
-5. **PWA del personal** para celular (y del portal del tutor, con Lighthouse > 90).
+5. ✅ **PWA del personal y portal del tutor:** Service Worker configurado con `@angular/service-worker`, `manifest.webmanifest`, 8 iconos PWA, caché offline para app shell y catálogos, servicio reactivo `PwaService` con prompts de instalación y detección de estado de red / actualizaciones.
 6. **Reactivar Notificaciones y Grooming** solo con backend real.
 7. **Almacenamiento de archivos en Cloudflare R2** (fotos, firmas, adjuntos) con URL firmadas, en lugar del volumen local.
 

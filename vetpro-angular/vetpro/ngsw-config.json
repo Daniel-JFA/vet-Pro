@@ -1,0 +1,63 @@
+{
+  "$schema": "./node_modules/@angular/service-worker/config/schema.json",
+  "index": "/index.html",
+  "assetGroups": [
+    {
+      "name": "app",
+      "installMode": "prefetch",
+      "resources": {
+        "files": [
+          "/favicon.ico",
+          "/index.html",
+          "/manifest.webmanifest",
+          "/*.css",
+          "/*.js"
+        ]
+      }
+    },
+    {
+      "name": "assets",
+      "installMode": "lazy",
+      "updateMode": "prefetch",
+      "resources": {
+        "files": [
+          "/icons/**",
+          "/*.(svg|cur|jpg|jpeg|png|apng|webp|avif|gif|otf|ttf|woff|woff2)"
+        ],
+        "urls": [
+          "https://fonts.googleapis.com/**",
+          "https://fonts.gstatic.com/**"
+        ]
+      }
+    }
+  ],
+  "dataGroups": [
+    {
+      "name": "api-catalog",
+      "urls": [
+        "/api/v1/geo/**",
+        "/api/v1/service-catalog/**"
+      ],
+      "cacheConfig": {
+        "maxSize": 50,
+        "maxAge": "1d",
+        "strategy": "performance"
+      }
+    },
+    {
+      "name": "api-offline-fallback",
+      "urls": [
+        "/api/v1/patients/**",
+        "/api/v1/tutors/**",
+        "/api/v1/appointments/**",
+        "/api/v1/portal/**"
+      ],
+      "cacheConfig": {
+        "maxSize": 100,
+        "maxAge": "1h",
+        "timeout": "5s",
+        "strategy": "freshness"
+      }
+    }
+  ]
+}
