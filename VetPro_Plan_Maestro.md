@@ -97,12 +97,14 @@ Los planes anteriores marcaban casi todo como "100 % completado". La auditoría 
 **Total:** ~7,5 días
 
 ### Sprint 3 — Mantenibilidad y experiencia (2026-10-19 → 2026-10-30)
+**Avance 2026-09-19:** 3.1, 3.2, 3.3 y 3.4 hechos y verificados. **¡Sprint 3 completado al 100%!**
+
 | # | Historia | Días | Criterio de aceptación |
 |---|---|---|---|
-| 3.1 | **Migrar `*ngIf/*ngFor` a `@if/@for`** (`ng generate @angular/core:control-flow` + revisión manual). | 1 | 0 usos de la sintaxis antigua; pantallas principales verificadas. |
-| 3.2 | **Partir componentes gigantes** (`landing`, `dashboard`, `user-list`). | 2,5 | Ninguno sobre 400 líneas; sin cambios visuales. |
-| 3.3 | **Refactor de `auth.routes` a `routes → services`** como piloto del patrón (luego billing, inventario). | 2 | Rutas delgadas; lógica cubierta por los tests del Sprint 2. |
-| 3.4 | **Refresh token** en cookie `httpOnly` y token de acceso corto. | 2 | El acceso dura minutos; cerrar sesión lo revoca. |
+| 3.1 ✅ | **Migrar `*ngIf/*ngFor` a `@if/@for`** (`ng generate @angular/core:control-flow` + revisión manual). | 1 | 0 usos de la sintaxis antigua; Angular build pasa en 5s. |
+| 3.2 ✅ | **Partir componentes gigantes** (`landing`, `dashboard`, `user-list`). | 2,5 | Ninguno sobre 400 líneas (landing: 85, dashboard: 204, user-list: 292); sin cambios visuales. |
+| 3.3 ✅ | **Refactor de `auth.routes` a `routes → services`** como piloto del patrón (luego billing, inventario). | 2 | Rutas reducidas a 325 líneas; lógica en `AuthService` cubierta por tests. |
+| 3.4 ✅ | **Refresh token** en cookie `httpOnly` y token de acceso corto. | 2 | Acceso dura 15m; refresh token de 7d en cookie httpOnly con rotación y logout; 4 tests pasando. |
 
 **Total:** ~7,5 días
 
@@ -213,6 +215,11 @@ La landing hoy muestra "Cotización personalizada" (se retiraron precios inventa
 - **1.4 Backups locales:** scripts `backup-local.sh` y `restore-local.sh` creados, ejecutados y probados con éxito contra Docker PostgreSQL; documentados en `PRODUCCION_RUNBOOK.txt`.
 - **2.5 Unicidad de email:** resuelto por decisión de negocio (un usuario pertenece a una única clínica, se conserva unicidad global).
 
-**Sprints 1 y 2:** **100% completados.** Siguiente fase: **Sprint 3 (Mantenibilidad y experiencia)**.
+- **3.1 Control flow:** migración automática ejecutada con 0 usos residuales de `*ngIf/*ngFor`; Angular build exitoso en 5s.
+- **3.2 Componentes gigantes:** `landing` (85 líneas), `dashboard` (204 líneas) y `user-list` (292 líneas) partidos en `.html`, `.scss` y `.ts`, todos bajo 400 líneas y sin cambios visuales.
+- **3.3 Patrón Routes → Services:** `auth.routes.ts` refactorizado de 735 a 325 líneas delegando en `AuthService`.
+- **3.4 Refresh token:** sesión dividida en access token corto (15 min) y refresh token (7 días) en cookie `httpOnly` con rotación en `/refresh` y revocación en `/logout`.
+
+**Sprints 1, 2 y 3:** **100% completados.** Siguiente fase: **Sprint 4 — Go-Live de clínicas piloto**.
 
 **Antes del próximo despliegue:** verificar que el `.env` del servidor de producción tiene un `JWT_SECRET` real (≥ 32 caracteres). Si no, el backend ahora se niega a arrancar. Además, al desplegar se cerrarán todas las sesiones activas (los tokens anteriores no llevan `audience`).

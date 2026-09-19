@@ -1,0 +1,552 @@
+    <div class="landing-container">
+      <!-- ── TOP GLASSMORPHIC NAVIGATION ── -->
+      <nav class="nav-bar">
+        <div class="logo">
+          <span class="logo-mark">V</span>
+          <span class="logo-name">VetPro<span class="pro-badge">SaaS</span></span>
+        </div>
+        <div class="nav-links">
+          <a href="#features">Características</a>
+          <a href="#ai-demo">Dictado en Campo</a>
+          <a href="#tutor-portal">Portal de Tutores</a>
+          <a href="#pricing">Planes</a>
+          <a href="#faq">Preguntas</a>
+        </div>
+        <div class="nav-actions">
+          <a routerLink="/portal/login" class="btn-secondary-nav">
+            <span class="material-symbols-outlined">tactic</span> Portal Tutor
+          </a>
+          <a routerLink="/auth/login" class="btn-primary-nav">
+            <span class="material-symbols-outlined">login</span> Ingresar Médico
+          </a>
+        </div>
+      </nav>
+
+      <!-- ── HERO SECTION ── -->
+      <header class="hero-section">
+        <div class="hero-content">
+          <div class="hero-badge animate-fade-in">
+            <span class="sparkle">✦</span> VetPro Domiciliario — Edición Medellín 2026
+          </div>
+          <h1 class="hero-title animate-slide-up">
+            La plataforma definitiva para <br />
+            <span class="gradient-text">Veterinarios a Domicilio</span>
+          </h1>
+          <p class="hero-subtitle animate-slide-up">
+            El primer software SaaS diseñado exclusivamente para profesionales itinerantes. Optimiza
+            tus rutas de visita en Medellín, redacta expedientes SOAP desde tu celular en casa del
+            paciente y envía recetas digitales por WhatsApp al instante. Todo en una hermosa
+            interfaz ultrarrápida.
+          </p>
+          <div class="hero-ctas animate-slide-up">
+            <a routerLink="/auth/login" class="btn-hero-primary">
+              <span class="material-symbols-outlined">directions_car</span> Probar Demo de Rutas
+            </a>
+            <a href="#ai-demo" class="btn-hero-secondary">
+              <span class="material-symbols-outlined">play_circle</span> Probar Transcriptor IA
+            </a>
+          </div>
+
+          <div class="hero-trust">
+            <span>✓ Medellín & AMVA</span>
+            <span>✓ Operación Offline / Resiliente</span>
+            <span>✓ Ley 1581 (Habeas Data)</span>
+          </div>
+        </div>
+
+        <!-- Hero Mockup Dashboard - Visitas de Hoy -->
+        <div class="hero-mockup animate-fade-in">
+          <div class="mockup-frame">
+            <div class="mockup-header">
+              <span class="dot red"></span>
+              <span class="dot yellow"></span>
+              <span class="dot green"></span>
+              <div class="mockup-url">app.vetpro.co/rutas-de-hoy</div>
+            </div>
+            <div class="mockup-body">
+              <div class="mock-sidebar">
+                <div class="mock-logo"></div>
+                <div class="mock-item active"></div>
+                <div class="mock-item"></div>
+                <div class="mock-item"></div>
+                <div class="mock-item"></div>
+              </div>
+              <div class="mock-main">
+                <div class="mock-header">
+                  <div class="mock-title">Ruta de Domicilios: Dr. Andrés</div>
+                  <div class="mock-avatar"></div>
+                </div>
+                <div class="mock-grid">
+                  <div class="mock-card">
+                    <span class="mock-card-label">Visitas Completadas</span>
+                    <span class="mock-card-value">5 Domicilios</span>
+                    <span class="mock-card-trend green">+2 vs ayer</span>
+                  </div>
+                  <div class="mock-card">
+                    <span class="mock-card-label">Siguiente Visita</span>
+                    <span class="mock-card-value">Toby (Golden)</span>
+                    <span class="mock-card-trend blue">📍 El Poblado</span>
+                  </div>
+                  <div class="mock-card">
+                    <span class="mock-card-label">En Tránsito Ahora</span>
+                    <span class="mock-card-value">1 Médico</span>
+                    <span class="mock-card-trend orange">Ruta: Laureles</span>
+                  </div>
+                </div>
+                <div class="mock-chart-container">
+                  <div class="mock-chart-header">
+                    <span>Mapa de Visitas de Hoy</span>
+                    <span class="mock-legend">🚗 Poblado (45%) | 🚗 Laureles (35%)</span>
+                  </div>
+                  <div class="mock-chart-bars">
+                    <div class="bar" style="height: 35%"></div>
+                    <div class="bar" style="height: 55%"></div>
+                    <div class="bar active" style="height: 80%"></div>
+                    <div class="bar" style="height: 45%"></div>
+                    <div class="bar" style="height: 70%"></div>
+                    <div class="bar active" style="height: 90%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- ── SECCIÓN CARACTERÍSTICAS ── -->
+      <section id="features" class="features-section">
+        <div class="section-header">
+          <span class="section-label">Hecho para el Trabajo de Campo</span>
+          <h2>Herramientas Diseñadas para la Veterinaria Itinerante</h2>
+          <p>
+            Olvídate del papeleo, del software lento y de estar atado a una clínica física. VetPro
+            va contigo en el auto o la moto.
+          </p>
+        </div>
+
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="icon-wrapper green">
+              <span class="material-symbols-outlined">map</span>
+            </div>
+            <h3>Rutas y Logística de Visitas</h3>
+            <p>
+              Visualiza tu agenda diaria organizada en una ruta lógica en Medellín. Minimiza tiempos
+              en el tráfico y planifica tus traslados eficientemente.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="icon-wrapper blue">
+              <span class="material-symbols-outlined">edit_document</span>
+            </div>
+            <h3>SOAP Instantáneo en Domicilio</h3>
+            <p>
+              Rellena el expediente médico SOAP usando plantillas clínicas adaptables al instante en
+              tu celular o tablet en 0.0ms mientras atiendes al paciente frente al tutor.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="icon-wrapper purple">
+              <span class="material-symbols-outlined">share</span>
+            </div>
+            <h3>Despacho por WhatsApp</h3>
+            <p>
+              Envía recetas médicas estéticas en formato PDF, recomendaciones post-consulta y
+              recordatorios directamente al WhatsApp del tutor en un solo clic.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="icon-wrapper orange">
+              <span class="material-symbols-outlined">cloud_off</span>
+            </div>
+            <h3>Operación Offline Resiliente</h3>
+            <p>
+              ¿Mala señal celular en el sótano de una copropiedad o zonas rurales del AMVA? Trabaja
+              sin conexión con almacenamiento persistente para que no pierdas ningún dato.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="icon-wrapper teal">
+              <span class="material-symbols-outlined">mobile_friendly</span>
+            </div>
+            <h3>Portal PWA del Tutor</h3>
+            <p>
+              Tus clientes pueden consultar el carnet de vacunas digital de sus mascotas y programar
+              su próximo domicilio mediante un enlace mágico enviado por correo, sin contraseñas.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="icon-wrapper red">
+              <span class="material-symbols-outlined">gavel</span>
+            </div>
+            <h3>Habeas Data & Ley 1581</h3>
+            <p>
+              Firma digital de consentimientos informados y resguardo estricto de historiales
+              médicos confidenciales de acuerdo a la legislación colombiana de protección de datos.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── SECCIÓN DEMO INTERACTIVA DE IA ── -->
+      <section id="ai-demo" class="ai-demo-section">
+        <div class="demo-grid">
+          <div class="demo-text-content">
+            <span class="demo-badge">DICTADO CLÍNICO EN VIVO</span>
+            <h2>Prueba el Transcriptor para el Médico Itinerante</h2>
+            <p>
+              Simula el dictado de una consulta veterinaria a domicilio. VetPro procesa el flujo de
+              voz libre y lo estructura automáticamente en formato médico SOAP estandarizado en
+              segundos.
+            </p>
+            <div class="demo-actions">
+              <button
+                (click)="startSimulatedRecording()"
+                [disabled]="isRecording() || isAnalyzing()"
+                class="btn-record"
+              >
+                <span class="material-symbols-outlined">{{
+                  isRecording() ? 'fiber_manual_record' : 'mic'
+                }}</span>
+                {{
+                  isRecording()
+                    ? 'Grabando Audio...'
+                    : isAnalyzing()
+                      ? 'Procesando con Claude AI...'
+                      : 'Iniciar Dictado de Prueba'
+                }}
+              </button>
+              @if (showNote()) {
+                <button (click)="resetDemo()" class="btn-reset">Limpiar</button>
+              }
+            </div>
+
+            <!-- Mic Wave Animation -->
+            @if (isRecording()) {
+              <div class="wave-container">
+                <div class="bar-wave"></div>
+                <div class="bar-wave delay-1"></div>
+                <div class="bar-wave delay-2"></div>
+                <div class="bar-wave delay-3"></div>
+                <div class="bar-wave delay-4"></div>
+              </div>
+            }
+          </div>
+
+          <!-- Sandbox Preview Area -->
+          <div class="demo-preview-card">
+            <div class="preview-header">
+              <span class="preview-label">DOMICILIO — EXPEDIENTE CLÍNICO SOAP</span>
+              <span class="preview-status" [class.active]="showNote()">{{
+                showNote() ? 'Estructurado por Claude AI' : 'Esperando Entrada de Voz'
+              }}</span>
+            </div>
+            <div class="preview-body">
+              <!-- Transcription Output -->
+              @if (isRecording() || showNote() || isAnalyzing()) {
+                <div class="audio-transcription">
+                  <div class="avatar-vet"></div>
+                  <div class="bubble">
+                    <span class="speaker">Dr. Daniel Flórez (Audio recibido):</span>
+                    <p class="transcription-text">
+                      {{ typedSpeech() }}
+                      @if (isRecording()) {
+                        <span class="cursor">|</span>
+                      }
+                    </p>
+                  </div>
+                </div>
+              }
+
+              <!-- Structured SOAP Clinical Note -->
+              @if (showNote()) {
+                <div class="soap-note-card animate-slide-up">
+                  <div class="soap-badge">SOAP CLINICAL NOTE</div>
+                  <div class="soap-section">
+                    <span class="soap-heading">1. Anamnesis (Subjetivo)</span>
+                    <p>
+                      Mascota canina "Toby" (Golden Retriever, 5 años). El tutor reporta cojera
+                      aguda del miembro posterior derecho tras ejercicio intenso (correr en el
+                      parque). Presenta dolor moderado y dificultad para apoyar la pata.
+                    </p>
+                  </div>
+                  <div class="soap-section">
+                    <span class="soap-heading">2. Examen Físico (Objetivo)</span>
+                    <p>
+                      Constantes fisiológicas estables. Dolor marcado a la palpación profunda de la
+                      rodilla derecha. Test de Cajón Anterior moderadamente positivo. Inflamación
+                      periarticular evidente.
+                    </p>
+                  </div>
+                  <div class="soap-section">
+                    <span class="soap-heading">3. Sospecha Diagnóstica (Evaluación)</span>
+                    <p class="diagnosis-badge">
+                      ⚠️ Ruptura del Ligamento Cruzado Craneal (LCC) derecho
+                    </p>
+                  </div>
+                  <div class="soap-section no-border">
+                    <span class="soap-heading">4. Plan de Tratamiento (Plan)</span>
+                    <ul>
+                      <li>
+                        Restricción absoluta de ejercicio por 15 días (reposo en jaula/habitación
+                        pequeña).
+                      </li>
+                      <li>
+                        Meloxicam 0.1 mg/kg vía oral cada 24 horas por 5 días para dolor e
+                        inflamación.
+                      </li>
+                      <li>
+                        Remisión a especialista de ortopedia para programar cirugía correctiva (TPLO
+                        / Extracapsular).
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              }
+
+              <!-- Placeholder when empty -->
+              @if (!isRecording() && !showNote() && !isAnalyzing()) {
+                <div class="preview-placeholder">
+                  <span class="material-symbols-outlined icon-placeholder">smart_toy</span>
+                  <p>
+                    Haz clic en "Iniciar Dictado de Prueba" para presenciar la magia de la
+                    Inteligencia Artificial estructurando una historia clínica.
+                  </p>
+                </div>
+              }
+
+              <!-- Loader when analyzing -->
+              @if (isAnalyzing()) {
+                <div class="preview-loader">
+                  <div class="spinner"></div>
+                  <p>
+                    Claude AI está analizando tu voz, estructurando diagnósticos y recetando dosis
+                    según vademécum...
+                  </p>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── SECCIÓN PORTAL DEL TUTOR PWA ── -->
+      <section id="tutor-portal" class="tutor-portal-section">
+        <div class="tutor-grid">
+          <div class="tutor-image-area">
+            <!-- Simulated Mobile App -->
+            <div class="mobile-frame">
+              <div class="mobile-notch"></div>
+              <div class="mobile-screen">
+                <div class="app-header">
+                  <div class="app-brand">VetPro Portal</div>
+                  <div class="app-bell"></div>
+                </div>
+                <div class="app-tutor-profile">
+                  <div class="tutor-info">
+                    <span class="welcome">Tutor Registrado</span>
+                    <span class="tutor-name">Daniel Flórez Aguirre</span>
+                  </div>
+                  <div class="app-tag-status">3122115299</div>
+                </div>
+
+                <div class="pet-slider">
+                  <div class="pet-slide-card">
+                    <div class="pet-avatar"></div>
+                    <div class="pet-details">
+                      <span class="pet-name">Toby</span>
+                      <span class="pet-breed">Golden Retriever • 5 años</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="app-card-vaccines">
+                  <div class="card-header-app">
+                    <span>💉 Cartilla de Vacunas</span>
+                    <span class="btn-view-all">Ver</span>
+                  </div>
+                  <div class="vaccine-row">
+                    <span class="vac-name">Antirrábica</span>
+                    <span class="vac-date green">Aplicada hoy ✓</span>
+                  </div>
+                  <div class="vaccine-row">
+                    <span class="vac-name">Triple Felina / Múltiple</span>
+                    <span class="vac-date orange">Próxima: 12 Jun</span>
+                  </div>
+                </div>
+
+                <div class="app-action-bar">
+                  <a routerLink="/portal/login" class="app-btn-booking">
+                    <span class="material-symbols-outlined">directions_car</span> Reservar Domicilio
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tutor-text-content">
+            <span class="section-label">PORTAL DEL TUTOR (PWA)</span>
+            <h2>Fideliza a tus Clientes con Cero Fricción</h2>
+            <p>
+              Ofrece a los dueños de mascotas una aplicación móvil web progresiva para consultar su
+              historial de domicilios. Acceden mediante enlaces mágicos enviados por correo, sin
+              contraseñas.
+            </p>
+            <ul class="tutor-list">
+              <li>
+                <span class="material-symbols-outlined check-icon">check_circle</span>
+                <strong>Historial Clínico en Mano:</strong> Consulta inmediata de recetas PDF y
+                vacunas aplicadas.
+              </li>
+              <li>
+                <span class="material-symbols-outlined check-icon">check_circle</span>
+                <strong>Reserva de Domicilios 24/7:</strong> Integración de calendario interactivo
+                para reservar visitas veterinarias en su propio hogar.
+              </li>
+              <li>
+                <span class="material-symbols-outlined check-icon">check_circle</span>
+                <strong>Alertas por WhatsApp:</strong> Mantiene a los tutores al día con
+                notificaciones automáticas y directas al celular.
+              </li>
+            </ul>
+            <div class="tutor-cta">
+              <a routerLink="/portal/login" class="btn-tutor-explore">
+                <span class="material-symbols-outlined">visibility</span> Probar Portal Tutor Demo
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── PLANES DE PRECIOS ── -->
+      <section id="pricing" class="pricing-section">
+        <div class="section-header">
+          <span class="section-label">Planes Flexibles</span>
+          <h2>Un Plan para cada Práctica Veterinaria</h2>
+          <p>
+            Elige el plan ideal para tu práctica itinerante o para tu red de veterinarios móviles.
+            Escríbenos para una cotización a la medida.
+          </p>
+        </div>
+
+        <div class="pricing-grid">
+          <!-- Plan Sede Única -->
+          <div class="price-card">
+            <div class="plan-header">
+              <h3>Plan VetPro Itinerante</h3>
+              <div class="price">
+                <span class="amount-quote">Cotización Personalizada</span>
+              </div>
+              <p>Diseñado para médicos veterinarios independientes que atienden a domicilio.</p>
+            </div>
+            <div class="plan-divider"></div>
+            <ul class="plan-features">
+              <li>✓ 1 Profesional / Médico Clínico</li>
+              <li>✓ Consultas e Historiales Clínicos Ilimitados</li>
+              <li>✓ Gestión Logística y de Rutas de Hoy</li>
+              <li>✓ Portal de Tutores PWA con Reservas</li>
+              <li>✓ 60 minutos de Transcripción IA al mes</li>
+              <li>✓ Recetario Digital y Envío por WhatsApp</li>
+              <li>✓ Soporte Directo vía Correo</li>
+            </ul>
+            <a routerLink="/auth/login" class="btn-price-secondary">Iniciar Demo de 14 Días</a>
+          </div>
+
+          <!-- Plan Multi-Sede Enterprise (Recomendado) -->
+          <div class="price-card recommended">
+            <div class="featured-badge">MÁS POPULAR</div>
+            <div class="plan-header">
+              <h3>Plan Clínicas Móviles</h3>
+              <div class="price">
+                <span class="amount-quote">Cotización Personalizada</span>
+              </div>
+              <p>
+                Ideal para empresas de visitas veterinarias a domicilio con múltiples sucursales y
+                médicos.
+              </p>
+            </div>
+            <div class="plan-divider"></div>
+            <ul class="plan-features">
+              <li>✓ Profesionales / Médicos Ilimitados</li>
+              <li>✓ Control de Accesos por Roles (RBAC)</li>
+              <li>✓ 120 minutos de Transcripción IA al mes</li>
+              <li>✓ Portal de Tutores Completo con Magic Links</li>
+              <li>✓ Respaldos automáticos en la nube</li>
+              <li>✓ Panel de Control Financiero y KPIs</li>
+              <li>✓ Soporte Prioritario WhatsApp 24/7</li>
+            </ul>
+            <a routerLink="/auth/login" class="btn-price-primary">Obtener Plan Clínicas Móviles</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── PREGUNTAS FRECUENTES ── -->
+      <section id="faq" class="faq-section">
+        <div class="section-header">
+          <span class="section-label">F.A.Q.</span>
+          <h2>Preguntas Frecuentes</h2>
+        </div>
+
+        <div class="faq-accordion">
+          @for (item of faqList(); track item; let i = $index) {
+            <div class="faq-item" [class.open]="openFaq() === i" (click)="toggleFaq(i)">
+              <div class="faq-question">
+                <h4>{{ item.q }}</h4>
+                <span class="material-symbols-outlined faq-toggle-icon">
+                  {{ openFaq() === i ? 'keyboard_arrow_up' : 'keyboard_arrow_down' }}
+                </span>
+              </div>
+              @if (openFaq() === i) {
+                <div class="faq-answer">
+                  <p>{{ item.a }}</p>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </section>
+
+      <!-- ── CALL TO ACTION FINAL ── -->
+      <section class="cta-banner">
+        <h2>¿Listo para optimizar tus visitas a domicilio?</h2>
+        <p>Prueba VetPro gratis por 14 días. Configura tu cuenta e inicia tu ruta en 3 minutos.</p>
+        <a routerLink="/auth/login" class="btn-cta-final">
+          <span class="material-symbols-outlined">bolt</span> Comenzar Ahora
+        </a>
+      </section>
+
+      <!-- ── FOOTER ── -->
+      <footer class="footer">
+        <div class="footer-grid">
+          <div class="footer-brand">
+            <span class="logo-mark">V</span>
+            <span class="logo-name">VetPro</span>
+            <p>El sistema definitivo para médicos veterinarios a domicilio en Colombia.</p>
+          </div>
+          <div class="footer-links">
+            <h5>Enlaces</h5>
+            <a href="#features">Características</a>
+            <a href="#ai-demo">Dictado IA</a>
+            <a href="#pricing">Planes</a>
+          </div>
+          <div class="footer-legal">
+            <h5>Seguridad & Leyes</h5>
+            <p>
+              Protección y custodia segura de historiales clínicos y datos de tutores en estricto
+              cumplimiento con la Ley 1581 de 2012 de Habeas Data.
+            </p>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <p>
+            © 2026 VetPro SaaS. Todos los derechos reservados. Desarrollado con 💚 para la
+            Veterinaria Itinerante en Colombia.
+          </p>
+        </div>
+      </footer>
+    </div>

@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { TutorAuthService } from '../../../core/services/tutor-auth.service';
@@ -7,9 +7,9 @@ import { TutorAuthService } from '../../../core/services/tutor-auth.service';
 @Component({
   selector: 'app-portal-login',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './portal-login.component.html',
-  styleUrl: './portal-login.component.scss'
+  styleUrl: './portal-login.component.scss',
 })
 export class PortalLoginComponent {
   private authSvc = inject(TutorAuthService);
@@ -45,8 +45,11 @@ export class PortalLoginComponent {
       },
       error: (err) => {
         this.loading.set(false);
-        this.error.set(err.error?.error || 'No se pudo enviar el enlace. Verifica el número e intenta nuevamente.');
-      }
+        this.error.set(
+          err.error?.error ||
+            'No se pudo enviar el enlace. Verifica el número e intenta nuevamente.',
+        );
+      },
     });
   }
 

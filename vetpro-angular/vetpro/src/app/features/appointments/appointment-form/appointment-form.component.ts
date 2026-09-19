@@ -1,5 +1,5 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterLink, Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AppointmentService } from '../../../core/services/appointment.service';
@@ -11,9 +11,9 @@ import { Appointment, Patient, User } from '../../../core/models';
 @Component({
   selector: 'app-appointment-form',
   standalone: true,
-  imports: [CommonModule, RouterLink, ReactiveFormsModule],
+  imports: [RouterLink, ReactiveFormsModule],
   templateUrl: './appointment-form.component.html',
-  styleUrl: './appointment-form.component.scss'
+  styleUrl: './appointment-form.component.scss',
 })
 export class AppointmentFormComponent implements OnInit {
   private fb = inject(FormBuilder);
@@ -43,10 +43,32 @@ export class AppointmentFormComponent implements OnInit {
     'Vacunación',
     'Desparasitación',
     'Toma de Muestras / Laboratorio',
-    'Estudio de Imagenología'
+    'Estudio de Imagenología',
   ];
 
-  times = ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00'];
+  times = [
+    '08:00',
+    '08:30',
+    '09:00',
+    '09:30',
+    '10:00',
+    '10:30',
+    '11:00',
+    '11:30',
+    '12:00',
+    '12:30',
+    '13:00',
+    '13:30',
+    '14:00',
+    '14:30',
+    '15:00',
+    '15:30',
+    '16:00',
+    '16:30',
+    '17:00',
+    '17:30',
+    '18:00',
+  ];
 
   ngOnInit() {
     this.initForm();
@@ -80,7 +102,7 @@ export class AppointmentFormComponent implements OnInit {
       time: ['09:00', Validators.required],
       durationMinutes: [30, [Validators.required, Validators.min(5)]],
       reason: ['', Validators.maxLength(500)],
-      notes: ['', Validators.maxLength(500)]
+      notes: ['', Validators.maxLength(500)],
     });
   }
 
@@ -109,22 +131,25 @@ export class AppointmentFormComponent implements OnInit {
 
   private loadPatients() {
     this.patientSvc.getPatients().subscribe({
-      next: res => this.patients.set(res.data),
-      error: () => this.toast.error('No se pudo cargar el listado de pacientes.')
+      next: (res) => this.patients.set(res.data),
+      error: () => this.toast.error('No se pudo cargar el listado de pacientes.'),
     });
   }
 
   private loadVets() {
     this.authSvc.getUsers().subscribe({
-      next: users => this.vets.set(users.filter((u: User) => u.active && (u.role === 'vet' || u.role === 'admin'))),
-      error: () => this.toast.error('No se pudo cargar el listado de veterinarios.')
+      next: (users) =>
+        this.vets.set(
+          users.filter((u: User) => u.active && (u.role === 'vet' || u.role === 'admin')),
+        ),
+      error: () => this.toast.error('No se pudo cargar el listado de veterinarios.'),
     });
   }
 
   private loadAppointment(id: string) {
     this.loading.set(true);
     this.svc.getAppointment(id).subscribe({
-      next: app => {
+      next: (app) => {
         this.fillForm(app);
         this.loading.set(false);
       },
@@ -132,7 +157,7 @@ export class AppointmentFormComponent implements OnInit {
         this.loading.set(false);
         this.toast.error('No se pudo cargar la cita a editar.');
         this.router.navigate(['/appointments/calendar']);
-      }
+      },
     });
   }
 
@@ -149,7 +174,7 @@ export class AppointmentFormComponent implements OnInit {
       time: timeStr,
       durationMinutes: app.durationMinutes,
       reason: app.reason,
-      notes: app.notes
+      notes: app.notes,
     });
   }
 
@@ -172,7 +197,7 @@ export class AppointmentFormComponent implements OnInit {
       isNewPatient: this.isNewPatient(),
       scheduledAt,
       branchId: this.authSvc.activeBranchId() || undefined,
-      status: 'scheduled'
+      status: 'scheduled',
     };
 
     if (this.isEditMode()) {
@@ -181,7 +206,7 @@ export class AppointmentFormComponent implements OnInit {
         error: () => {
           this.submitting.set(false);
           this.toast.error('No se pudo actualizar la cita. Verifica los datos e intenta de nuevo.');
-        }
+        },
       });
     } else {
       this.svc.createAppointment(appointmentData).subscribe({
@@ -189,7 +214,7 @@ export class AppointmentFormComponent implements OnInit {
         error: () => {
           this.submitting.set(false);
           this.toast.error('No se pudo agendar la cita. Verifica los datos e intenta de nuevo.');
-        }
+        },
       });
     }
   }

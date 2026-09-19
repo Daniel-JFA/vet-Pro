@@ -1,361 +1,628 @@
 <div class="board-page">
-  <div class="loading-overlay" *ngIf="loading()">
-    <div class="spinner"></div>
-  </div>
+  @if (loading()) {
+    <div class="loading-overlay">
+      <div class="spinner"></div>
+    </div>
+  }
 
-  <div *ngIf="!loading()" class="board-wrapper">
-    <!-- Cabecera de Página -->
-    <header class="page-header">
-      <div>
-        <h1 class="page-title">Ruta de Visitas de Hoy (Veterinarios a Domicilio)</h1>
-        <p class="page-subtitle">Gestiona y optimiza el flujo de traslados y visitas veterinarias en tiempo real. • Medellín</p>
-      </div>
-      <div class="header-actions">
-        <a routerLink="/appointments/calendar" class="btn btn-ghost">
-          <span class="material-symbols-outlined">calendar_month</span>
-          Ver Calendario Semanal
-        </a>
-        <a routerLink="/appointments/new" class="btn btn-primary">
-          <span class="material-symbols-outlined">add</span>
-          Agendar Domicilio
-        </a>
-      </div>
-    </header>
-
-    <!-- Tarjetas de Estadísticas Rápidas -->
-    <section class="stats-row" [style.grid-template-columns]="auth.currentUser?.role === 'admin' ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)'">
-      <div class="stat-card">
-        <div class="stat-icon icon-blue">
-          <span class="material-symbols-outlined">assignment</span>
-        </div>
+  @if (!loading()) {
+    <div class="board-wrapper">
+      <!-- Cabecera de Página -->
+      <header class="page-header">
         <div>
-          <div class="stat-value">{{ stats().total }}</div>
-          <div class="stat-label">Visitas de Hoy</div>
+          <h1 class="page-title">Ruta de Visitas de Hoy (Veterinarios a Domicilio)</h1>
+          <p class="page-subtitle">
+            Gestiona y optimiza el flujo de traslados y visitas veterinarias en tiempo real. •
+            Medellín
+          </p>
         </div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-icon icon-orange">
-          <span class="material-symbols-outlined">directions_car</span>
+        <div class="header-actions">
+          <a routerLink="/appointments/calendar" class="btn btn-ghost">
+            <span class="material-symbols-outlined">calendar_month</span>
+            Ver Calendario Semanal
+          </a>
+          <a routerLink="/appointments/new" class="btn btn-primary">
+            <span class="material-symbols-outlined">add</span>
+            Agendar Domicilio
+          </a>
         </div>
-        <div>
-          <div class="stat-value">{{ stats().waiting }}</div>
-          <div class="stat-label">En Camino / Tránsito</div>
-        </div>
-      </div>
-
-      <div class="stat-card" *ngIf="auth.currentUser?.role === 'admin'">
-        <div class="stat-icon icon-emerald">
-          <span class="material-symbols-outlined">home_health</span>
-        </div>
-        <div>
-          <div class="stat-value">{{ stats().active }}</div>
-          <div class="stat-label">En Visita Activa</div>
-        </div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-icon icon-gray">
-          <span class="material-symbols-outlined">task_alt</span>
-        </div>
-        <div>
-          <div class="stat-value">{{ auth.currentUser?.role === 'admin' ? stats().done : vetDoneCount() }}</div>
-          <div class="stat-label">{{ auth.currentUser?.role === 'admin' ? 'Visitas Completadas' : 'Mis Visitas Completadas' }}</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Tablero Kanban de Sala de Espera -->
-    <section class="kanban-board" [style.grid-template-columns]="auth.currentUser?.role === 'admin' ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)'">
-      <!-- Columna 1: VISITAS PROGRAMADAS -->
-      <div class="kanban-column column-scheduled">
-        <header class="column-header">
-          <h3>
-            <span class="dot dot-blue"></span>
-            Visitas Agendadas
-          </h3>
-          <span class="column-count">{{ scheduledAppointments().length }}</span>
-        </header>
-
-        <div class="cards-container">
-          <div class="empty-column-placeholder" *ngIf="scheduledAppointments().length === 0">
-            <span class="material-symbols-outlined">event_busy</span>
-            <p>No hay visitas agendadas pendientes</p>
+      </header>
+      <!-- Tarjetas de Estadísticas Rápidas -->
+      <section
+        class="stats-row"
+        [style.grid-template-columns]="
+          auth.currentUser?.role === 'admin' ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)'
+        "
+      >
+        <div class="stat-card">
+          <div class="stat-icon icon-blue">
+            <span class="material-symbols-outlined">assignment</span>
           </div>
-
-          <div 
-            class="kanban-card" 
-            *ngFor="let app of scheduledAppointments(); trackBy: trackById"
-          >
-            <header class="card-header">
-              <span class="card-time">{{ app.scheduledAt | date:'shortTime' }}</span>
-              <span class="card-service">{{ app.serviceType }}</span>
-            </header>
-            
-            <div class="card-body">
-              <div class="patient-title">
-                <span class="material-symbols-outlined pet-icon">pets</span>
-                <strong *ngIf="!app.isNewPatient">{{ app.patient?.name }}</strong>
-                <span class="breed-text" *ngIf="!app.isNewPatient">({{ app.patient?.breed || app.patient?.species }})</span>
-                <strong *ngIf="app.isNewPatient">🆕 {{ app.prospectName }}</strong>
-              </div>
-              <div class="tutor-sub" *ngIf="!app.isNewPatient">👤 Tutor: {{ app.patient?.tutor?.firstName }} {{ app.patient?.tutor?.lastName }}</div>
-              <div class="tutor-sub" *ngIf="app.isNewPatient">📞 {{ app.prospectPhone }} (mascota nueva, pendiente registro)</div>
-              
-              <!-- Dirección física del Domicilio -->
-              <div class="address-sub" *ngIf="app.patient?.tutor?.address" style="display: flex; align-items: flex-start; gap: 4px; font-size: 11.5px; color: var(--primary-color); margin: 6px 0; font-weight: 500;">
-                <span class="material-symbols-outlined" style="font-size: 16px;">pin_drop</span>
-                <span>{{ app.patient?.tutor?.address }}</span>
-              </div>
-
-              <div class="vet-sub">🩺 Asignado: {{ app.vet ? 'Dr(a). ' + app.vet.firstName + ' ' + app.vet.lastName : 'Sin asignar' }}</div>
-              <p class="reason-text" *ngIf="app.reason">"{{ app.reason }}"</p>
-            </div>
-
-            <footer class="card-actions">
-              <button 
-                class="btn-action btn-action-success" 
-                (click)="changeStatus(app, 'waiting')"
-                style="display: inline-flex; align-items: center; gap: 4px;"
-              >
-                <span class="material-symbols-outlined">directions_car</span>
-                Iniciar Viaje / En Camino
-              </button>
-              <button class="btn-cancel" (click)="changeStatus(app, 'cancelled')" title="Cancelar Visita">
-                <span class="material-symbols-outlined">cancel</span>
-              </button>
-            </footer>
+          <div>
+            <div class="stat-value">{{ stats().total }}</div>
+            <div class="stat-label">Visitas de Hoy</div>
           </div>
         </div>
-      </div>
-
-      <!-- Columna 2: EN TRÁNSITO / EN CAMINO -->
-      <div class="kanban-column column-waiting">
-        <header class="column-header">
-          <h3>
-            <span class="dot dot-orange"></span>
-            En Tránsito / En Camino
-          </h3>
-          <span class="column-count">{{ waitingAppointments().length }}</span>
-        </header>
-
-        <div class="cards-container">
-          <div class="empty-column-placeholder" *ngIf="waitingAppointments().length === 0">
+        <div class="stat-card">
+          <div class="stat-icon icon-orange">
             <span class="material-symbols-outlined">directions_car</span>
-            <p>No hay veterinarios en camino ahora</p>
           </div>
-
-          <div 
-            class="kanban-card" 
-            *ngFor="let app of waitingAppointments(); trackBy: trackById"
-            style="border-color: rgba(245,158,11,0.2); background: rgba(245,158,11,0.02);"
-          >
-            <header class="card-header">
-              <span class="card-time" style="color: var(--orange-500);">🚗 En Camino</span>
-              <span class="card-service">{{ app.serviceType }}</span>
-            </header>
-            
-            <div class="card-body">
-              <div class="patient-title">
-                <span class="material-symbols-outlined pet-icon color-orange">pets</span>
-                <strong *ngIf="!app.isNewPatient">{{ app.patient?.name }}</strong>
-                <span class="breed-text" *ngIf="!app.isNewPatient">({{ app.patient?.breed || app.patient?.species }})</span>
-                <strong *ngIf="app.isNewPatient">🆕 {{ app.prospectName }}</strong>
-              </div>
-              <div class="tutor-sub" *ngIf="!app.isNewPatient">👤 Tutor: {{ app.patient?.tutor?.firstName }} {{ app.patient?.tutor?.lastName }}</div>
-              <div class="tutor-sub" *ngIf="app.isNewPatient">📞 {{ app.prospectPhone }} (mascota nueva, pendiente registro)</div>
-              
-              <!-- Dirección física del Domicilio -->
-              <div class="address-sub" *ngIf="app.patient?.tutor?.address" style="display: flex; align-items: flex-start; gap: 4px; font-size: 11.5px; color: var(--primary-color); margin: 6px 0; font-weight: 500;">
-                <span class="material-symbols-outlined" style="font-size: 16px;">pin_drop</span>
-                <span>{{ app.patient?.tutor?.address }}</span>
-              </div>
-
-              <div class="vet-sub">🩺 Asignado: {{ app.vet ? 'Dr(a). ' + app.vet.firstName + ' ' + app.vet.lastName : 'Sin asignar' }}</div>
-              <p class="reason-text" *ngIf="app.reason">"{{ app.reason }}"</p>
-            </div>
-
-            <footer class="card-actions">
-              <button 
-                class="btn-action btn-action-primary" 
-                (click)="changeStatus(app, 'in-progress')"
-                style="display: inline-flex; align-items: center; gap: 4px;"
-              >
-                <span class="material-symbols-outlined">home</span>
-                Llegué / Iniciar Atención
-              </button>
-              <button class="btn-cancel" (click)="changeStatus(app, 'cancelled')" title="Cancelar Visita">
-                <span class="material-symbols-outlined">cancel</span>
-              </button>
-            </footer>
+          <div>
+            <div class="stat-value">{{ stats().waiting }}</div>
+            <div class="stat-label">En Camino / Tránsito</div>
           </div>
         </div>
-      </div>
-
-      <!-- Columna 3: EN VISITA ACTIVA (SOLO ADMIN) -->
-      <div class="kanban-column column-active" *ngIf="auth.currentUser?.role === 'admin'">
-        <header class="column-header">
-          <h3>
-            <span class="dot dot-emerald"></span>
-            En Visita Activa (En Domicilio)
-          </h3>
-          <span class="column-count">{{ inProgressAppointments().length }}</span>
-        </header>
-
-        <div class="cards-container">
-          <div class="empty-column-placeholder" *ngIf="inProgressAppointments().length === 0">
-            <span class="material-symbols-outlined">medical_information</span>
-            <p>No hay visitas activas ahora</p>
-          </div>
-
-          <div 
-            class="kanban-card" 
-            *ngFor="let app of inProgressAppointments(); trackBy: trackById"
-            style="border-color: rgba(16,185,129,0.2); background: rgba(16,185,129,0.02);"
-          >
-            <header class="card-header">
-              <span class="card-time" style="color: var(--primary-color);">🩺 Atendiendo</span>
-              <span class="card-service">{{ app.serviceType }}</span>
-            </header>
-            
-            <div class="card-body">
-              <div class="patient-title">
-                <span class="material-symbols-outlined pet-icon color-emerald">pets</span>
-                <strong *ngIf="!app.isNewPatient">{{ app.patient?.name }}</strong>
-                <span class="breed-text" *ngIf="!app.isNewPatient">({{ app.patient?.breed || app.patient?.species }})</span>
-                <strong *ngIf="app.isNewPatient">🆕 {{ app.prospectName }}</strong>
-              </div>
-              <div class="tutor-sub" *ngIf="!app.isNewPatient">👤 Tutor: {{ app.patient?.tutor?.firstName }} {{ app.patient?.tutor?.lastName }}</div>
-              <div class="tutor-sub" *ngIf="app.isNewPatient">📞 {{ app.prospectPhone }} (mascota nueva, pendiente registro)</div>
-              
-              <!-- Dirección física del Domicilio -->
-              <div class="address-sub" *ngIf="app.patient?.tutor?.address" style="display: flex; align-items: flex-start; gap: 4px; font-size: 11.5px; color: var(--primary-color); margin: 6px 0; font-weight: 500;">
-                <span class="material-symbols-outlined" style="font-size: 16px;">pin_drop</span>
-                <span>{{ app.patient?.tutor?.address }}</span>
-              </div>
-
-              <div class="vet-sub">🩺 Atendido por: {{ app.vet ? 'Dr(a). ' + app.vet.firstName + ' ' + app.vet.lastName : 'Sin asignar' }}</div>
-              <p class="reason-text" *ngIf="app.reason">"{{ app.reason }}"</p>
+        @if (auth.currentUser?.role === 'admin') {
+          <div class="stat-card">
+            <div class="stat-icon icon-emerald">
+              <span class="material-symbols-outlined">home_health</span>
             </div>
-
-            <footer class="card-actions" style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: space-between; width: 100%;">
-              <a 
-                [routerLink]="['/medical-records', 'new', app.patientId]"
-                [queryParams]="{ appointmentId: app.id }"
-                class="btn-action btn-action-primary" 
-                style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 4px; flex: 1; min-width: 120px;"
-              >
-                <span class="material-symbols-outlined" style="font-size: 18px;">stethoscope</span>
-                Registrar SOAP
-              </a>
-              <button 
-                class="btn-action btn-action-gray" 
-                (click)="changeStatus(app, 'done')"
-                style="flex: 1; min-width: 100px; display: inline-flex; align-items: center; justify-content: center; gap: 4px;"
-              >
-                <span class="material-symbols-outlined" style="font-size: 18px;">task_alt</span>
-                Finalizar
-              </button>
-            </footer>
+            <div>
+              <div class="stat-value">{{ stats().active }}</div>
+              <div class="stat-label">En Visita Activa</div>
+            </div>
           </div>
-        </div>
-      </div>
-
-      <!-- Columna 4: VISITAS COMPLETADAS -->
-      <div class="kanban-column column-finished">
-        <header class="column-header">
-          <h3>
-            <span class="dot dot-gray"></span>
-            {{ auth.currentUser?.role === 'admin' ? 'Visitas Completadas' : 'Mis Visitas Completadas' }}
-          </h3>
-          <span class="column-count" style="background: rgba(16,185,129,0.1); color: var(--primary-color);">
-            {{ auth.currentUser?.role === 'admin' ? doneAppointments().length : vetDoneCount() }}
-          </span>
-        </header>
-
-        <div class="cards-container">
-          <div class="empty-column-placeholder" *ngIf="(auth.currentUser?.role === 'admin' ? doneAppointments().length : vetDoneCount()) === 0">
+        }
+        <div class="stat-card">
+          <div class="stat-icon icon-gray">
             <span class="material-symbols-outlined">task_alt</span>
-            <p>No hay visitas finalizadas aún hoy</p>
           </div>
-
-          <ng-container *ngFor="let app of appointments(); trackBy: trackById">
-            <!-- Mostrar si está en estado 'done' y cumple el filtro de veterinario (si no es admin) -->
-            <div 
-              class="kanban-card" 
-              *ngIf="app.status === 'done' && (auth.currentUser?.role === 'admin' || app.vetId === auth.currentUser?.id)"
-              style="border-color: rgba(16,185,129,0.2); background: rgba(16, 185, 129, 0.02);"
-            >
-              <header class="card-header">
-                <span class="card-time" style="color: var(--primary-color);">✓ Completado</span>
-                <span class="card-service">{{ app.serviceType }}</span>
-              </header>
-              
-              <div class="card-body">
-                <div class="patient-title">
-                  <span class="material-symbols-outlined pet-icon color-gray">pets</span>
-                  <strong *ngIf="!app.isNewPatient">{{ app.patient?.name }}</strong>
-                  <span class="breed-text" *ngIf="!app.isNewPatient">({{ app.patient?.breed || app.patient?.species }})</span>
-                  <strong *ngIf="app.isNewPatient">🆕 {{ app.prospectName }}</strong>
-                </div>
-                <div class="tutor-sub" *ngIf="!app.isNewPatient">👤 Tutor: {{ app.patient?.tutor?.firstName }} {{ app.patient?.tutor?.lastName }}</div>
-              <div class="tutor-sub" *ngIf="app.isNewPatient">📞 {{ app.prospectPhone }} (mascota nueva, pendiente registro)</div>
-                
-                <!-- Dirección física del Domicilio -->
-                <div class="address-sub" *ngIf="app.patient?.tutor?.address" style="display: flex; align-items: flex-start; gap: 4px; font-size: 11.5px; color: var(--text-color-secondary); margin: 6px 0;">
-                  <span class="material-symbols-outlined" style="font-size: 16px;">pin_drop</span>
-                  <span>{{ app.patient?.tutor?.address }}</span>
-                </div>
-
-                <div class="vet-sub">🩺 Atendido por: {{ app.vet ? 'Dr(a). ' + app.vet.firstName + ' ' + app.vet.lastName : 'Sin asignar' }}</div>
-                <p class="reason-text" style="color: var(--text-color-secondary);" *ngIf="app.reason">"{{ app.reason }}"</p>
-              </div>
-
-              <footer class="card-actions" style="justify-content: flex-end; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 8px;">
-                <span class="material-symbols-outlined" style="color: var(--primary-color); font-size: 20px;">check_circle</span>
-                <span style="font-size: 11.5px; color: var(--primary-color); font-weight: 500; margin-left: 4px;">Domicilio Finalizado</span>
-              </footer>
+          <div>
+            <div class="stat-value">
+              {{ auth.currentUser?.role === 'admin' ? stats().done : vetDoneCount() }}
             </div>
-          </ng-container>
+            <div class="stat-label">
+              {{
+                auth.currentUser?.role === 'admin'
+                  ? 'Visitas Completadas'
+                  : 'Mis Visitas Completadas'
+              }}
+            </div>
+          </div>
         </div>
-      </div>
-    </section>
-
-    <!-- Historial de Citas Cerradas / Canceladas hoy -->
-    <section class="finished-section" *ngIf="finishedAppointments().length > 0">
-      <div class="card finished-card">
-        <h3>Historial de Visitas Domiciliarias Finalizadas / Canceladas Hoy</h3>
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Hora</th>
-              <th>Mascota</th>
-              <th>Servicio</th>
-              <th>Profesional</th>
-              <th>Dirección de Visita</th>
-              <th>Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let app of finishedAppointments(); trackBy: trackById">
-              <td>{{ app.scheduledAt | date:'shortTime' }}</td>
-              <td><strong>🐾 {{ app.isNewPatient ? '🆕 ' + app.prospectName : app.patient?.name }}</strong></td>
-              <td>{{ app.serviceType }}</td>
-              <td>{{ app.vet ? 'Dr(a). ' + app.vet.firstName + ' ' + app.vet.lastName : 'Sin asignar' }}</td>
-              <td><span style="color: var(--primary-color); font-size: 12px;">📍 {{ app.patient?.tutor?.address || 'N/A' }}</span></td>
-              <td>
-                <span 
-                  class="badge" 
-                  [class.badge-success]="app.status === 'done'"
-                  [class.badge-danger]="app.status === 'cancelled'"
+      </section>
+      <!-- Tablero Kanban de Sala de Espera -->
+      <section
+        class="kanban-board"
+        [style.grid-template-columns]="
+          auth.currentUser?.role === 'admin' ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)'
+        "
+      >
+        <!-- Columna 1: VISITAS PROGRAMADAS -->
+        <div class="kanban-column column-scheduled">
+          <header class="column-header">
+            <h3>
+              <span class="dot dot-blue"></span>
+              Visitas Agendadas
+            </h3>
+            <span class="column-count">{{ scheduledAppointments().length }}</span>
+          </header>
+          <div class="cards-container">
+            @if (scheduledAppointments().length === 0) {
+              <div class="empty-column-placeholder">
+                <span class="material-symbols-outlined">event_busy</span>
+                <p>No hay visitas agendadas pendientes</p>
+              </div>
+            }
+            @for (app of scheduledAppointments(); track trackById($index, app)) {
+              <div class="kanban-card">
+                <header class="card-header">
+                  <span class="card-time">{{ app.scheduledAt | date: 'shortTime' }}</span>
+                  <span class="card-service">{{ app.serviceType }}</span>
+                </header>
+                <div class="card-body">
+                  <div class="patient-title">
+                    <span class="material-symbols-outlined pet-icon">pets</span>
+                    @if (!app.isNewPatient) {
+                      <strong>{{ app.patient?.name }}</strong>
+                    }
+                    @if (!app.isNewPatient) {
+                      <span class="breed-text"
+                        >({{ app.patient?.breed || app.patient?.species }})</span
+                      >
+                    }
+                    @if (app.isNewPatient) {
+                      <strong>🆕 {{ app.prospectName }}</strong>
+                    }
+                  </div>
+                  @if (!app.isNewPatient) {
+                    <div class="tutor-sub">
+                      👤 Tutor: {{ app.patient?.tutor?.firstName }}
+                      {{ app.patient?.tutor?.lastName }}
+                    </div>
+                  }
+                  @if (app.isNewPatient) {
+                    <div class="tutor-sub">
+                      📞 {{ app.prospectPhone }} (mascota nueva, pendiente registro)
+                    </div>
+                  }
+                  <!-- Dirección física del Domicilio -->
+                  @if (app.patient?.tutor?.address) {
+                    <div
+                      class="address-sub"
+                      style="
+                        display: flex;
+                        align-items: flex-start;
+                        gap: 4px;
+                        font-size: 11.5px;
+                        color: var(--primary-color);
+                        margin: 6px 0;
+                        font-weight: 500;
+                      "
+                    >
+                      <span class="material-symbols-outlined" style="font-size: 16px"
+                        >pin_drop</span
+                      >
+                      <span>{{ app.patient?.tutor?.address }}</span>
+                    </div>
+                  }
+                  <div class="vet-sub">
+                    🩺 Asignado:
+                    {{
+                      app.vet
+                        ? 'Dr(a). ' + app.vet.firstName + ' ' + app.vet.lastName
+                        : 'Sin asignar'
+                    }}
+                  </div>
+                  @if (app.reason) {
+                    <p class="reason-text">"{{ app.reason }}"</p>
+                  }
+                </div>
+                <footer class="card-actions">
+                  <button
+                    class="btn-action btn-action-success"
+                    (click)="changeStatus(app, 'waiting')"
+                    style="display: inline-flex; align-items: center; gap: 4px"
+                  >
+                    <span class="material-symbols-outlined">directions_car</span>
+                    Iniciar Viaje / En Camino
+                  </button>
+                  <button
+                    class="btn-cancel"
+                    (click)="changeStatus(app, 'cancelled')"
+                    title="Cancelar Visita"
+                  >
+                    <span class="material-symbols-outlined">cancel</span>
+                  </button>
+                </footer>
+              </div>
+            }
+          </div>
+        </div>
+        <!-- Columna 2: EN TRÁNSITO / EN CAMINO -->
+        <div class="kanban-column column-waiting">
+          <header class="column-header">
+            <h3>
+              <span class="dot dot-orange"></span>
+              En Tránsito / En Camino
+            </h3>
+            <span class="column-count">{{ waitingAppointments().length }}</span>
+          </header>
+          <div class="cards-container">
+            @if (waitingAppointments().length === 0) {
+              <div class="empty-column-placeholder">
+                <span class="material-symbols-outlined">directions_car</span>
+                <p>No hay veterinarios en camino ahora</p>
+              </div>
+            }
+            @for (app of waitingAppointments(); track trackById($index, app)) {
+              <div
+                class="kanban-card"
+                style="border-color: rgba(245, 158, 11, 0.2); background: rgba(245, 158, 11, 0.02)"
+              >
+                <header class="card-header">
+                  <span class="card-time" style="color: var(--orange-500)">🚗 En Camino</span>
+                  <span class="card-service">{{ app.serviceType }}</span>
+                </header>
+                <div class="card-body">
+                  <div class="patient-title">
+                    <span class="material-symbols-outlined pet-icon color-orange">pets</span>
+                    @if (!app.isNewPatient) {
+                      <strong>{{ app.patient?.name }}</strong>
+                    }
+                    @if (!app.isNewPatient) {
+                      <span class="breed-text"
+                        >({{ app.patient?.breed || app.patient?.species }})</span
+                      >
+                    }
+                    @if (app.isNewPatient) {
+                      <strong>🆕 {{ app.prospectName }}</strong>
+                    }
+                  </div>
+                  @if (!app.isNewPatient) {
+                    <div class="tutor-sub">
+                      👤 Tutor: {{ app.patient?.tutor?.firstName }}
+                      {{ app.patient?.tutor?.lastName }}
+                    </div>
+                  }
+                  @if (app.isNewPatient) {
+                    <div class="tutor-sub">
+                      📞 {{ app.prospectPhone }} (mascota nueva, pendiente registro)
+                    </div>
+                  }
+                  <!-- Dirección física del Domicilio -->
+                  @if (app.patient?.tutor?.address) {
+                    <div
+                      class="address-sub"
+                      style="
+                        display: flex;
+                        align-items: flex-start;
+                        gap: 4px;
+                        font-size: 11.5px;
+                        color: var(--primary-color);
+                        margin: 6px 0;
+                        font-weight: 500;
+                      "
+                    >
+                      <span class="material-symbols-outlined" style="font-size: 16px"
+                        >pin_drop</span
+                      >
+                      <span>{{ app.patient?.tutor?.address }}</span>
+                    </div>
+                  }
+                  <div class="vet-sub">
+                    🩺 Asignado:
+                    {{
+                      app.vet
+                        ? 'Dr(a). ' + app.vet.firstName + ' ' + app.vet.lastName
+                        : 'Sin asignar'
+                    }}
+                  </div>
+                  @if (app.reason) {
+                    <p class="reason-text">"{{ app.reason }}"</p>
+                  }
+                </div>
+                <footer class="card-actions">
+                  <button
+                    class="btn-action btn-action-primary"
+                    (click)="changeStatus(app, 'in-progress')"
+                    style="display: inline-flex; align-items: center; gap: 4px"
+                  >
+                    <span class="material-symbols-outlined">home</span>
+                    Llegué / Iniciar Atención
+                  </button>
+                  <button
+                    class="btn-cancel"
+                    (click)="changeStatus(app, 'cancelled')"
+                    title="Cancelar Visita"
+                  >
+                    <span class="material-symbols-outlined">cancel</span>
+                  </button>
+                </footer>
+              </div>
+            }
+          </div>
+        </div>
+        <!-- Columna 3: EN VISITA ACTIVA (SOLO ADMIN) -->
+        @if (auth.currentUser?.role === 'admin') {
+          <div class="kanban-column column-active">
+            <header class="column-header">
+              <h3>
+                <span class="dot dot-emerald"></span>
+                En Visita Activa (En Domicilio)
+              </h3>
+              <span class="column-count">{{ inProgressAppointments().length }}</span>
+            </header>
+            <div class="cards-container">
+              @if (inProgressAppointments().length === 0) {
+                <div class="empty-column-placeholder">
+                  <span class="material-symbols-outlined">medical_information</span>
+                  <p>No hay visitas activas ahora</p>
+                </div>
+              }
+              @for (app of inProgressAppointments(); track trackById($index, app)) {
+                <div
+                  class="kanban-card"
+                  style="
+                    border-color: rgba(16, 185, 129, 0.2);
+                    background: rgba(16, 185, 129, 0.02);
+                  "
                 >
-                  {{ app.status === 'done' ? 'Completada' : 'Cancelada' }}
-                </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-  </div>
+                  <header class="card-header">
+                    <span class="card-time" style="color: var(--primary-color)">🩺 Atendiendo</span>
+                    <span class="card-service">{{ app.serviceType }}</span>
+                  </header>
+                  <div class="card-body">
+                    <div class="patient-title">
+                      <span class="material-symbols-outlined pet-icon color-emerald">pets</span>
+                      @if (!app.isNewPatient) {
+                        <strong>{{ app.patient?.name }}</strong>
+                      }
+                      @if (!app.isNewPatient) {
+                        <span class="breed-text"
+                          >({{ app.patient?.breed || app.patient?.species }})</span
+                        >
+                      }
+                      @if (app.isNewPatient) {
+                        <strong>🆕 {{ app.prospectName }}</strong>
+                      }
+                    </div>
+                    @if (!app.isNewPatient) {
+                      <div class="tutor-sub">
+                        👤 Tutor: {{ app.patient?.tutor?.firstName }}
+                        {{ app.patient?.tutor?.lastName }}
+                      </div>
+                    }
+                    @if (app.isNewPatient) {
+                      <div class="tutor-sub">
+                        📞 {{ app.prospectPhone }} (mascota nueva, pendiente registro)
+                      </div>
+                    }
+                    <!-- Dirección física del Domicilio -->
+                    @if (app.patient?.tutor?.address) {
+                      <div
+                        class="address-sub"
+                        style="
+                          display: flex;
+                          align-items: flex-start;
+                          gap: 4px;
+                          font-size: 11.5px;
+                          color: var(--primary-color);
+                          margin: 6px 0;
+                          font-weight: 500;
+                        "
+                      >
+                        <span class="material-symbols-outlined" style="font-size: 16px"
+                          >pin_drop</span
+                        >
+                        <span>{{ app.patient?.tutor?.address }}</span>
+                      </div>
+                    }
+                    <div class="vet-sub">
+                      🩺 Atendido por:
+                      {{
+                        app.vet
+                          ? 'Dr(a). ' + app.vet.firstName + ' ' + app.vet.lastName
+                          : 'Sin asignar'
+                      }}
+                    </div>
+                    @if (app.reason) {
+                      <p class="reason-text">"{{ app.reason }}"</p>
+                    }
+                  </div>
+                  <footer
+                    class="card-actions"
+                    style="
+                      display: flex;
+                      gap: 8px;
+                      flex-wrap: wrap;
+                      justify-content: space-between;
+                      width: 100%;
+                    "
+                  >
+                    <a
+                      [routerLink]="['/medical-records', 'new', app.patientId]"
+                      [queryParams]="{ appointmentId: app.id }"
+                      class="btn-action btn-action-primary"
+                      style="
+                        text-decoration: none;
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 4px;
+                        flex: 1;
+                        min-width: 120px;
+                      "
+                    >
+                      <span class="material-symbols-outlined" style="font-size: 18px"
+                        >stethoscope</span
+                      >
+                      Registrar SOAP
+                    </a>
+                    <button
+                      class="btn-action btn-action-gray"
+                      (click)="changeStatus(app, 'done')"
+                      style="
+                        flex: 1;
+                        min-width: 100px;
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 4px;
+                      "
+                    >
+                      <span class="material-symbols-outlined" style="font-size: 18px"
+                        >task_alt</span
+                      >
+                      Finalizar
+                    </button>
+                  </footer>
+                </div>
+              }
+            </div>
+          </div>
+        }
+        <!-- Columna 4: VISITAS COMPLETADAS -->
+        <div class="kanban-column column-finished">
+          <header class="column-header">
+            <h3>
+              <span class="dot dot-gray"></span>
+              {{
+                auth.currentUser?.role === 'admin'
+                  ? 'Visitas Completadas'
+                  : 'Mis Visitas Completadas'
+              }}
+            </h3>
+            <span
+              class="column-count"
+              style="background: rgba(16, 185, 129, 0.1); color: var(--primary-color)"
+            >
+              {{ auth.currentUser?.role === 'admin' ? doneAppointments().length : vetDoneCount() }}
+            </span>
+          </header>
+          <div class="cards-container">
+            @if (
+              (auth.currentUser?.role === 'admin' ? doneAppointments().length : vetDoneCount()) ===
+              0
+            ) {
+              <div class="empty-column-placeholder">
+                <span class="material-symbols-outlined">task_alt</span>
+                <p>No hay visitas finalizadas aún hoy</p>
+              </div>
+            }
+            @for (app of appointments(); track trackById($index, app)) {
+              <!-- Mostrar si está en estado 'done' y cumple el filtro de veterinario (si no es admin) -->
+              @if (
+                app.status === 'done' &&
+                (auth.currentUser?.role === 'admin' || app.vetId === auth.currentUser?.id)
+              ) {
+                <div
+                  class="kanban-card"
+                  style="
+                    border-color: rgba(16, 185, 129, 0.2);
+                    background: rgba(16, 185, 129, 0.02);
+                  "
+                >
+                  <header class="card-header">
+                    <span class="card-time" style="color: var(--primary-color)">✓ Completado</span>
+                    <span class="card-service">{{ app.serviceType }}</span>
+                  </header>
+                  <div class="card-body">
+                    <div class="patient-title">
+                      <span class="material-symbols-outlined pet-icon color-gray">pets</span>
+                      @if (!app.isNewPatient) {
+                        <strong>{{ app.patient?.name }}</strong>
+                      }
+                      @if (!app.isNewPatient) {
+                        <span class="breed-text"
+                          >({{ app.patient?.breed || app.patient?.species }})</span
+                        >
+                      }
+                      @if (app.isNewPatient) {
+                        <strong>🆕 {{ app.prospectName }}</strong>
+                      }
+                    </div>
+                    @if (!app.isNewPatient) {
+                      <div class="tutor-sub">
+                        👤 Tutor: {{ app.patient?.tutor?.firstName }}
+                        {{ app.patient?.tutor?.lastName }}
+                      </div>
+                    }
+                    @if (app.isNewPatient) {
+                      <div class="tutor-sub">
+                        📞 {{ app.prospectPhone }} (mascota nueva, pendiente registro)
+                      </div>
+                    }
+                    <!-- Dirección física del Domicilio -->
+                    @if (app.patient?.tutor?.address) {
+                      <div
+                        class="address-sub"
+                        style="
+                          display: flex;
+                          align-items: flex-start;
+                          gap: 4px;
+                          font-size: 11.5px;
+                          color: var(--text-color-secondary);
+                          margin: 6px 0;
+                        "
+                      >
+                        <span class="material-symbols-outlined" style="font-size: 16px"
+                          >pin_drop</span
+                        >
+                        <span>{{ app.patient?.tutor?.address }}</span>
+                      </div>
+                    }
+                    <div class="vet-sub">
+                      🩺 Atendido por:
+                      {{
+                        app.vet
+                          ? 'Dr(a). ' + app.vet.firstName + ' ' + app.vet.lastName
+                          : 'Sin asignar'
+                      }}
+                    </div>
+                    @if (app.reason) {
+                      <p class="reason-text" style="color: var(--text-color-secondary)">
+                        "{{ app.reason }}"
+                      </p>
+                    }
+                  </div>
+                  <footer
+                    class="card-actions"
+                    style="
+                      justify-content: flex-end;
+                      padding-top: 8px;
+                      border-top: 1px solid rgba(255, 255, 255, 0.05);
+                      margin-top: 8px;
+                    "
+                  >
+                    <span
+                      class="material-symbols-outlined"
+                      style="color: var(--primary-color); font-size: 20px"
+                      >check_circle</span
+                    >
+                    <span
+                      style="
+                        font-size: 11.5px;
+                        color: var(--primary-color);
+                        font-weight: 500;
+                        margin-left: 4px;
+                      "
+                      >Domicilio Finalizado</span
+                    >
+                  </footer>
+                </div>
+              }
+            }
+          </div>
+        </div>
+      </section>
+      <!-- Historial de Citas Cerradas / Canceladas hoy -->
+      @if (finishedAppointments().length > 0) {
+        <section class="finished-section">
+          <div class="card finished-card">
+            <h3>Historial de Visitas Domiciliarias Finalizadas / Canceladas Hoy</h3>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Hora</th>
+                  <th>Mascota</th>
+                  <th>Servicio</th>
+                  <th>Profesional</th>
+                  <th>Dirección de Visita</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (app of finishedAppointments(); track trackById($index, app)) {
+                  <tr>
+                    <td>{{ app.scheduledAt | date: 'shortTime' }}</td>
+                    <td>
+                      <strong
+                        >🐾
+                        {{
+                          app.isNewPatient ? '🆕 ' + app.prospectName : app.patient?.name
+                        }}</strong
+                      >
+                    </td>
+                    <td>{{ app.serviceType }}</td>
+                    <td>
+                      {{
+                        app.vet
+                          ? 'Dr(a). ' + app.vet.firstName + ' ' + app.vet.lastName
+                          : 'Sin asignar'
+                      }}
+                    </td>
+                    <td>
+                      <span style="color: var(--primary-color); font-size: 12px"
+                        >📍 {{ app.patient?.tutor?.address || 'N/A' }}</span
+                      >
+                    </td>
+                    <td>
+                      <span
+                        class="badge"
+                        [class.badge-success]="app.status === 'done'"
+                        [class.badge-danger]="app.status === 'cancelled'"
+                      >
+                        {{ app.status === 'done' ? 'Completada' : 'Cancelada' }}
+                      </span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
+    </div>
+  }
 </div>

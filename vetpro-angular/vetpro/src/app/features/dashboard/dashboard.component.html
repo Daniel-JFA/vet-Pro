@@ -1,0 +1,310 @@
+    <div class="dashboard-container">
+      <!-- 🌟 BANNER DE BIENVENIDA PREMIUM -->
+      <div class="welcome-banner">
+        <div class="banner-overlay"></div>
+        <div class="banner-content">
+          <div class="banner-text">
+            <h1 class="greeting">¡Hola, {{ auth.currentUser?.firstName }}! 👋</h1>
+            <p class="subtext">
+              Tu panel de control de <strong>VetPro</strong> está al día. Tienes
+              <span class="highlight">{{ todayAppointments().length }} visitas domiciliarias</span>
+              programadas para hoy en Medellín.
+            </p>
+          </div>
+          <div class="banner-badge">
+            <span class="material-symbols-outlined">location_on</span>
+            <span>Sede: {{ getActiveBranchName() }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 📊 CUADRICULA DE KPIs DINÁMICOS -->
+      @if (!loadingStats()) {
+        <div class="stats-grid">
+          <!-- KPI 1: Ingresos del Mes -->
+          <div class="stat-card" routerLink="/billing">
+            <div class="stat-header">
+              <div class="icon-wrapper revenue">
+                <span class="material-symbols-outlined">payments</span>
+              </div>
+              <span class="trend-badge" [class.positive]="kpis().revenue.growth >= 0">
+                <span class="material-symbols-outlined">trending_up</span>
+                {{ kpis().revenue.growth >= 0 ? '+' : '' }}{{ kpis().revenue.growth }}% MoM
+              </span>
+            </div>
+            <div class="stat-body">
+              <span class="stat-value">{{ formatCOP(kpis().revenue.current) }}</span>
+              <span class="stat-label">Ingresos del Mes</span>
+            </div>
+          </div>
+          <!-- KPI 2: Consultas Realizadas -->
+          <div class="stat-card" routerLink="/medical-records">
+            <div class="stat-header">
+              <div class="icon-wrapper consultations">
+                <span class="material-symbols-outlined">medical_services</span>
+              </div>
+              <span class="trend-badge positive">
+                <span class="material-symbols-outlined">trending_up</span>
+                +{{ kpis().consultations.growth }}% MoM
+              </span>
+            </div>
+            <div class="stat-body">
+              <span class="stat-value">{{ kpis().consultations.current }}</span>
+              <span class="stat-label">Consultas Clínicas</span>
+            </div>
+          </div>
+          <!-- KPI 3: Mascotas Registradas -->
+          <div class="stat-card" routerLink="/patients">
+            <div class="stat-header">
+              <div class="icon-wrapper patients">
+                <span class="material-symbols-outlined">pets</span>
+              </div>
+              <span class="trend-badge positive">
+                <span class="material-symbols-outlined">trending_up</span>
+                +{{ kpis().newPatients.growth }}% MoM
+              </span>
+            </div>
+            <div class="stat-body">
+              <span class="stat-value">{{ kpis().newPatients.current }}</span>
+              <span class="stat-label">Nuevos Pacientes</span>
+            </div>
+          </div>
+          <!-- KPI 4: Tasa de Retención -->
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="icon-wrapper retention">
+                <span class="material-symbols-outlined">volunteer_activism</span>
+              </div>
+              <span class="trend-badge positive">
+                <span class="material-symbols-outlined">verified</span>
+                Saludable
+              </span>
+            </div>
+            <div class="stat-body">
+              <span class="stat-value">{{ kpis().retentionRate.current }}%</span>
+              <span class="stat-label">Retención de Tutores</span>
+            </div>
+          </div>
+        </div>
+      } @else {
+        <div class="stats-grid">
+          @for (i of [1, 2, 3, 4]; track i) {
+            <div class="stat-card skeleton">
+              <div class="skeleton-header"></div>
+              <div class="skeleton-body1"></div>
+              <div class="skeleton-body2"></div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- SKELETON LOADER PARA KPIs -->
+
+      <!-- ⚡ SPLIT DE CONTENIDO PRINCIPAL -->
+      <div class="dashboard-split">
+        <!-- 🗺️ COLUMNA IZQUIERDA: ITINERARIO DE HOY (Ruta Domiciliaria) -->
+        <div class="itinerary-panel">
+          <div class="panel-header">
+            <div class="header-title">
+              <span class="material-symbols-outlined title-icon">local_shipping</span>
+              <h2>Itinerario de Visitas a Domicilio (Hoy)</h2>
+            </div>
+            <span class="count-pill">{{ todayAppointments().length }} Visitas</span>
+          </div>
+
+          @if (!loadingAppts()) {
+            <div class="itinerary-list">
+              <!-- Si no hay visitas para hoy -->
+              @if (todayAppointments().length === 0) {
+                <div class="empty-state">
+                  <span class="material-symbols-outlined empty-icon">assignment_turned_in</span>
+                  <p class="empty-text">
+                    ¡Buen trabajo! No tienes más visitas domiciliarias programadas para hoy.
+                  </p>
+                  <button class="btn-primary" routerLink="/appointments">Agendar cita</button>
+                </div>
+              }
+              <!-- Listado de tarjetas de visitas -->
+              @for (app of todayAppointments(); track app; let idx = $index) {
+                <div
+                  class="itinerary-card"
+                  [class.active]="app.status === 'in-progress'"
+                  [class.done]="app.status === 'done'"
+                >
+                  <div class="card-time">
+                    <span class="time-label">{{ formatTime(app.scheduledAt) }}</span>
+                    <span class="order-dot">#{{ idx + 1 }}</span>
+                  </div>
+                  <div class="card-details">
+                    <div class="details-main">
+                      <div class="patient-info">
+                        <span class="patient-emoji">{{
+                          app.isNewPatient ? '🆕' : getSpeciesEmoji(app.patient?.species)
+                        }}</span>
+                        @if (!app.isNewPatient) {
+                          <div class="patient-meta">
+                            <span class="patient-name">{{ app.patient?.name }}</span>
+                            <span class="patient-breed">{{
+                              app.patient?.breed || 'Sin raza'
+                            }}</span>
+                          </div>
+                        }
+                        @if (app.isNewPatient) {
+                          <div class="patient-meta">
+                            <span class="patient-name">{{ app.prospectName }}</span>
+                            <span class="patient-breed">Mascota nueva — pendiente de registro</span>
+                          </div>
+                        }
+                      </div>
+                      <span class="status-badge" [class]="app.status">
+                        {{ getStatusLabel(app.status) }}
+                      </span>
+                    </div>
+                    <div class="details-meta">
+                      @if (!app.isNewPatient) {
+                        <div class="meta-row">
+                          <span class="material-symbols-outlined meta-icon">person</span>
+                          <span
+                            >Tutor:
+                            <strong
+                              >{{ app.patient?.tutor?.firstName }}
+                              {{ app.patient?.tutor?.lastName }}</strong
+                            ></span
+                          >
+                        </div>
+                      }
+                      @if (app.isNewPatient) {
+                        <div class="meta-row">
+                          <span class="material-symbols-outlined meta-icon">call</span>
+                          <span
+                            >Contacto: <strong>{{ app.prospectPhone }}</strong></span
+                          >
+                        </div>
+                      }
+                      <div class="meta-row">
+                        <span class="material-symbols-outlined meta-icon">location_on</span>
+                        <span class="address-text">{{ app.notes || 'No registrada' }}</span>
+                      </div>
+                      <div class="meta-row">
+                        <span class="material-symbols-outlined meta-icon">stethoscope</span>
+                        <span
+                          >Motivo: <em>{{ app.reason || app.serviceType }}</em></span
+                        >
+                      </div>
+                    </div>
+                    <!-- Botones de Acción contextuales del Domiciliario -->
+                    <div class="card-actions">
+                      @if (app.status === 'scheduled') {
+                        <button
+                          class="btn-action-start"
+                          (click)="updateAppointmentStatus(app.id, 'waiting')"
+                        >
+                          <span class="material-symbols-outlined">directions_car</span> En camino
+                        </button>
+                      }
+                      @if (app.status === 'waiting') {
+                        <button
+                          class="btn-action-enter"
+                          (click)="updateAppointmentStatus(app.id, 'in-progress')"
+                        >
+                          <span class="material-symbols-outlined">login</span> Iniciar visita
+                        </button>
+                      }
+                      @if (app.status === 'in-progress') {
+                        <button class="btn-action-consultation" (click)="enterConsultation(app.id)">
+                          <span class="material-symbols-outlined">clinical_notes</span> Completar
+                          SOAP
+                        </button>
+                      }
+                      @if (app.status === 'done') {
+                        <button class="btn-action-done" routerLink="/patients/{{ app.patientId }}">
+                          <span class="material-symbols-outlined">visibility</span> Ver historial
+                        </button>
+                      }
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="itinerary-list">
+              @for (i of [1, 2, 3]; track i) {
+                <div class="itinerary-card skeleton-card">
+                  <div class="skeleton-time"></div>
+                  <div class="skeleton-details"></div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- 🦊 COLUMNA DERECHA: ACCIONES RÁPIDAS Y METAS -->
+        <div class="sidebar-panel">
+          <!-- Acciones Rápidas -->
+          <div class="sidebar-card actions-card">
+            <h3>Acciones Clínicas Rápidas</h3>
+            <div class="action-buttons">
+              <button class="action-btn" routerLink="/patients/new">
+                <span class="material-symbols-outlined icon pet">person_add</span>
+                <div class="btn-label">
+                  <strong>Nuevo Paciente</strong>
+                  <span>Registrar mascota y tutor</span>
+                </div>
+              </button>
+
+              <button class="action-btn" routerLink="/appointments">
+                <span class="material-symbols-outlined icon appointment">calendar_add_on</span>
+                <div class="btn-label">
+                  <strong>Nueva Cita</strong>
+                  <span>Programar en el calendario</span>
+                </div>
+              </button>
+
+              <button class="action-btn" routerLink="/inventory">
+                <span class="material-symbols-outlined icon inventory">inventory_2</span>
+                <div class="btn-label">
+                  <strong>Inventario Domicilio</strong>
+                  <span>Medicamentos portátiles</span>
+                </div>
+              </button>
+
+              <button class="action-btn" routerLink="/billing">
+                <span class="material-symbols-outlined icon billing">receipt_long</span>
+                <div class="btn-label">
+                  <strong>Emitir Factura</strong>
+                  <span>Registrar cobro en sitio</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Distribución de Especies (Mini Widget Visual) -->
+          @if (!loadingStats()) {
+            <div class="sidebar-card species-card">
+              <h3>Distribución de Especies</h3>
+              <p class="card-subtitle">Diversidad de pacientes atendidos en el sistema</p>
+              <div class="species-list">
+                @for (s of getSpeciesStats(); track s) {
+                  <div class="species-row">
+                    <div class="species-header">
+                      <div class="species-title">
+                        <span class="species-emoji">{{ s.emoji }}</span>
+                        <span class="species-name">{{ s.name }}</span>
+                      </div>
+                      <span class="species-count">{{ s.count }} ({{ s.percent }}%)</span>
+                    </div>
+                    <div class="progress-bar">
+                      <div
+                        class="progress-fill"
+                        [style.width.%]="s.percent"
+                        [style.background-color]="s.color"
+                      ></div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>

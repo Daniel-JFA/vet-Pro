@@ -1,14 +1,14 @@
 import { Component, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { NotificationTemplate } from '../../../core/models';
 
 @Component({
   selector: 'app-notification-templates',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './notification-templates.component.html',
-  styleUrl: './notification-templates.component.scss'
+  styleUrl: './notification-templates.component.scss',
 })
 export class NotificationTemplatesComponent {
   loading = signal(false);
@@ -23,7 +23,7 @@ export class NotificationTemplatesComponent {
       trigger: 'appointment-reminder-24h',
       channel: 'whatsapp',
       body: 'Hola {{nombre_tutor}}, te recordamos que mañana {{fecha_cita}} a las {{hora_cita}} tienes una cita programada para tu mascota {{nombre_mascota}} con el profesional {{veterinario}}. ¡Te esperamos!',
-      active: true
+      active: true,
     },
     {
       id: 'nt2',
@@ -32,7 +32,7 @@ export class NotificationTemplatesComponent {
       trigger: 'custom',
       channel: 'whatsapp',
       body: 'Estimado(a) {{nombre_tutor}}, te informamos que {{nombre_mascota}} ya ha ingresado a nuestra sala de espera. Estará ingresando a consultorio en unos minutos.',
-      active: true
+      active: true,
     },
     {
       id: 'nt3',
@@ -41,15 +41,15 @@ export class NotificationTemplatesComponent {
       trigger: 'vaccine-due',
       channel: 'whatsapp',
       body: '¡Hola {{nombre_tutor}}! Te recordamos que ya se acerca la fecha de refuerzo de la vacuna de {{nombre_mascota}}. Por favor ponte en contacto con nosotros para agendar su cita.',
-      active: false
-    }
+      active: false,
+    },
   ]);
 
   selectedTemplateId = signal<string>('nt1');
 
   // Obtener la plantilla activa seleccionada
-  selectedTemplate = computed(() => 
-    this.templates().find(t => t.id === this.selectedTemplateId()) || this.templates()[0]
+  selectedTemplate = computed(
+    () => this.templates().find((t) => t.id === this.selectedTemplateId()) || this.templates()[0],
   );
 
   // Cuerpo editable temporal para no mutar el estado global directamente antes de guardar
@@ -71,7 +71,7 @@ export class NotificationTemplatesComponent {
     { token: '{{nombre_mascota}}', label: 'Nombre Mascota' },
     { token: '{{fecha_cita}}', label: 'Fecha Cita' },
     { token: '{{hora_cita}}', label: 'Hora Cita' },
-    { token: '{{veterinario}}', label: 'Veterinario' }
+    { token: '{{veterinario}}', label: 'Veterinario' },
   ];
 
   // Datos demo para el Reemplazo en el simulador de WhatsApp
@@ -80,7 +80,7 @@ export class NotificationTemplatesComponent {
     mascota: 'Toby',
     fecha: 'Mañana, 25 de Mayo',
     hora: '09:00 AM',
-    vet: 'Dr. Andrés Espinoza'
+    vet: 'Dr. Andrés Espinoza',
   };
 
   // Reemplazar marcadores dinámicos por datos de prueba en la vista previa
@@ -102,7 +102,7 @@ export class NotificationTemplatesComponent {
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const currentText = this.editableBody();
-    
+
     const newText = currentText.substring(0, start) + token + currentText.substring(end);
     this.editableBody.set(newText);
 
@@ -115,8 +115,8 @@ export class NotificationTemplatesComponent {
 
   toggleActive() {
     const current = this.selectedTemplate();
-    this.templates.update(list => 
-      list.map(t => t.id === current.id ? { ...t, active: !t.active } : t)
+    this.templates.update((list) =>
+      list.map((t) => (t.id === current.id ? { ...t, active: !t.active } : t)),
     );
   }
 
@@ -127,8 +127,8 @@ export class NotificationTemplatesComponent {
 
     // Simulación de guardado
     setTimeout(() => {
-      this.templates.update(list => 
-        list.map(t => t.id === activeTemplate.id ? { ...t, body: updatedBody } : t)
+      this.templates.update((list) =>
+        list.map((t) => (t.id === activeTemplate.id ? { ...t, body: updatedBody } : t)),
       );
       this.submitting.set(false);
     }, 600);

@@ -1,7 +1,7 @@
 <div class="login-wrapper">
   <div class="login-container glass-effect animate-fade-in">
     <div class="card-glow"></div>
-    
+
     <!-- Cabecera de Identidad -->
     <header class="login-header">
       <div class="logo-area">
@@ -9,66 +9,83 @@
         <span class="logo-text">VetPro<span class="logo-accent">Portal</span></span>
       </div>
       <h1>Acceso sin Contraseña</h1>
-      <p>Ingresa tu número telefónico registrado para recibir un enlace de acceso seguro por correo electrónico.</p>
+      <p>
+        Ingresa tu número telefónico registrado para recibir un enlace de acceso seguro por correo
+        electrónico.
+      </p>
     </header>
 
     <!-- Estado de Error -->
-    <div *ngIf="error()" class="alert-box error-alert animate-shake">
-      <span class="material-symbols-outlined">error</span>
-      <p>{{ error() }}</p>
-    </div>
+    @if (error()) {
+      <div class="alert-box error-alert animate-shake">
+        <span class="material-symbols-outlined">error</span>
+        <p>{{ error() }}</p>
+      </div>
+    }
 
     <!-- Formulario Principal -->
-    <form *ngIf="!success()" (ngSubmit)="onSubmit()" class="login-form">
-      <div class="form-group">
-        <label for="phone">Número de Celular</label>
-        <div class="input-wrapper">
-          <span class="material-symbols-outlined input-icon">smartphone</span>
-          <input 
-            type="tel" 
-            id="phone" 
-            name="phone" 
-            [(ngModel)]="phone"
-            placeholder="Ej: 3124567890" 
-            required 
-            [disabled]="loading()"
-            autocomplete="tel"
-          />
+    @if (!success()) {
+      <form (ngSubmit)="onSubmit()" class="login-form">
+        <div class="form-group">
+          <label for="phone">Número de Celular</label>
+          <div class="input-wrapper">
+            <span class="material-symbols-outlined input-icon">smartphone</span>
+            <input
+              type="tel"
+              id="phone"
+              name="phone"
+              [(ngModel)]="phone"
+              placeholder="Ej: 3124567890"
+              required
+              [disabled]="loading()"
+              autocomplete="tel"
+            />
+          </div>
         </div>
-      </div>
-
-      <button type="submit" class="submit-btn" [disabled]="loading()">
-        <span *ngIf="!loading()">Recibir Enlace por Correo</span>
-        <span *ngIf="loading()" class="spinner animate-spin"></span>
-        <span *ngIf="loading()">Enviando enlace...</span>
-      </button>
-    </form>
+        <button type="submit" class="submit-btn" [disabled]="loading()">
+          @if (!loading()) {
+            <span>Recibir Enlace por Correo</span>
+          }
+          @if (loading()) {
+            <span class="spinner animate-spin"></span>
+          }
+          @if (loading()) {
+            <span>Enviando enlace...</span>
+          }
+        </button>
+      </form>
+    }
 
     <!-- Estado de Éxito / Mock Link para Desarrollo -->
-    <div *ngIf="success()" class="success-container animate-fade-in">
-      <div class="success-badge">
-        <span class="material-symbols-outlined">check_circle</span>
-      </div>
-      <h3>¡Enlace Enviado!</h3>
-      <p>{{ successMessage() || 'Hemos generado tu enlace de acceso seguro.' }}</p>
-
-      <!-- Panel especial para Desarrollo Local -->
-      <div *ngIf="magicLink()" class="dev-panel glass-effect">
-        <div class="dev-header">
-          <span class="material-symbols-outlined">terminal</span>
-          <h4>Entorno de Desarrollo Local</h4>
+    @if (success()) {
+      <div class="success-container animate-fade-in">
+        <div class="success-badge">
+          <span class="material-symbols-outlined">check_circle</span>
         </div>
-        <p>En producción, este enlace se envía automáticamente por correo. Puedes simular la acción dando clic aquí:</p>
-        <button (click)="navigateToMagicLink()" class="dev-action-btn">
-          <span class="material-symbols-outlined">login</span>
-          Iniciar Sesión Inmediatamente
+        <h3>¡Enlace Enviado!</h3>
+        <p>{{ successMessage() || 'Hemos generado tu enlace de acceso seguro.' }}</p>
+        <!-- Panel especial para Desarrollo Local -->
+        @if (magicLink()) {
+          <div class="dev-panel glass-effect">
+            <div class="dev-header">
+              <span class="material-symbols-outlined">terminal</span>
+              <h4>Entorno de Desarrollo Local</h4>
+            </div>
+            <p>
+              En producción, este enlace se envía automáticamente por correo. Puedes simular la
+              acción dando clic aquí:
+            </p>
+            <button (click)="navigateToMagicLink()" class="dev-action-btn">
+              <span class="material-symbols-outlined">login</span>
+              Iniciar Sesión Inmediatamente
+            </button>
+          </div>
+        }
+        <button (click)="success.set(false)" class="back-btn">
+          <span class="material-symbols-outlined">arrow_back</span>
+          Volver a intentar
         </button>
       </div>
-
-      <button (click)="success.set(false)" class="back-btn">
-        <span class="material-symbols-outlined">arrow_back</span>
-        Volver a intentar
-      </button>
-    </div>
+    }
   </div>
 </div>

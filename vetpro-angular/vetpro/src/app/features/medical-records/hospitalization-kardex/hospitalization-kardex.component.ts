@@ -1,7 +1,12 @@
 import { Component, signal, computed, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HospitalizationService, HospitalizedPatient, MedicationDose, Bed } from '../../../core/services/hospitalization.service';
+import {
+  HospitalizationService,
+  HospitalizedPatient,
+  MedicationDose,
+  Bed,
+} from '../../../core/services/hospitalization.service';
 
 @Component({
   selector: 'app-hospitalization-kardex',
@@ -14,7 +19,10 @@ import { HospitalizationService, HospitalizedPatient, MedicationDose, Bed } from
         <div>
           <div class="badge-hosp">🏥 SERVICIO DE HOSPITALIZACIÓN & KARDEX</div>
           <h1 class="page-title">Pacientes Internados & Enfermería</h1>
-          <p class="page-subtitle">Control de camas/jaulas, fluidoterapia, evolución horaria y administración de dosis con descarga atómica de farmacia.</p>
+          <p class="page-subtitle">
+            Control de camas/jaulas, fluidoterapia, evolución horaria y administración de dosis con
+            descarga atómica de farmacia.
+          </p>
         </div>
 
         <div class="header-actions">
@@ -29,7 +37,12 @@ import { HospitalizationService, HospitalizedPatient, MedicationDose, Bed } from
       <div class="kpi-grid">
         <div class="kpi-card">
           <span class="kpi-label">Ocupación de Jaulas</span>
-          <span class="kpi-val">{{ patients().length }} / 8 <span class="sub-percent">({{ (patients().length / 8 * 100).toFixed(0) }}%)</span></span>
+          <span class="kpi-val"
+            >{{ patients().length }} / 8
+            <span class="sub-percent"
+              >({{ ((patients().length / 8) * 100).toFixed(0) }}%)</span
+            ></span
+          >
         </div>
         <div class="kpi-card">
           <span class="kpi-label">Estado Crítico / UCI</span>
@@ -48,388 +61,430 @@ import { HospitalizationService, HospitalizedPatient, MedicationDose, Bed } from
       <!-- Main Hospitalization Grid -->
       <div class="hosp-grid">
         <!-- Patient Card / Cage -->
-        <div
-          *ngFor="let p of patients()"
-          class="cage-card"
-          [class.critical-border]="p.status === 'critical'"
-          [class.selected-cage]="selectedPatient()?.id === p.id"
-          (click)="selectPatient(p)"
-        >
-          <div class="cage-top">
-            <div class="cage-tag">
-              <span class="material-symbols-outlined">meeting_room</span>
-              <strong>{{ p.cageNumber }}</strong> ({{ p.cageType }})
+        @for (p of patients(); track p) {
+          <div
+            class="cage-card"
+            [class.critical-border]="p.status === 'critical'"
+            [class.selected-cage]="selectedPatient()?.id === p.id"
+            (click)="selectPatient(p)"
+          >
+            <div class="cage-top">
+              <div class="cage-tag">
+                <span class="material-symbols-outlined">meeting_room</span>
+                <strong>{{ p.cageNumber }}</strong> ({{ p.cageType }})
+              </div>
+              <span class="status-badge" [ngClass]="p.status">
+                {{ formatStatus(p.status) }}
+              </span>
             </div>
-            <span class="status-badge" [ngClass]="p.status">
-              {{ formatStatus(p.status) }}
-            </span>
-          </div>
-
-          <div class="patient-core">
-            <div class="pet-icon">{{ p.patientSpecies === 'cat' ? '🐱' : '🐶' }}</div>
-            <div class="pet-details">
-              <h3 class="pet-title">{{ p.patientName }} <span class="breed">{{ p.patientBreed }} • {{ p.weight }} kg</span></h3>
-              <p class="tutor-line">👤 {{ p.tutorName }} ({{ p.tutorPhone }})</p>
+            <div class="patient-core">
+              <div class="pet-icon">{{ p.patientSpecies === 'cat' ? '🐱' : '🐶' }}</div>
+              <div class="pet-details">
+                <h3 class="pet-title">
+                  {{ p.patientName }}
+                  <span class="breed">{{ p.patientBreed }} • {{ p.weight }} kg</span>
+                </h3>
+                <p class="tutor-line">👤 {{ p.tutorName }} ({{ p.tutorPhone }})</p>
+              </div>
             </div>
-          </div>
-
-          <div class="diagnosis-box">
-            <span class="diag-label">Motivo de Ingreso:</span>
-            <p class="diag-text">{{ p.admissionReason }}</p>
-          </div>
-
-          <div class="vitals-row">
-            <div class="vital-item">
-              <span class="material-symbols-outlined">thermostat</span>
-              <span>{{ p.temperature }} °C</span>
+            <div class="diagnosis-box">
+              <span class="diag-label">Motivo de Ingreso:</span>
+              <p class="diag-text">{{ p.admissionReason }}</p>
             </div>
-            <div class="vital-item">
-              <span class="material-symbols-outlined">favorite</span>
-              <span>{{ p.heartRate }} lpm</span>
+            <div class="vitals-row">
+              <div class="vital-item">
+                <span class="material-symbols-outlined">thermostat</span>
+                <span>{{ p.temperature }} °C</span>
+              </div>
+              <div class="vital-item">
+                <span class="material-symbols-outlined">favorite</span>
+                <span>{{ p.heartRate }} lpm</span>
+              </div>
+              <div class="vital-item">
+                <span class="material-symbols-outlined">water_drop</span>
+                <span class="fluid-text" [title]="p.fluidTherapy">{{ p.fluidTherapy }}</span>
+              </div>
             </div>
-            <div class="vital-item">
-              <span class="material-symbols-outlined">water_drop</span>
-              <span class="fluid-text" [title]="p.fluidTherapy">{{ p.fluidTherapy }}</span>
-            </div>
-          </div>
-
-          <!-- Kardex Doses Mini-Checklist -->
-          <div class="kardex-mini">
-            <div class="kardex-title">
-              <span class="material-symbols-outlined">pill</span>
-              Kardex de Medicación Hoy
-            </div>
-
-            <div class="doses-list">
-              <div
-                *ngFor="let dose of p.medications"
-                class="dose-row"
-                [class.dose-done]="dose.applied"
-              >
-                <div class="dose-info">
-                  <span class="dose-time">{{ dose.timeSlot }}</span>
-                  <strong class="dose-drug">{{ dose.drugName }} ({{ dose.dose }} {{ dose.route }})</strong>
-                </div>
-
-                <button
-                  class="apply-btn"
-                  [disabled]="dose.applied"
-                  (click)="applyDose(p.id, dose.id, $event)"
-                >
-                  <span class="material-symbols-outlined">{{ dose.applied ? 'check_circle' : 'radio_button_unchecked' }}</span>
-                  {{ dose.applied ? 'Aplicada' : 'Administrar' }}
-                </button>
+            <!-- Kardex Doses Mini-Checklist -->
+            <div class="kardex-mini">
+              <div class="kardex-title">
+                <span class="material-symbols-outlined">pill</span>
+                Kardex de Medicación Hoy
+              </div>
+              <div class="doses-list">
+                @for (dose of p.medications; track dose) {
+                  <div class="dose-row" [class.dose-done]="dose.applied">
+                    <div class="dose-info">
+                      <span class="dose-time">{{ dose.timeSlot }}</span>
+                      <strong class="dose-drug"
+                        >{{ dose.drugName }} ({{ dose.dose }} {{ dose.route }})</strong
+                      >
+                    </div>
+                    <button
+                      class="apply-btn"
+                      [disabled]="dose.applied"
+                      (click)="applyDose(p.id, dose.id, $event)"
+                    >
+                      <span class="material-symbols-outlined">{{
+                        dose.applied ? 'check_circle' : 'radio_button_unchecked'
+                      }}</span>
+                      {{ dose.applied ? 'Aplicada' : 'Administrar' }}
+                    </button>
+                  </div>
+                }
               </div>
             </div>
           </div>
-        </div>
+        }
       </div>
     </div>
   `,
-  styles: [`
-    .hosp-page-container {
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-    }
-
-    .hosp-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      flex-wrap: wrap;
-      gap: 16px;
-    }
-
-    .badge-hosp {
-      display: inline-block;
-      background: #eff6ff;
-      color: #1d4ed8;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 4px 8px;
-      border-radius: 6px;
-      margin-bottom: 6px;
-    }
-
-    .page-title {
-      font-size: 24px;
-      font-weight: 700;
-      color: #0f172a;
-      margin: 0 0 4px;
-    }
-
-    .page-subtitle {
-      font-size: 13px;
-      color: #64748b;
-      margin: 0;
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 18px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      border: none;
-      transition: all 0.2s ease;
-    }
-
-    .btn-primary {
-      background: #2563eb;
-      color: #ffffff;
-      &:hover { background: #1d4ed8; }
-    }
-
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-    }
-
-    .kpi-card {
-      background: #ffffff;
-      border-radius: 12px;
-      padding: 16px;
-      border: 1px solid #e2e8f0;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .kpi-label {
-      font-size: 12px;
-      color: #64748b;
-      font-weight: 500;
-    }
-
-    .kpi-val {
-      font-size: 22px;
-      font-weight: 700;
-      color: #0f172a;
-      .sub-percent { font-size: 13px; font-weight: 400; color: #64748b; }
-      &.text-red { color: #dc2626; }
-      &.text-amber { color: #d97706; }
-      &.text-green { color: #16a34a; }
-    }
-
-    .hosp-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-      gap: 20px;
-    }
-
-    .cage-card {
-      background: #ffffff;
-      border-radius: 14px;
-      border: 1px solid #e2e8f0;
-      padding: 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-
-      &:hover {
-        border-color: #94a3b8;
-        transform: translateY(-2px);
+  styles: [
+    `
+      .hosp-page-container {
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
       }
 
-      &.critical-border {
-        border-left: 5px solid #dc2626;
+      .hosp-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 16px;
       }
 
-      &.selected-cage {
-        border-color: #2563eb;
-        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
-      }
-    }
-
-    .cage-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .cage-tag {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 13px;
-      color: #334155;
-      span { font-size: 18px; color: #64748b; }
-    }
-
-    .status-badge {
-      font-size: 11px;
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 10px;
-      &.critical { background: #fee2e2; color: #dc2626; }
-      &.stable { background: #dbeafe; color: #1d4ed8; }
-      &.observation { background: #fef3c7; color: #b45309; }
-      &.ready_for_discharge { background: #dcfce7; color: #15803d; }
-    }
-
-    .patient-core {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .pet-icon {
-      font-size: 28px;
-      width: 44px;
-      height: 44px;
-      background: #f1f5f9;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .pet-title {
-      margin: 0;
-      font-size: 16px;
-      font-weight: 700;
-      color: #0f172a;
-      .breed { font-size: 12px; font-weight: 400; color: #64748b; display: block; }
-    }
-
-    .tutor-line {
-      margin: 2px 0 0;
-      font-size: 12px;
-      color: #475569;
-    }
-
-    .diagnosis-box {
-      background: #f8fafc;
-      border-radius: 8px;
-      padding: 10px;
-    }
-
-    .diag-label {
-      font-size: 11px;
-      font-weight: 600;
-      color: #64748b;
-      display: block;
-    }
-
-    .diag-text {
-      margin: 2px 0 0;
-      font-size: 13px;
-      color: #1e293b;
-      font-weight: 500;
-    }
-
-    .vitals-row {
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      background: #f1f5f9;
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-size: 12px;
-      font-weight: 600;
-      color: #334155;
-    }
-
-    .vital-item {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      span.material-symbols-outlined { font-size: 16px; color: #64748b; }
-      .fluid-text {
-        max-width: 140px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-    }
-
-    .kardex-mini {
-      border-top: 1px solid #f1f5f9;
-      padding-top: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .kardex-title {
-      font-size: 12px;
-      font-weight: 700;
-      color: #0f172a;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      span { font-size: 16px; color: #2563eb; }
-    }
-
-    .doses-list {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .dose-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #f8fafc;
-      padding: 6px 10px;
-      border-radius: 6px;
-      border: 1px solid #e2e8f0;
-      font-size: 12px;
-
-      &.dose-done {
-        background: #f0fdf4;
-        border-color: #bbf7d0;
-        opacity: 0.8;
-      }
-    }
-
-    .dose-info {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .dose-time {
-      font-size: 10px;
-      font-weight: 700;
-      color: #64748b;
-    }
-
-    .dose-drug {
-      color: #0f172a;
-    }
-
-    .apply-btn {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 4px 8px;
-      border-radius: 6px;
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-      border: none;
-      background: #2563eb;
-      color: #ffffff;
-
-      &:disabled {
-        background: #dcfce7;
-        color: #15803d;
-        cursor: default;
+      .badge-hosp {
+        display: inline-block;
+        background: #eff6ff;
+        color: #1d4ed8;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 8px;
+        border-radius: 6px;
+        margin-bottom: 6px;
       }
 
-      span { font-size: 14px; }
-    }
-  `]
+      .page-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0 0 4px;
+      }
+
+      .page-subtitle {
+        font-size: 13px;
+        color: #64748b;
+        margin: 0;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s ease;
+      }
+
+      .btn-primary {
+        background: #2563eb;
+        color: #ffffff;
+        &:hover {
+          background: #1d4ed8;
+        }
+      }
+
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+      }
+
+      .kpi-card {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 16px;
+        border: 1px solid #e2e8f0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .kpi-label {
+        font-size: 12px;
+        color: #64748b;
+        font-weight: 500;
+      }
+
+      .kpi-val {
+        font-size: 22px;
+        font-weight: 700;
+        color: #0f172a;
+        .sub-percent {
+          font-size: 13px;
+          font-weight: 400;
+          color: #64748b;
+        }
+        &.text-red {
+          color: #dc2626;
+        }
+        &.text-amber {
+          color: #d97706;
+        }
+        &.text-green {
+          color: #16a34a;
+        }
+      }
+
+      .hosp-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+        gap: 20px;
+      }
+
+      .cage-card {
+        background: #ffffff;
+        border-radius: 14px;
+        border: 1px solid #e2e8f0;
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+
+        &:hover {
+          border-color: #94a3b8;
+          transform: translateY(-2px);
+        }
+
+        &.critical-border {
+          border-left: 5px solid #dc2626;
+        }
+
+        &.selected-cage {
+          border-color: #2563eb;
+          box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+        }
+      }
+
+      .cage-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .cage-tag {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: #334155;
+        span {
+          font-size: 18px;
+          color: #64748b;
+        }
+      }
+
+      .status-badge {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 10px;
+        &.critical {
+          background: #fee2e2;
+          color: #dc2626;
+        }
+        &.stable {
+          background: #dbeafe;
+          color: #1d4ed8;
+        }
+        &.observation {
+          background: #fef3c7;
+          color: #b45309;
+        }
+        &.ready_for_discharge {
+          background: #dcfce7;
+          color: #15803d;
+        }
+      }
+
+      .patient-core {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .pet-icon {
+        font-size: 28px;
+        width: 44px;
+        height: 44px;
+        background: #f1f5f9;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .pet-title {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: #0f172a;
+        .breed {
+          font-size: 12px;
+          font-weight: 400;
+          color: #64748b;
+          display: block;
+        }
+      }
+
+      .tutor-line {
+        margin: 2px 0 0;
+        font-size: 12px;
+        color: #475569;
+      }
+
+      .diagnosis-box {
+        background: #f8fafc;
+        border-radius: 8px;
+        padding: 10px;
+      }
+
+      .diag-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: #64748b;
+        display: block;
+      }
+
+      .diag-text {
+        margin: 2px 0 0;
+        font-size: 13px;
+        color: #1e293b;
+        font-weight: 500;
+      }
+
+      .vitals-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        background: #f1f5f9;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #334155;
+      }
+
+      .vital-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        span.material-symbols-outlined {
+          font-size: 16px;
+          color: #64748b;
+        }
+        .fluid-text {
+          max-width: 140px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+
+      .kardex-mini {
+        border-top: 1px solid #f1f5f9;
+        padding-top: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .kardex-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        span {
+          font-size: 16px;
+          color: #2563eb;
+        }
+      }
+
+      .doses-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .dose-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f8fafc;
+        padding: 6px 10px;
+        border-radius: 6px;
+        border: 1px solid #e2e8f0;
+        font-size: 12px;
+
+        &.dose-done {
+          background: #f0fdf4;
+          border-color: #bbf7d0;
+          opacity: 0.8;
+        }
+      }
+
+      .dose-info {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .dose-time {
+        font-size: 10px;
+        font-weight: 700;
+        color: #64748b;
+      }
+
+      .dose-drug {
+        color: #0f172a;
+      }
+
+      .apply-btn {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+        border: none;
+        background: #2563eb;
+        color: #ffffff;
+
+        &:disabled {
+          background: #dcfce7;
+          color: #15803d;
+          cursor: default;
+        }
+
+        span {
+          font-size: 14px;
+        }
+      }
+    `,
+  ],
 })
 export class HospitalizationKardexComponent implements OnInit {
   private hospitalizationService = inject(HospitalizationService);
@@ -439,9 +494,13 @@ export class HospitalizationKardexComponent implements OnInit {
 
   patients = signal<HospitalizedPatient[]>([]);
 
-  criticalCount = computed(() => this.patients().filter(p => p.status === 'critical').length);
-  observationCount = computed(() => this.patients().filter(p => p.status === 'admitted' || p.status === 'stable').length);
-  dischargeCount = computed(() => this.patients().filter(p => p.status === 'ready_for_discharge').length);
+  criticalCount = computed(() => this.patients().filter((p) => p.status === 'critical').length);
+  observationCount = computed(
+    () => this.patients().filter((p) => p.status === 'admitted' || p.status === 'stable').length,
+  );
+  dischargeCount = computed(
+    () => this.patients().filter((p) => p.status === 'ready_for_discharge').length,
+  );
 
   ngOnInit() {
     this.loadHospitalizations();
@@ -460,7 +519,7 @@ export class HospitalizationKardexComponent implements OnInit {
         this.patients.set([]);
         this.selectedPatient.set(null);
         this.isLoading.set(false);
-      }
+      },
     });
   }
 
@@ -470,53 +529,60 @@ export class HospitalizationKardexComponent implements OnInit {
 
   formatStatus(status: string): string {
     switch (status) {
-      case 'critical': return 'UCI / Crítico 🚨';
-      case 'stable': return 'Estable 🩺';
-      case 'observation': return 'En Observación 👁️';
-      case 'ready_for_discharge': return 'Alta Médica ✅';
-      default: return status;
+      case 'critical':
+        return 'UCI / Crítico 🚨';
+      case 'stable':
+        return 'Estable 🩺';
+      case 'observation':
+        return 'En Observación 👁️';
+      case 'ready_for_discharge':
+        return 'Alta Médica ✅';
+      default:
+        return status;
     }
   }
 
   applyDose(patientId: string, doseId: string, event: Event) {
     event.stopPropagation();
 
-    const patient = this.patients().find(p => p.id === patientId);
-    const med = patient?.medications.find(m => m.id === doseId);
+    const patient = this.patients().find((p) => p.id === patientId);
+    const med = patient?.medications.find((m) => m.id === doseId);
 
     if (patient && med && med.medicationId) {
-      this.hospitalizationService.administerDose(patient.id, {
-        medicationId: med.medicationId,
-        timeSlot: med.timeSlot,
-        deductStock: true
-      }).subscribe({
-        next: () => {
-          this.markLocalDoseApplied(patientId, doseId);
-        },
-        error: () => {
-          this.markLocalDoseApplied(patientId, doseId);
-        }
-      });
+      this.hospitalizationService
+        .administerDose(patient.id, {
+          medicationId: med.medicationId,
+          timeSlot: med.timeSlot,
+          deductStock: true,
+        })
+        .subscribe({
+          next: () => {
+            this.markLocalDoseApplied(patientId, doseId);
+          },
+          error: () => {
+            this.markLocalDoseApplied(patientId, doseId);
+          },
+        });
     } else {
       this.markLocalDoseApplied(patientId, doseId);
     }
   }
 
   private markLocalDoseApplied(patientId: string, doseId: string) {
-    this.patients.update(list =>
-      list.map(p => {
+    this.patients.update((list) =>
+      list.map((p) => {
         if (p.id === patientId) {
           return {
             ...p,
-            medications: p.medications.map(m =>
+            medications: p.medications.map((m) =>
               m.id === doseId
                 ? { ...m, applied: true, appliedAt: new Date(), appliedBy: 'Enfermería' }
-                : m
-            )
+                : m,
+            ),
           };
         }
         return p;
-      })
+      }),
     );
   }
 
@@ -525,18 +591,22 @@ export class HospitalizationKardexComponent implements OnInit {
   }
 
   dischargePatient(patient: HospitalizedPatient) {
-    if (!confirm(`¿Confirmar alta médica y liquidación de estancia para ${patient.patientName}?`)) return;
+    if (!confirm(`¿Confirmar alta médica y liquidación de estancia para ${patient.patientName}?`))
+      return;
 
-    this.hospitalizationService.dischargePatient(patient.id, {
-      dischargeSummary: 'Paciente compensado hemodinámicamente, dados de alta médica con tratamiento ambulatorio.'
-    }).subscribe({
-      next: (res) => {
-        alert(res.message || 'Paciente dado de alta médica con éxito.');
-        this.loadHospitalizations();
-      },
-      error: (err) => {
-        alert('Error al procesar alta médica.');
-      }
-    });
+    this.hospitalizationService
+      .dischargePatient(patient.id, {
+        dischargeSummary:
+          'Paciente compensado hemodinámicamente, dados de alta médica con tratamiento ambulatorio.',
+      })
+      .subscribe({
+        next: (res) => {
+          alert(res.message || 'Paciente dado de alta médica con éxito.');
+          this.loadHospitalizations();
+        },
+        error: (err) => {
+          alert('Error al procesar alta médica.');
+        },
+      });
   }
 }

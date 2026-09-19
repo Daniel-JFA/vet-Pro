@@ -43,4 +43,12 @@ describe('TokenService — aislamiento entre tipos de sesión', () => {
     const forged = jwt.sign({ ...staff }, 'otra-clave', { audience: 'vetpro:staff', issuer: 'vetpro' });
     expect(() => TokenService.verifyStaff(forged)).toThrow();
   });
+
+  it('un refresh token valida como refresh token y NO como staff ni tutor', () => {
+    const rf = TokenService.signRefreshToken({ id: 'u1', clinicId: 'c1' });
+    expect(TokenService.verifyRefreshToken(rf).id).toBe('u1');
+    expect(() => TokenService.verifyStaff(rf)).toThrow();
+    expect(() => TokenService.verifyTutorSession(rf)).toThrow();
+    expect(() => TokenService.verifyPlatform(rf)).toThrow();
+  });
 });

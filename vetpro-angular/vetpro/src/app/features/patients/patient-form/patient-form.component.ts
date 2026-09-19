@@ -1,5 +1,5 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterLink, Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { PatientService } from '../../../core/services/patient.service';
@@ -10,9 +10,9 @@ import { Patient, Tutor, Species, PatientStatus } from '../../../core/models';
 @Component({
   selector: 'app-patient-form',
   standalone: true,
-  imports: [CommonModule, RouterLink, ReactiveFormsModule],
+  imports: [RouterLink, ReactiveFormsModule],
   templateUrl: './patient-form.component.html',
-  styleUrl: './patient-form.component.scss'
+  styleUrl: './patient-form.component.scss',
 })
 export class PatientFormComponent implements OnInit {
   private fb = inject(FormBuilder);
@@ -51,13 +51,13 @@ export class PatientFormComponent implements OnInit {
     { value: 'horse', label: 'Caballo' },
     { value: 'cow', label: 'Vaca' },
     { value: 'pig', label: 'Cerdo' },
-    { value: 'other', label: 'Otro' }
+    { value: 'other', label: 'Otro' },
   ];
 
   statusOptions: { value: PatientStatus; label: string }[] = [
     { value: 'active', label: 'Activo' },
     { value: 'inactive', label: 'Inactivo' },
-    { value: 'deceased', label: 'Fallecido' }
+    { value: 'deceased', label: 'Fallecido' },
   ];
 
   // Simulación de carga de foto
@@ -86,7 +86,7 @@ export class PatientFormComponent implements OnInit {
       this.tutorForm.patchValue({
         firstName: firstName || '',
         lastName: rest.join(' '),
-        phone: prospectPhone || ''
+        phone: prospectPhone || '',
       });
     }
   }
@@ -105,7 +105,7 @@ export class PatientFormComponent implements OnInit {
       allergies: [''],
       notes: [''],
       status: ['active', Validators.required],
-      tutorId: ['', Validators.required]
+      tutorId: ['', Validators.required],
     });
 
     this.tutorForm = this.fb.group({
@@ -115,15 +115,16 @@ export class PatientFormComponent implements OnInit {
       phone: ['', [Validators.required, Validators.pattern(/^[0-9+() -]+$/)]],
       documentId: [''],
       address: [''],
-      notes: ['']
-    });  }
+      notes: [''],
+    });
+  }
 
   // El tutor ya existía: se usa ese en vez de crear uno duplicado
   useExistingTutor() {
     const existing = this.duplicateTutor();
     if (!existing) return;
-    if (!this.tutors().some(t => t.id === existing.id)) {
-      this.tutors.update(list => [...list, existing]);
+    if (!this.tutors().some((t) => t.id === existing.id)) {
+      this.tutors.update((list) => [...list, existing]);
     }
     this.duplicateTutor.set(null);
     this.setTutorMode('select');
@@ -141,10 +142,9 @@ export class PatientFormComponent implements OnInit {
     tutorIdCtrl?.updateValueAndValidity();
   }
 
-
   private loadTutors() {
     this.svc.getTutors({ pageSize: 500 }).subscribe({
-      next: res => {
+      next: (res) => {
         this.tutors.set(res.data);
         // Viene de "Agregar mascota" en la página de Tutores
         const preselected = this.route.snapshot.queryParamMap.get('tutorId');
@@ -152,14 +152,14 @@ export class PatientFormComponent implements OnInit {
       },
       error: () => {
         this.toast.error('No se pudo cargar el listado de tutores. Intenta recargar la página.');
-      }
+      },
     });
   }
 
   private loadPatient(id: string) {
     this.loading.set(true);
     this.svc.getPatient(id).subscribe({
-      next: p => {
+      next: (p) => {
         this.fillForm(p);
         this.loading.set(false);
       },
@@ -167,7 +167,7 @@ export class PatientFormComponent implements OnInit {
         this.loading.set(false);
         this.toast.error('No se pudo cargar la información del paciente a editar.');
         this.router.navigate(['/patients']);
-      }
+      },
     });
   }
 
@@ -185,7 +185,7 @@ export class PatientFormComponent implements OnInit {
       allergies: p.allergies,
       notes: p.notes,
       status: p.status,
-      tutorId: p.tutorId
+      tutorId: p.tutorId,
     });
     this.previewPhotoUrl.set(p.photoUrl || null);
   }
@@ -213,7 +213,7 @@ export class PatientFormComponent implements OnInit {
         this.uploadingPhoto.set(false);
         this.toast.error(err?.error?.error || 'No se pudo subir la foto. Intenta de nuevo.');
         input.value = '';
-      }
+      },
     });
   }
 
@@ -227,7 +227,12 @@ export class PatientFormComponent implements OnInit {
       this.markAllAsTouched(this.form);
       return;
     }
-    if (this.tutorMode() === 'new' && (this.tutorForm.invalid || this.form.get('name')?.invalid || this.form.get('species')?.invalid)) {
+    if (
+      this.tutorMode() === 'new' &&
+      (this.tutorForm.invalid ||
+        this.form.get('name')?.invalid ||
+        this.form.get('species')?.invalid)
+    ) {
       this.markAllAsTouched(this.form);
       this.markAllAsTouched(this.tutorForm);
       return;
@@ -249,7 +254,7 @@ export class PatientFormComponent implements OnInit {
             return;
           }
           this.toast.error('No se pudo registrar el tutor. Verifica los datos e intenta de nuevo.');
-        }
+        },
       });
     } else {
       this.savePatient({ ...this.form.value });
@@ -266,8 +271,10 @@ export class PatientFormComponent implements OnInit {
         },
         error: () => {
           this.submitting.set(false);
-          this.toast.error('No se pudo actualizar el paciente. Verifica los datos e intenta de nuevo.');
-        }
+          this.toast.error(
+            'No se pudo actualizar el paciente. Verifica los datos e intenta de nuevo.',
+          );
+        },
       });
     } else {
       this.svc.createPatient(patientData).subscribe({
@@ -278,8 +285,10 @@ export class PatientFormComponent implements OnInit {
         },
         error: () => {
           this.submitting.set(false);
-          this.toast.error('No se pudo registrar el paciente. Verifica los datos e intenta de nuevo.');
-        }
+          this.toast.error(
+            'No se pudo registrar el paciente. Verifica los datos e intenta de nuevo.',
+          );
+        },
       });
     }
   }
@@ -290,13 +299,14 @@ export class PatientFormComponent implements OnInit {
     const returnAppointmentId = this.route.snapshot.queryParamMap.get('returnAppointmentId');
     if (returnAppointmentId) {
       this.appointmentSvc.linkPatient(returnAppointmentId, patient.id).subscribe({
-        next: () => this.router.navigate(['/medical-records', 'new', patient.id], {
-          queryParams: { appointmentId: returnAppointmentId }
-        }),
+        next: () =>
+          this.router.navigate(['/medical-records', 'new', patient.id], {
+            queryParams: { appointmentId: returnAppointmentId },
+          }),
         error: () => {
           this.toast.error('El paciente se creó, pero no se pudo vincular a la cita.');
           this.router.navigate(['/appointments/calendar']);
-        }
+        },
       });
     } else {
       this.router.navigate(['/patients']);
@@ -304,7 +314,7 @@ export class PatientFormComponent implements OnInit {
   }
 
   private markAllAsTouched(fg: FormGroup) {
-    Object.values(fg.controls).forEach(control => {
+    Object.values(fg.controls).forEach((control) => {
       control.markAsTouched();
       if ((control as any).controls) {
         this.markAllAsTouched(control as FormGroup);

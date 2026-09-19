@@ -7,6 +7,7 @@ const ISSUER = 'vetpro';
 
 const AUDIENCE = {
   staff: 'vetpro:staff',
+  refresh: 'vetpro:refresh',
   tutor: 'vetpro:tutor',
   tutorMagicLink: 'vetpro:tutor-magic-link',
   platform: 'vetpro:platform'
@@ -30,6 +31,11 @@ export interface StaffTokenPayload {
   branchId?: string | null;
 }
 
+export interface RefreshTokenPayload {
+  id: string;
+  clinicId: string;
+}
+
 export interface TutorTokenPayload {
   id: string;
   phone: string;
@@ -44,8 +50,11 @@ export interface PlatformTokenPayload {
 }
 
 export const TokenService = {
-  signStaff: (payload: StaffTokenPayload) => sign(payload, AUDIENCE.staff, '7d'),
+  signStaff: (payload: StaffTokenPayload) => sign(payload, AUDIENCE.staff, '15m'),
   verifyStaff: (token: string) => verify<StaffTokenPayload>(token, AUDIENCE.staff),
+
+  signRefreshToken: (payload: RefreshTokenPayload) => sign(payload, AUDIENCE.refresh, '7d'),
+  verifyRefreshToken: (token: string) => verify<RefreshTokenPayload>(token, AUDIENCE.refresh),
 
   signTutorMagicLink: (payload: TutorTokenPayload) => sign(payload, AUDIENCE.tutorMagicLink, '1h'),
   verifyTutorMagicLink: (token: string) => verify<TutorTokenPayload>(token, AUDIENCE.tutorMagicLink),

@@ -1,4 +1,5 @@
 import express from 'express';
+import cookieParser from 'cookie-parser';
 import path from 'path';
 import cors from 'cors';
 import { httpLogger } from './utils/logger.js';
@@ -78,6 +79,7 @@ app.use(
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cookieParser());
 
 // Archivos subidos (fotos de mascotas, etc.) — montados en un volumen persistente.
 // Se sirven bajo /api/uploads (no /uploads) porque Traefik solo enruta

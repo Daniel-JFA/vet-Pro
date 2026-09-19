@@ -1,14 +1,22 @@
-import { Component, inject, signal, ElementRef, ViewChild, AfterViewInit, HostListener } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import {
+  Component,
+  inject,
+  signal,
+  ElementRef,
+  ViewChild,
+  AfterViewInit,
+  HostListener,
+} from '@angular/core';
+
 import { ActivatedRoute } from '@angular/router';
 import { ConsentService } from '../../../core/services/consent.service';
 
 @Component({
   selector: 'app-consent-sign',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './consent-sign.component.html',
-  styleUrl: './consent-sign.component.scss'
+  styleUrl: './consent-sign.component.scss',
 })
 export class ConsentSignComponent implements AfterViewInit {
   private route = inject(ActivatedRoute);
@@ -59,16 +67,16 @@ export class ConsentSignComponent implements AfterViewInit {
         this.loadError.set(
           err?.status === 404
             ? 'Este enlace no es válido o el documento ya no existe.'
-            : 'No se pudo cargar el documento de consentimiento. Verifica tu conexión e intenta de nuevo, o contacta a la clínica.'
+            : 'No se pudo cargar el documento de consentimiento. Verifica tu conexión e intenta de nuevo, o contacta a la clínica.',
         );
-      }
+      },
     });
   }
 
   initCanvas() {
     if (!this.canvasRef) return;
     const canvas = this.canvasRef.nativeElement;
-    
+
     // Configurar dimensiones reales para pantallas retina/HD
     const rect = canvas.getBoundingClientRect();
     canvas.width = rect.width;
@@ -134,12 +142,12 @@ export class ConsentSignComponent implements AfterViewInit {
   }
 
   // OBTENER COORDENADAS RELATIVAS AL CANVAS
-  private getCoords(e: any): { x: number, y: number } {
+  private getCoords(e: any): { x: number; y: number } {
     const canvas = this.canvasRef.nativeElement;
     const rect = canvas.getBoundingClientRect();
     return {
       x: e.clientX - rect.left,
-      y: e.clientY - rect.top
+      y: e.clientY - rect.top,
     };
   }
 
@@ -149,7 +157,7 @@ export class ConsentSignComponent implements AfterViewInit {
     this.ctx.moveTo(this.lastX, this.lastY);
     this.ctx.lineTo(x, y);
     this.ctx.stroke();
-    
+
     this.lastX = x;
     this.lastY = y;
   }
@@ -174,13 +182,17 @@ export class ConsentSignComponent implements AfterViewInit {
       next: (res) => {
         this.submitting.set(false);
         this.signedSuccess.set(true);
-        this.consent.update(curr => curr ? { ...curr, signed: true, signature: signatureBase64 } : null);
+        this.consent.update((curr) =>
+          curr ? { ...curr, signed: true, signature: signatureBase64 } : null,
+        );
       },
       error: (err) => {
         console.error('[ConsentSign] No se pudo registrar la firma:', err);
         this.submitting.set(false);
-        this.submitError.set('No se pudo registrar tu firma. Verifica tu conexión e intenta de nuevo.');
-      }
+        this.submitError.set(
+          'No se pudo registrar tu firma. Verifica tu conexión e intenta de nuevo.',
+        );
+      },
     });
   }
 }

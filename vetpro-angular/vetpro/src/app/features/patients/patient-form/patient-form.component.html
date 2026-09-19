@@ -1,284 +1,353 @@
 <div class="form-page">
-  <div class="loading-overlay" *ngIf="loading()">
-    <div class="spinner"></div>
-  </div>
-
-  <form *ngIf="!loading()" (ngSubmit)="submit()" class="form-grid">
-    <!-- Cabecera del Formulario -->
-    <header class="form-header">
-      <div class="header-left">
-        <a routerLink="/patients" class="btn-back">
-          <span class="material-symbols-outlined">arrow_back</span>
-        </a>
-        <div>
-          <h1 class="page-title">{{ isEditMode() ? 'Editar Paciente' : 'Nuevo Paciente' }}</h1>
-          <p class="page-subtitle">
-            {{ isEditMode() ? 'Modifica los datos del expediente de la mascota.' : 'Ingresa una nueva mascota en el sistema.' }}
-          </p>
-        </div>
-      </div>
-      <div class="header-actions">
-        <a routerLink="/patients" class="btn btn-ghost">Cancelar</a>
-        <button type="submit" class="btn btn-primary" [disabled]="submitting()">
-          <span class="material-symbols-outlined" *ngIf="!submitting()">save</span>
-          {{ submitting() ? 'Guardando...' : 'Guardar Expediente' }}
-        </button>
-      </div>
-    </header>
-
-    <!-- Contenido Principal -->
-    <div class="main-column" [formGroup]="form">
-      <!-- Sección: Datos de la Mascota -->
-      <div class="card form-section">
-        <div class="section-title">
-          <span class="material-symbols-outlined section-icon">pets</span>
-          <h2>Datos de la Mascota</h2>
-        </div>
-
-        <div class="fields-row fields-row-3">
-          <!-- Nombre -->
-          <div class="field" [class.error]="form.get('name')?.invalid && form.get('name')?.touched">
-            <label>Nombre de la Mascota *</label>
-            <input type="text" formControlName="name" placeholder="Ej. Toby, Luna..." />
-            <span class="error-msg" *ngIf="form.get('name')?.invalid && form.get('name')?.touched">
-              El nombre es obligatorio (mín. 2 caracteres).
-            </span>
-          </div>
-
-          <!-- Especie -->
-          <div class="field">
-            <label>Especie *</label>
-            <select formControlName="species">
-              <option *ngFor="let opt of speciesOptions" [value]="opt.value">{{ opt.label }}</option>
-            </select>
-          </div>
-
-          <!-- Sexo -->
-          <div class="field">
-            <label>Sexo *</label>
-            <div class="radio-group">
-              <label class="radio-label">
-                <input type="radio" formControlName="sex" value="male" />
-                <span>Macho</span>
-              </label>
-              <label class="radio-label">
-                <input type="radio" formControlName="sex" value="female" />
-                <span>Hembra</span>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div class="fields-row fields-row-3">
-          <!-- Raza -->
-          <div class="field">
-            <label>Raza</label>
-            <input type="text" formControlName="breed" placeholder="Ej. Golden, Criollo..." />
-          </div>
-
-          <!-- Fecha de Nacimiento -->
-          <div class="field">
-            <label>Fecha de Nacimiento</label>
-            <input type="date" formControlName="birthDate" />
-          </div>
-
-          <!-- Peso -->
-          <div class="field" [class.error]="form.get('weight')?.invalid && form.get('weight')?.touched">
-            <label>Peso (kg)</label>
-            <input type="number" formControlName="weight" step="0.1" placeholder="Ej. 12.5" />
-            <span class="error-msg" *ngIf="form.get('weight')?.invalid && form.get('weight')?.touched">
-              El peso debe ser mayor o igual a 0.
-            </span>
-          </div>
-        </div>
-
-        <div class="fields-row fields-row-3">
-          <!-- Chip -->
-          <div class="field">
-            <label>Número de Microchip (RFID)</label>
-            <input type="text" formControlName="chipId" placeholder="Ej. 98511200..." />
-          </div>
-
-          <!-- Estado -->
-          <div class="field">
-            <label>Estado del Paciente *</label>
-            <select formControlName="status">
-              <option *ngFor="let opt of statusOptions" [value]="opt.value">{{ opt.label }}</option>
-            </select>
-          </div>
-
-          <!-- Esterilizado -->
-          <div class="field field-checkbox">
-            <label class="checkbox-container">
-              <input type="checkbox" formControlName="sterilized" />
-              <span class="checkmark"></span>
-              <span class="checkbox-text">¿Está castrado / esterilizado?</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="fields-row">
-          <!-- Alergias -->
-          <div class="field">
-            <label>Alergias o Alertas Médicas</label>
-            <textarea formControlName="allergies" rows="2" placeholder="Ej. Alergia a la penicilina, sensible de estómago..."></textarea>
-          </div>
-        </div>
-
-        <div class="fields-row">
-          <!-- Notas -->
-          <div class="field">
-            <label>Notas adicionales</label>
-            <textarea formControlName="notes" rows="3" placeholder="Comportamiento, condiciones previas o indicaciones especiales..."></textarea>
-          </div>
-        </div>
-      </div>
+  @if (loading()) {
+    <div class="loading-overlay">
+      <div class="spinner"></div>
     </div>
+  }
 
-    <!-- Columna Lateral -->
-    <div class="side-column">
-      <!-- Sección: Foto de la Mascota -->
-      <div class="card photo-section">
-        <div class="section-title">
-          <span class="material-symbols-outlined section-icon">photo_camera</span>
-          <h2>Foto de Perfil</h2>
-        </div>
-
-        <div class="photo-uploader" *ngIf="isEditMode(); else photoDisabledHint">
-          <div class="photo-preview" *ngIf="previewPhotoUrl()">
-            <img [src]="previewPhotoUrl()" alt="Mascota" />
+  @if (!loading()) {
+    <form (ngSubmit)="submit()" class="form-grid">
+      <!-- Cabecera del Formulario -->
+      <header class="form-header">
+        <div class="header-left">
+          <a routerLink="/patients" class="btn-back">
+            <span class="material-symbols-outlined">arrow_back</span>
+          </a>
+          <div>
+            <h1 class="page-title">{{ isEditMode() ? 'Editar Paciente' : 'Nuevo Paciente' }}</h1>
+            <p class="page-subtitle">
+              {{
+                isEditMode()
+                  ? 'Modifica los datos del expediente de la mascota.'
+                  : 'Ingresa una nueva mascota en el sistema.'
+              }}
+            </p>
           </div>
-          <div class="photo-placeholder" *ngIf="!previewPhotoUrl()">
-            <span class="material-symbols-outlined">pets</span>
-            <p>Sin foto cargada</p>
-          </div>
-
-          <input #photoInput type="file" accept="image/jpeg,image/png,image/webp" (change)="onPhotoSelected($event)" hidden />
-          <button type="button" class="btn btn-ghost btn-photo-upload" (click)="photoInput.click()" [disabled]="uploadingPhoto()">
-            <span class="material-symbols-outlined">upload_file</span>
-            {{ uploadingPhoto() ? 'Subiendo...' : 'Subir Foto' }}
-          </button>
-          <p class="photo-hint">JPG, PNG o WEBP — máximo 5MB.</p>
         </div>
-
-        <ng-template #photoDisabledHint>
-          <div class="photo-placeholder">
-            <span class="material-symbols-outlined">pets</span>
-            <p>Guarda la mascota primero para poder subirle una foto.</p>
-          </div>
-        </ng-template>
-      </div>
-
-      <!-- Sección: Tutor de la Mascota -->
-      <div class="card tutor-section">
-        <div class="section-title">
-          <span class="material-symbols-outlined section-icon">person</span>
-          <h2>Información del Tutor</h2>
-        </div>
-
-        <!-- Barra de pestañas del modo Tutor -->
-        <div class="tutor-mode-tabs" *ngIf="!isEditMode()">
-          <button 
-            type="button" 
-            class="tab-btn" 
-            [class.active]="tutorMode() === 'select'"
-            (click)="setTutorMode('select')"
-          >
-            Buscar Existente
-          </button>
-          <button 
-            type="button" 
-            class="tab-btn" 
-            [class.active]="tutorMode() === 'new'"
-            (click)="setTutorMode('new')"
-          >
-            Registrar Nuevo
+        <div class="header-actions">
+          <a routerLink="/patients" class="btn btn-ghost">Cancelar</a>
+          <button type="submit" class="btn btn-primary" [disabled]="submitting()">
+            @if (!submitting()) {
+              <span class="material-symbols-outlined">save</span>
+            }
+            {{ submitting() ? 'Guardando...' : 'Guardar Expediente' }}
           </button>
         </div>
-
-        <!-- Caso A: Seleccionar tutor existente -->
-        <div class="tutor-select-container" *ngIf="tutorMode() === 'select' || isEditMode()" [formGroup]="form">
-          <div class="field" [class.error]="form.get('tutorId')?.invalid && form.get('tutorId')?.touched">
-            <label>Selecciona el Tutor *</label>
-            <select formControlName="tutorId">
-              <option value="" disabled selected>-- Elegir Tutor --</option>
-              <option *ngFor="let t of tutors()" [value]="t.id">
-                {{ t.firstName }} {{ t.lastName }} (Tel: {{ t.phone }})
-              </option>
-            </select>
-            <span class="error-msg" *ngIf="form.get('tutorId')?.invalid && form.get('tutorId')?.touched">
-              Debe seleccionar un tutor para la mascota.
-            </span>
+      </header>
+      <!-- Contenido Principal -->
+      <div class="main-column" [formGroup]="form">
+        <!-- Sección: Datos de la Mascota -->
+        <div class="card form-section">
+          <div class="section-title">
+            <span class="material-symbols-outlined section-icon">pets</span>
+            <h2>Datos de la Mascota</h2>
           </div>
-
-          <div class="selected-tutor-preview" *ngIf="form.get('tutorId')?.value">
-            <p class="tutor-preview-title">Detalles del Tutor:</p>
-            <div class="tutor-info-box" *ngFor="let t of tutors()">
-              <ng-container *ngIf="t.id === form.get('tutorId')?.value">
-                <div class="info-row">
-                  <span class="material-symbols-outlined">badge</span>
-                  <span>CC/NIT: {{ t.documentId || '--' }}</span>
-                </div>
-                <div class="info-row">
-                  <span class="material-symbols-outlined">call</span>
-                  <span>{{ t.phone }}</span>
-                </div>
-                <div class="info-row" *ngIf="t.email">
-                  <span class="material-symbols-outlined">mail</span>
-                  <span>{{ t.email }}</span>
-                </div>
-              </ng-container>
+          <div class="fields-row fields-row-3">
+            <!-- Nombre -->
+            <div
+              class="field"
+              [class.error]="form.get('name')?.invalid && form.get('name')?.touched"
+            >
+              <label>Nombre de la Mascota *</label>
+              <input type="text" formControlName="name" placeholder="Ej. Toby, Luna..." />
+              @if (form.get('name')?.invalid && form.get('name')?.touched) {
+                <span class="error-msg"> El nombre es obligatorio (mín. 2 caracteres). </span>
+              }
+            </div>
+            <!-- Especie -->
+            <div class="field">
+              <label>Especie *</label>
+              <select formControlName="species">
+                @for (opt of speciesOptions; track opt) {
+                  <option [value]="opt.value">{{ opt.label }}</option>
+                }
+              </select>
+            </div>
+            <!-- Sexo -->
+            <div class="field">
+              <label>Sexo *</label>
+              <div class="radio-group">
+                <label class="radio-label">
+                  <input type="radio" formControlName="sex" value="male" />
+                  <span>Macho</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" formControlName="sex" value="female" />
+                  <span>Hembra</span>
+                </label>
+              </div>
             </div>
           </div>
-        </div>
-
-        <!-- Caso B: Registrar nuevo tutor inline -->
-        <div class="tutor-new-container" *ngIf="tutorMode() === 'new' && !isEditMode()" [formGroup]="tutorForm">
-          <div class="duplicate-tutor-alert" *ngIf="duplicateTutor() as dup" role="alert">
-            <p>
-              <strong>Ya existe un tutor con estos datos:</strong>
-              {{ dup.firstName }} {{ dup.lastName }} — Tel: {{ dup.phone }}
-            </p>
-            <div class="duplicate-actions">
-              <button type="button" class="btn btn-primary" (click)="useExistingTutor()">Usar este tutor</button>
-              <button type="button" class="btn btn-secondary" (click)="submit(true)" [disabled]="submitting()">Es otra persona, crear de todas formas</button>
+          <div class="fields-row fields-row-3">
+            <!-- Raza -->
+            <div class="field">
+              <label>Raza</label>
+              <input type="text" formControlName="breed" placeholder="Ej. Golden, Criollo..." />
+            </div>
+            <!-- Fecha de Nacimiento -->
+            <div class="field">
+              <label>Fecha de Nacimiento</label>
+              <input type="date" formControlName="birthDate" />
+            </div>
+            <!-- Peso -->
+            <div
+              class="field"
+              [class.error]="form.get('weight')?.invalid && form.get('weight')?.touched"
+            >
+              <label>Peso (kg)</label>
+              <input type="number" formControlName="weight" step="0.1" placeholder="Ej. 12.5" />
+              @if (form.get('weight')?.invalid && form.get('weight')?.touched) {
+                <span class="error-msg"> El peso debe ser mayor o igual a 0. </span>
+              }
+            </div>
+          </div>
+          <div class="fields-row fields-row-3">
+            <!-- Chip -->
+            <div class="field">
+              <label>Número de Microchip (RFID)</label>
+              <input type="text" formControlName="chipId" placeholder="Ej. 98511200..." />
+            </div>
+            <!-- Estado -->
+            <div class="field">
+              <label>Estado del Paciente *</label>
+              <select formControlName="status">
+                @for (opt of statusOptions; track opt) {
+                  <option [value]="opt.value">{{ opt.label }}</option>
+                }
+              </select>
+            </div>
+            <!-- Esterilizado -->
+            <div class="field field-checkbox">
+              <label class="checkbox-container">
+                <input type="checkbox" formControlName="sterilized" />
+                <span class="checkmark"></span>
+                <span class="checkbox-text">¿Está castrado / esterilizado?</span>
+              </label>
             </div>
           </div>
           <div class="fields-row">
-            <div class="field" [class.error]="tutorForm.get('firstName')?.invalid && tutorForm.get('firstName')?.touched">
-              <label>Nombre *</label>
-              <input type="text" formControlName="firstName" placeholder="Nombre" />
+            <!-- Alergias -->
+            <div class="field">
+              <label>Alergias o Alertas Médicas</label>
+              <textarea
+                formControlName="allergies"
+                rows="2"
+                placeholder="Ej. Alergia a la penicilina, sensible de estómago..."
+              ></textarea>
             </div>
-            <div class="field" [class.error]="tutorForm.get('lastName')?.invalid && tutorForm.get('lastName')?.touched">
-              <label>Apellidos *</label>
-              <input type="text" formControlName="lastName" placeholder="Apellidos" />
+          </div>
+          <div class="fields-row">
+            <!-- Notas -->
+            <div class="field">
+              <label>Notas adicionales</label>
+              <textarea
+                formControlName="notes"
+                rows="3"
+                placeholder="Comportamiento, condiciones previas o indicaciones especiales..."
+              ></textarea>
             </div>
-          </div>
-
-          <div class="field" [class.error]="tutorForm.get('phone')?.invalid && tutorForm.get('phone')?.touched">
-            <label>Teléfono de Contacto *</label>
-            <input type="text" formControlName="phone" placeholder="Ej. 3124567890" />
-            <span class="error-msg" *ngIf="tutorForm.get('phone')?.invalid && tutorForm.get('phone')?.touched">
-              El teléfono es obligatorio (solo números, símbolos y espacios).
-            </span>
-          </div>
-
-          <div class="field" [class.error]="tutorForm.get('email')?.invalid && tutorForm.get('email')?.touched">
-            <label>Correo electrónico</label>
-            <input type="email" formControlName="email" placeholder="ejemplo@correo.com" />
-          </div>
-
-          <div class="field">
-            <label>Documento de Identidad (CC/NIT)</label>
-            <input type="text" formControlName="documentId" placeholder="Ej. 1018234..." />
-          </div>
-
-          <div class="field">
-            <label>Dirección</label>
-            <input type="text" formControlName="address" placeholder="Calle, Carrera, Ciudad..." />
           </div>
         </div>
       </div>
-    </div>
-  </form>
+      <!-- Columna Lateral -->
+      <div class="side-column">
+        <!-- Sección: Foto de la Mascota -->
+        <div class="card photo-section">
+          <div class="section-title">
+            <span class="material-symbols-outlined section-icon">photo_camera</span>
+            <h2>Foto de Perfil</h2>
+          </div>
+          @if (isEditMode()) {
+            <div class="photo-uploader">
+              @if (previewPhotoUrl()) {
+                <div class="photo-preview">
+                  <img [src]="previewPhotoUrl()" alt="Mascota" />
+                </div>
+              }
+              @if (!previewPhotoUrl()) {
+                <div class="photo-placeholder">
+                  <span class="material-symbols-outlined">pets</span>
+                  <p>Sin foto cargada</p>
+                </div>
+              }
+              <input
+                #photoInput
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                (change)="onPhotoSelected($event)"
+                hidden
+              />
+              <button
+                type="button"
+                class="btn btn-ghost btn-photo-upload"
+                (click)="photoInput.click()"
+                [disabled]="uploadingPhoto()"
+              >
+                <span class="material-symbols-outlined">upload_file</span>
+                {{ uploadingPhoto() ? 'Subiendo...' : 'Subir Foto' }}
+              </button>
+              <p class="photo-hint">JPG, PNG o WEBP — máximo 5MB.</p>
+            </div>
+          } @else {
+            <div class="photo-placeholder">
+              <span class="material-symbols-outlined">pets</span>
+              <p>Guarda la mascota primero para poder subirle una foto.</p>
+            </div>
+          }
+        </div>
+        <!-- Sección: Tutor de la Mascota -->
+        <div class="card tutor-section">
+          <div class="section-title">
+            <span class="material-symbols-outlined section-icon">person</span>
+            <h2>Información del Tutor</h2>
+          </div>
+          <!-- Barra de pestañas del modo Tutor -->
+          @if (!isEditMode()) {
+            <div class="tutor-mode-tabs">
+              <button
+                type="button"
+                class="tab-btn"
+                [class.active]="tutorMode() === 'select'"
+                (click)="setTutorMode('select')"
+              >
+                Buscar Existente
+              </button>
+              <button
+                type="button"
+                class="tab-btn"
+                [class.active]="tutorMode() === 'new'"
+                (click)="setTutorMode('new')"
+              >
+                Registrar Nuevo
+              </button>
+            </div>
+          }
+          <!-- Caso A: Seleccionar tutor existente -->
+          @if (tutorMode() === 'select' || isEditMode()) {
+            <div class="tutor-select-container" [formGroup]="form">
+              <div
+                class="field"
+                [class.error]="form.get('tutorId')?.invalid && form.get('tutorId')?.touched"
+              >
+                <label>Selecciona el Tutor *</label>
+                <select formControlName="tutorId">
+                  <option value="" disabled selected>-- Elegir Tutor --</option>
+                  @for (t of tutors(); track t) {
+                    <option [value]="t.id">
+                      {{ t.firstName }} {{ t.lastName }} (Tel: {{ t.phone }})
+                    </option>
+                  }
+                </select>
+                @if (form.get('tutorId')?.invalid && form.get('tutorId')?.touched) {
+                  <span class="error-msg"> Debe seleccionar un tutor para la mascota. </span>
+                }
+              </div>
+              @if (form.get('tutorId')?.value) {
+                <div class="selected-tutor-preview">
+                  <p class="tutor-preview-title">Detalles del Tutor:</p>
+                  @for (t of tutors(); track t) {
+                    <div class="tutor-info-box">
+                      @if (t.id === form.get('tutorId')?.value) {
+                        <div class="info-row">
+                          <span class="material-symbols-outlined">badge</span>
+                          <span>CC/NIT: {{ t.documentId || '--' }}</span>
+                        </div>
+                        <div class="info-row">
+                          <span class="material-symbols-outlined">call</span>
+                          <span>{{ t.phone }}</span>
+                        </div>
+                        @if (t.email) {
+                          <div class="info-row">
+                            <span class="material-symbols-outlined">mail</span>
+                            <span>{{ t.email }}</span>
+                          </div>
+                        }
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+          <!-- Caso B: Registrar nuevo tutor inline -->
+          @if (tutorMode() === 'new' && !isEditMode()) {
+            <div class="tutor-new-container" [formGroup]="tutorForm">
+              @if (duplicateTutor(); as dup) {
+                <div class="duplicate-tutor-alert" role="alert">
+                  <p>
+                    <strong>Ya existe un tutor con estos datos:</strong>
+                    {{ dup.firstName }} {{ dup.lastName }} — Tel: {{ dup.phone }}
+                  </p>
+                  <div class="duplicate-actions">
+                    <button type="button" class="btn btn-primary" (click)="useExistingTutor()">
+                      Usar este tutor
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-secondary"
+                      (click)="submit(true)"
+                      [disabled]="submitting()"
+                    >
+                      Es otra persona, crear de todas formas
+                    </button>
+                  </div>
+                </div>
+              }
+              <div class="fields-row">
+                <div
+                  class="field"
+                  [class.error]="
+                    tutorForm.get('firstName')?.invalid && tutorForm.get('firstName')?.touched
+                  "
+                >
+                  <label>Nombre *</label>
+                  <input type="text" formControlName="firstName" placeholder="Nombre" />
+                </div>
+                <div
+                  class="field"
+                  [class.error]="
+                    tutorForm.get('lastName')?.invalid && tutorForm.get('lastName')?.touched
+                  "
+                >
+                  <label>Apellidos *</label>
+                  <input type="text" formControlName="lastName" placeholder="Apellidos" />
+                </div>
+              </div>
+              <div
+                class="field"
+                [class.error]="tutorForm.get('phone')?.invalid && tutorForm.get('phone')?.touched"
+              >
+                <label>Teléfono de Contacto *</label>
+                <input type="text" formControlName="phone" placeholder="Ej. 3124567890" />
+                @if (tutorForm.get('phone')?.invalid && tutorForm.get('phone')?.touched) {
+                  <span class="error-msg">
+                    El teléfono es obligatorio (solo números, símbolos y espacios).
+                  </span>
+                }
+              </div>
+              <div
+                class="field"
+                [class.error]="tutorForm.get('email')?.invalid && tutorForm.get('email')?.touched"
+              >
+                <label>Correo electrónico</label>
+                <input type="email" formControlName="email" placeholder="ejemplo@correo.com" />
+              </div>
+              <div class="field">
+                <label>Documento de Identidad (CC/NIT)</label>
+                <input type="text" formControlName="documentId" placeholder="Ej. 1018234..." />
+              </div>
+              <div class="field">
+                <label>Dirección</label>
+                <input
+                  type="text"
+                  formControlName="address"
+                  placeholder="Calle, Carrera, Ciudad..."
+                />
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </form>
+  }
 </div>
