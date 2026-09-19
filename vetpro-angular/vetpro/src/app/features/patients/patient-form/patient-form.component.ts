@@ -116,6 +116,7 @@ export class PatientFormComponent implements OnInit {
       documentId: [''],
       address: [''],
       notes: [''],
+      dataProcessingConsent: [true, [Validators.requiredTrue]],
     });
   }
 

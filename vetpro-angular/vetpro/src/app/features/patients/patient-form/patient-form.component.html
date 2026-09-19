@@ -344,6 +344,19 @@
                   placeholder="Calle, Carrera, Ciudad..."
                 />
               </div>
+              <div class="field consent-checkbox-field" style="margin-top: 12px;">
+                <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: 12px; line-height: 1.4; color: var(--text-color, #475569);">
+                  <input type="checkbox" formControlName="dataProcessingConsent" style="margin-top: 2px;" />
+                  <span>
+                    El tutor autoriza expresamente el tratamiento de sus datos personales para fines de contacto, recordatorios de citas y facturación clínica (Ley 1581 de 2012).
+                  </span>
+                </label>
+                @if (tutorForm.get('dataProcessingConsent')?.invalid && tutorForm.get('dataProcessingConsent')?.touched) {
+                  <span class="error-msg" style="color: var(--red-500, #ef4444); font-size: 11px; margin-top: 4px; display: block;">
+                    Debe contar con la autorización del tutor para registrar sus datos.
+                  </span>
+                }
+              </div>
             </div>
           }
         </div>

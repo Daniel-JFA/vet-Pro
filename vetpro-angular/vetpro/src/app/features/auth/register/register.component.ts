@@ -159,6 +159,21 @@ import { PrivacyModalComponent } from '../../../shared/components/privacy-modal/
             </div>
           }
 
+          <div class="consent-checkbox-field">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="dataProcessingConsent" />
+              <span>
+                Autorizo de manera previa, expresa e informada el tratamiento de mis datos personales de conformidad con la
+                <a href="javascript:void(0)" (click)="isPrivacyOpen.set(true)"
+                  >Política de Privacidad y Tratamiento de Datos (Ley 1581 de 2012)</a
+                >.
+              </span>
+            </label>
+            @if (form.get('dataProcessingConsent')?.invalid && form.get('dataProcessingConsent')?.touched) {
+              <span class="error-msg">Debe autorizar el tratamiento de datos para continuar.</span>
+            }
+          </div>
+
           <button type="submit" class="btn-register" [disabled]="loading() || form.invalid">
             {{ loading() ? 'Creando cuenta…' : 'Comenzar Ahora' }}
           </button>
@@ -169,13 +184,6 @@ import { PrivacyModalComponent } from '../../../shared/components/privacy-modal/
 
           <div class="login-link">
             ¿Ya tienes una cuenta? <a routerLink="/auth/login">Inicia sesión aquí</a>
-          </div>
-
-          <div class="privacy-legal-text">
-            Al registrarte, aceptas nuestros términos de servicio y la
-            <a href="javascript:void(0)" (click)="isPrivacyOpen.set(true)"
-              >Política de Privacidad y Tratamiento de Datos (Ley 1581/2012)</a
-            >.
           </div>
         </form>
       </div>
@@ -353,19 +361,36 @@ import { PrivacyModalComponent } from '../../../shared/components/privacy-modal/
           }
         }
       }
-      .privacy-legal-text {
-        font-size: 11px;
-        color: var(--text-color-secondary, #94a3b8);
-        margin-top: 18px;
-        text-align: center;
-        line-height: 1.45;
-        a {
-          color: var(--primary-color, #2563eb);
-          text-decoration: none;
-          font-weight: 500;
-          &:hover {
-            text-decoration: underline;
+      .consent-checkbox-field {
+        margin: 16px 0 12px;
+        .checkbox-label {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          cursor: pointer;
+          font-size: 11.5px;
+          line-height: 1.45;
+          color: var(--text-color, #475569);
+          input[type='checkbox'] {
+            margin-top: 2px;
+            cursor: pointer;
+            accent-color: var(--primary-color, #2563eb);
           }
+          a {
+            color: var(--primary-color, #2563eb);
+            text-decoration: none;
+            font-weight: 600;
+            &:hover {
+              text-decoration: underline;
+            }
+          }
+        }
+        .error-msg {
+          display: block;
+          color: var(--red-500, #ef4444);
+          font-size: 11px;
+          margin-top: 4px;
+          padding-left: 24px;
         }
       }
     `,
@@ -398,6 +423,7 @@ export class RegisterComponent implements OnInit {
     nit: [''],
     documentType: ['CC'],
     documentNumber: [''],
+    dataProcessingConsent: [false, [Validators.requiredTrue]],
   });
 
   ngOnInit() {

@@ -26,4 +26,10 @@ export default defineConfig({
       use: { ...devices['iPhone 14'] },
     },
   ],
+  webServer: {
+    command: 'npx --yes serve -s dist/vetpro/browser -l 4200',
+    url: 'http://localhost:4200',
+    reuseExistingServer: !process.env['CI'],
+    timeout: 30 * 1000,
+  },
 });

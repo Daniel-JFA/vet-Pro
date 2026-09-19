@@ -39,6 +39,14 @@ jobs:
         working-directory: ./vetpro-backend
         run: npm test
 
+      - name: Install Playwright Browsers
+        working-directory: ./vetpro-angular/vetpro
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright E2E tests
+        working-directory: ./vetpro-angular/vetpro
+        run: npx playwright test --project=chromium
+
       - name: Login to registry
         uses: docker/login-action@v2
         with:

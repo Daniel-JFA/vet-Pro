@@ -385,6 +385,7 @@ model Appointment {
   @@index([branchId])
   @@index([vetId])
   @@index([scheduledAt])
+  @@index([clinicId, scheduledAt])
   @@map("appointments")
 }
 
@@ -431,6 +432,7 @@ model MedicalRecord {
   @@index([clinicId])
   @@index([patientId])
   @@index([vetId])
+  @@index([clinicId, patientId])
   @@map("medical_records")
 }
 
@@ -711,6 +713,8 @@ model Invoice {
   @@index([tutorId])
   @@index([dianResolutionId])
   @@index([branchId])
+  @@index([clinicId, status])
+  @@index([clinicId, issuedAt])
   @@map("invoices")
 }
 
