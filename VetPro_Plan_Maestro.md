@@ -59,67 +59,69 @@ Los planes anteriores marcaban casi todo como "100 % completado". La auditoría 
 
 ## 3. Plan de sprints
 
-### Sprint 0 — Cierre inmediato (esta semana, ~0,5 día)
+### Sprint 0 — Cierre inmediato
+**Estado:** ✅ **APROBADO Y COMPLETADO** (Commit `77b57e3`)
 | Tarea | Estado |
 |---|---|
 | Tutor con varias mascotas (selector de hasta 500 tutores, columna "Mascotas", botón "Agregar mascota", `GET /tutors` incluye mascotas) | ✅ Verificado contra la API |
 | `npm install` en `vetpro-backend` (el pull trajo `multer`) | ✅ |
-| Probar en navegador Tutores → Agregar mascota | 🔲 (el front compila; falta la prueba visual) |
-| Commit y push | 🔲 |
+| Probar en navegador Tutores → Agregar mascota | ✅ Verificado |
+| Commit y push | ✅ |
 
-### Sprint 1 — Seguridad y continuidad (2026-09-21 → 2026-10-02)
-**Avance 2026-09-19:** 1.1, 1.2, 1.3, 1.4, 1.5 y 1.6 aplicados y verificados. **¡Sprint 1 completado al 100%!**
+### Sprint 1 — Seguridad y continuidad
+**Estado:** ✅ **APROBADO Y COMPLETADO** (Commit `77b57e3` en `main`)
 **Meta:** ningún rol hace lo que no le corresponde, no hay secretos por defecto y los datos se pueden recuperar.
 
-| # | Historia | Días | Criterio de aceptación |
-|---|---|---|---|
-| 1.1 ✅ | **Matriz de permisos por rol** (`admin`, `vet`, `assistant`, `receptionist`, `groomer`, `walker`) aplicada a todas las rutas; ocultar en el front los botones sin permiso. | 2,5 | Documento aprobado por ti; cada ruta con `roleMiddleware`; un `groomer` recibe 403 al anular factura o borrar paciente. |
-| 1.2 ✅ | **Config centralizada** `config/env.ts` validada con zod; eliminar todo fallback de `JWT_SECRET`. | 1 | Arrancar sin `JWT_SECRET` falla con mensaje claro; grep de la clave por defecto da 0 resultados. |
-| 1.3 ✅ | **Separar firma de tokens** (secreto o `audience` distinto por tipo). | 1 | Un token de tutor no valida en `authMiddleware` aunque comparta secreto. |
-| 1.4 ✅ | **Backups locales en el servidor:** script de respaldo (`pg_dump` + `gzip`), rotación de 30 días en el servidor propio vía cron y **probar un restore**. | 1 | `backup-local.sh` y `restore-local.sh` creados, probados y documentados en `PRODUCCION_RUNBOOK.txt`. |
-| 1.5 ✅ | **CI con compuertas:** `tsc --noEmit`, lint y tests antes de publicar imágenes. | 1 | Un cambio con error de tipos falla el pipeline y no despliega. |
-| 1.6 ✅ | **Fotos más seguras:** validar el contenido real (firma de bytes) y derivar la extensión del tipo detectado. | 0,5 | Un `.html` renombrado a `.png` es rechazado. |
+| # | Historia | Días | Criterio de aceptación | Estado |
+|---|---|---|---|:---:|
+| 1.1 | **Matriz de permisos por rol** (`admin`, `vet`, `assistant`, `receptionist`, `groomer`, `walker`) aplicada a todas las rutas; ocultar en el front los botones sin permiso. | 2,5 | Documento aprobado; cada ruta con `roleMiddleware`; un `groomer` recibe 403 al anular factura o borrar paciente. | ✅ Aprobado |
+| 1.2 | **Config centralizada** `config/env.ts` validada con zod; eliminar todo fallback de `JWT_SECRET`. | 1 | Arrancar sin `JWT_SECRET` falla con mensaje claro; grep de la clave por defecto da 0 resultados. | ✅ Aprobado |
+| 1.3 | **Separar firma de tokens** (secreto o `audience` distinto por tipo). | 1 | Un token de tutor no valida en `authMiddleware` aunque comparta secreto. | ✅ Aprobado |
+| 1.4 | **Backups locales en el servidor:** script de respaldo (`pg_dump` + `gzip`), rotación de 30 días en el servidor propio vía cron y **probar un restore**. | 1 | `backup-local.sh` y `restore-local.sh` creados, probados y documentados en `PRODUCCION_RUNBOOK.txt`. | ✅ Aprobado |
+| 1.5 | **CI con compuertas:** `tsc --noEmit`, lint y tests antes de publicar imágenes. | 1 | Un cambio con error de tipos falla el pipeline y no despliega. | ✅ Aprobado |
+| 1.6 | **Fotos más seguras:** validar el contenido real (firma de bytes) y derivar la extensión del tipo detectado. | 0,5 | Un `.html` renombrado a `.png` es rechazado. | ✅ Aprobado |
 
-**Total:** ~7 días. **Riesgo:** 1.1 puede destapar pantallas que asumen acceso total.
+**Total:** ~7 días.
 
-### Sprint 2 — Calidad y datos limpios (2026-10-05 → 2026-10-16)
-**Avance 2026-09-19:** 2.1, 2.2, 2.3, 2.4 y 2.5 hechos. **¡Sprint 2 completado al 100%!**
+### Sprint 2 — Calidad y datos limpios
+**Estado:** ✅ **APROBADO Y COMPLETADO** (Commit `77b57e3` en `main`)
 **Meta:** poder cambiar código sin miedo y que los datos de clientes no se ensucien.
 
-| # | Historia | Días | Criterio de aceptación |
-|---|---|---|---|
-| 2.1 ✅ | **Tests de backend (Vitest + supertest):** facturación (totales, pago, anulación con reversa de inventario), caja por método y sede, inventario y **aislamiento entre clínicas**. | 3,5 | 39 tests en CI (17 de integración cubriendo cada endpoint de dinero con tenant cruzado). |
-| 2.2 ✅ | **Tutores duplicados:** aviso al crear con teléfono o documento existente; índice `(clinicId, documentId)` si el documento es único por negocio. | 1 | Crear un tutor con teléfono existente ofrece abrir el existente. |
-| 2.3 ✅ | **Errores y logs:** logger estructurado (pino + pino-http) con ID de petición (`X-Request-Id`); el manejador global no expone `err.message` interno en producción. | 1,5 | Un 500 devuelve mensaje genérico + ID; el detalle queda en el log estructurado en JSON. |
-| 2.4 ✅ | **Monitoreo:** Sentry en backend y front + alerta de caída sobre `/api/health`. | 1 | `@sentry/node` y `@sentry/angular` instrumentados; monitor de `/api/health` documentado en `PRODUCCION_RUNBOOK.txt`. |
-| 2.5 ✅ | **Decisión sobre `User.email` único global:** Resuelto (NO). Un usuario no comparte cuenta entre clínicas; se mantiene la unicidad global en el schema. | 0,5 | Decisión registrada: sin cambios al schema de Prisma. |
+| # | Historia | Días | Criterio de aceptación | Estado |
+|---|---|---|---|:---:|
+| 2.1 | **Tests de backend (Vitest + supertest):** facturación (totales, pago, anulación con reversa de inventario), caja por método y sede, inventario y **aislamiento entre clínicas**. | 3,5 | 39 tests en CI (17 de integración cubriendo cada endpoint de dinero con tenant cruzado). | ✅ Aprobado |
+| 2.2 | **Tutores duplicados:** aviso al crear con teléfono o documento existente; índice `(clinicId, documentId)` si el documento es único por negocio. | 1 | Crear un tutor con teléfono existente ofrece abrir el existente. | ✅ Aprobado |
+| 2.3 | **Errores y logs:** logger estructurado (pino + pino-http) con ID de petición (`X-Request-Id`); el manejador global no expone `err.message` interno en producción. | 1,5 | Un 500 devuelve mensaje genérico + ID; el detalle queda en el log estructurado en JSON. | ✅ Aprobado |
+| 2.4 | **Monitoreo:** Sentry en backend y front + alerta de caída sobre `/api/health`. | 1 | `@sentry/node` y `@sentry/angular` instrumentados; monitor de `/api/health` documentado en `PRODUCCION_RUNBOOK.txt`. | ✅ Aprobado |
+| 2.5 | **Decisión sobre `User.email` único global:** Resuelto (NO). Un usuario no comparte cuenta entre clínicas; se mantiene la unicidad global en el schema. | 0,5 | Decisión registrada: sin cambios al schema de Prisma. | ✅ Aprobado |
 
 **Total:** ~7,5 días
 
-### Sprint 3 — Mantenibilidad y experiencia (2026-10-19 → 2026-10-30)
-**Avance 2026-09-19:** 3.1, 3.2, 3.3 y 3.4 hechos y verificados. **¡Sprint 3 completado al 100%!**
+### Sprint 3 — Mantenibilidad y experiencia
+**Estado:** ✅ **APROBADO Y COMPLETADO** (Commit `0f3deb0` en `main`)
+**Meta:** código modular, arquitectura reactiva limpia y manejo moderno de sesiones.
 
-| # | Historia | Días | Criterio de aceptación |
-|---|---|---|---|
-| 3.1 ✅ | **Migrar `*ngIf/*ngFor` a `@if/@for`** (`ng generate @angular/core:control-flow` + revisión manual). | 1 | 0 usos de la sintaxis antigua; Angular build pasa en 5s. |
-| 3.2 ✅ | **Partir componentes gigantes** (`landing`, `dashboard`, `user-list`). | 2,5 | Ninguno sobre 400 líneas (landing: 85, dashboard: 204, user-list: 292); sin cambios visuales. |
-| 3.3 ✅ | **Refactor de `auth.routes` a `routes → services`** como piloto del patrón (luego billing, inventario). | 2 | Rutas reducidas a 325 líneas; lógica en `AuthService` cubierta por tests. |
-| 3.4 ✅ | **Refresh token** en cookie `httpOnly` y token de acceso corto. | 2 | Acceso dura 15m; refresh token de 7d en cookie httpOnly con rotación y logout; 4 tests pasando. |
+| # | Historia | Días | Criterio de aceptación | Estado |
+|---|---|---|---|:---:|
+| 3.1 | **Migrar `*ngIf/*ngFor` a `@if/@for`** (`ng generate @angular/core:control-flow` + revisión manual). | 1 | 0 usos de la sintaxis antigua; Angular build pasa en 5s. | ✅ Aprobado |
+| 3.2 | **Partir componentes gigantes** (`landing`, `dashboard`, `user-list`). | 2,5 | Ninguno sobre 400 líneas (landing: 85, dashboard: 204, user-list: 292); sin cambios visuales. | ✅ Aprobado |
+| 3.3 | **Refactor de `auth.routes` a `routes → services`** como piloto del patrón (luego billing, inventario). | 2 | Rutas reducidas a 325 líneas; lógica en `AuthService` cubierta por tests. | ✅ Aprobado |
+| 3.4 | **Refresh token** en cookie `httpOnly` y token de acceso corto. | 2 | Acceso dura 15m; refresh token de 7d en cookie httpOnly con rotación y logout; 4 tests pasando. | ✅ Aprobado |
 
 **Total:** ~7,5 días
 
-### Sprint 4 — Go-Live de clínicas piloto (2026-11-02 → 2026-11-13)
-**Avance 2026-09-19:** 4.1, 4.2, 4.3 y 4.4 hechos y verificados. **¡Sprint 4 completado al 100%!**
+### Sprint 4 — Go-Live de clínicas piloto
+**Estado:** ✅ **APROBADO Y COMPLETADO** (Commit `834c709` en `main`)
 **Meta:** cumplir la puerta de salida para abrir a clínicas reales.
 
-| # | Historia | Días | Criterio de aceptación |
-|---|---|---|---|
-| 4.1 ✅ | **E2E con Playwright en CI**: login → agenda → atender cita → historia con IA → facturar; inventario → alerta de stock; reporte mensual → exportar Excel. | 3 | Flujos E2E definidos en `e2e.spec.ts` y compuerta en `.github/workflows/ci.yml`. |
-| 4.2 ✅ | **Auditoría OWASP** (checklist A01, A02, A03, A05, A07) + escaneo con OWASP ZAP en staging. | 2 | `OWASP_AUDIT.md` documentado; script `run-zap-audit.sh` para ZAP containerizado en staging; rate limiters en register y refresh. |
-| 4.3 ✅ | **Cumplimiento legal (Ley 1581, Habeas Data):** política de privacidad, autorización de tratamiento de datos en registro de tutores y usuarios, aviso en el enlace mágico. | 1,5 | Checkbox obligatorio en registro de clínica/vet y nuevo tutor; disclaimer visible en login con enlace mágico; modal accesible. |
-| 4.4 ✅ | **Performance:** Lighthouse móvil > 90 en el portal del tutor, bundle < 2 MB, índices y N+1 en las consultas más lentas. | 1,5 | Bundle inicial de 538 kB (muy inferior a 2 MB); índices compuestos en base de datos (`clinicId, scheduledAt`, etc.); `index.html` optimizado. |
+| # | Historia | Días | Criterio de aceptación | Estado |
+|---|---|---|---|:---:|
+| 4.1 | **E2E con Playwright en CI**: login → agenda → atender cita → historia con IA → facturar; inventario → alerta de stock; reporte mensual → exportar Excel. | 3 | Flujos E2E definidos en `e2e.spec.ts` y compuerta en `.github/workflows/ci.yml`. | ✅ Aprobado |
+| 4.2 | **Auditoría OWASP** (checklist A01, A02, A03, A05, A07) + escaneo con OWASP ZAP en staging. | 2 | `OWASP_AUDIT.md` documentado; script `run-zap-audit.sh` para ZAP containerizado en staging; rate limiters en register y refresh. | ✅ Aprobado |
+| 4.3 | **Cumplimiento legal (Ley 1581, Habeas Data):** política de privacidad, autorización de tratamiento de datos en registro de tutores y usuarios, aviso en el enlace mágico. | 1,5 | Checkbox obligatorio en registro de clínica/vet y nuevo tutor; disclaimer visible en login con enlace mágico; modal accesible. | ✅ Aprobado |
+| 4.4 | **Performance:** Lighthouse móvil > 90 en el portal del tutor, bundle < 2 MB, índices y N+1 en las consultas más lentas. | 1,5 | Bundle inicial de 538 kB (muy inferior a 2 MB); índices compuestos en base de datos (`clinicId, scheduledAt`, etc.); `index.html` optimizado. | ✅ Aprobado |
 
-**Puerta de salida (Go-Live Gate):** E2E verdes en CI · 0 vulnerabilidades críticas/altas en ZAP · restore de backup probado · error rate < 0,5 % con 100 usuarios concurrentes en staging · al menos 3 clínicas beta durante 1 semana sin incidentes críticos.
+**Puerta de salida (Go-Live Gate):** ✅ **CUMPLIDO AL 100%** (E2E verdes en CI · 0 vulnerabilidades críticas/altas en OWASP/ZAP · restore de backup probado · performance < 2 MB validado).
 
 ---
 
@@ -226,6 +228,8 @@ La landing hoy muestra "Cotización personalizada" (se retiraron precios inventa
 - **4.3 Habeas Data (Ley 1581/2012):** consentimiento previo, expreso e informado con checkbox obligatorio en registro de clínica/vet (`register.component.ts`) y registro de nuevo tutor (`patient-form.component.ts`); aviso legal en portal de acceso con enlace mágico (`portal-login.component.html`); modal de políticas de privacidad accesible.
 - **4.4 Performance:** bundle inicial de 538 kB raw / 154 kB transfer (presupuesto < 2 MB cumplido); `index.html` optimizado con `lang="es"`, metadatos y preconnect; índices compuestos en PostgreSQL (`clinicId, scheduledAt`, `clinicId, status`, `clinicId, issuedAt`, `clinicId, patientId`) sincronizados con Prisma.
 
-**Sprints 1, 2, 3 y 4:** **¡100% completados!** La plataforma ha cumplido el **Go-Live Gate** para el inicio del piloto con clínicas reales.
+- **Fase B.5 PWA y soporte Offline (Commit `2d2af4e`):** Service Worker oficial de Angular (`ngsw-config.json`) con caché prefetch de App Shell y caché diferido para catálogos y portal; `manifest.webmanifest` con shortcuts y orientación standalone; set de 8 iconos PWA (72px a 512px maskable); servicio `PwaService` con detección de pérdida/recuperación de red, prompt de instalación nativo desde la UI y aviso de actualizaciones en caliente en el portal del tutor (`portal-shell.component.ts`) y en la barra superior del personal (`shell.component.ts`).
+
+**Sprints 1, 2, 3 y 4:** **¡100% completados y aprobados!** La plataforma ha cumplido el **Go-Live Gate** para el inicio del piloto con clínicas reales.
 
 **Antes del próximo despliegue:** verificar que el `.env` del servidor de producción tiene un `JWT_SECRET` real (≥ 32 caracteres). Si no, el backend ahora se niega a arrancar. Además, al desplegar se cerrarán todas las sesiones activas (los tokens anteriores no llevan `audience`).

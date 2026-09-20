@@ -389,7 +389,7 @@ PARTE 5 — CHECKLIST FINAL ANTES DE ABRIR AL PÚBLICO
 [ ] Login con el usuario admin creado funciona
 [ ] /demo carga sin login y muestra datos de ejemplo
 [ ] ALLOWED_ORIGINS apunta al dominio real (no localhost)
-[ ] JWT_SECRET es aleatorio y no está en el repositorio
+[ ] JWT_SECRET es aleatorio, seguro (≥ 32 caracteres) y no está en el repositorio
 [ ] .env está en .gitignore (ya lo está)
 [ ] prisma migrate deploy corrió exitosamente (no db:seed)
 [ ] Seed NO fue ejecutado en producción
@@ -397,12 +397,17 @@ PARTE 5 — CHECKLIST FINAL ANTES DE ABRIR AL PÚBLICO
 [ ] Prueba de restauración (restore-local.sh) verificada en base de prueba
 [ ] SENTRY_DSN configurado en .env (opcional pero recomendado)
 [ ] Monitor de Uptime configurado sobre /api/health
+[ ] Playwright E2E suites ejecutadas y pasando en CI (e2e.spec.ts)
+[ ] Auditoría OWASP Top 10 cumplida (OWASP_AUDIT.md) y escaneo ZAP sin fallos críticos/altos
+[ ] Cumplimiento Ley 1581 (Habeas Data): consentimiento expreso obligatorio en registros
+[ ] PWA activa: Service Worker registrado, manifest.webmanifest cargado y soporte offline verificado
+[ ] Cookie httpOnly de refresh token (vetpro_refresh_token) con Secure=true en HTTPS
 
 ================================================================================
 NOTAS IMPORTANTES PARA EL AGENTE QUE EJECUTE ESTO
 ================================================================================
 
-- Stack: Angular 21 (standalone components, Signals, @if/@for) + Node.js/Express
+- Stack: Angular 21 (standalone components, Signals, @if/@for universal) + Node.js/Express
   + Prisma v5 + PostgreSQL 15 + Docker
 - Imports de módulos ES usan extensión .js (import from './config/database.js')
 - El frontend usa ApiService (inject(ApiService)) para todas las llamadas HTTP.
@@ -411,8 +416,7 @@ NOTAS IMPORTANTES PARA EL AGENTE QUE EJECUTE ESTO
 - prisma/schema.prisma tiene url = env("DATABASE_URL") en datasource (no en prisma.config.ts)
 - NO usar migrate dev en producción, solo migrate deploy
 - NO correr db:seed en producción (borra todos los datos)
-- El componente onboarding.component.ts usa *ngIf/*ngFor (NO la sintaxis @if/@for)
-  porque fue creado antes de Angular 17. Mantener esa sintaxis.
+- Todos los componentes del proyecto usan 100% sintaxis moderna de control flow (@if/@for).
 
 ================================================================================
 FIN DEL RUNBOOK
