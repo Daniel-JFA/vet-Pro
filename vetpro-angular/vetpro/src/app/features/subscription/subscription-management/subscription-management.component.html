@@ -1,0 +1,229 @@
+<div class="subscription-container">
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Cargando información de tu suscripción...</p>
+    </div>
+  }
+
+  @if (!loading() && info(); as data) {
+    <!-- Cabecera -->
+    <header class="page-header">
+      <div>
+        <h1 class="page-title">Mi Suscripción & Planes VetPro</h1>
+        <p class="page-subtitle">Gestiona la licencia de software de tu clínica, renovaciones y métodos de pago.</p>
+      </div>
+    </header>
+
+    <!-- Banner de Estado Actual -->
+    <section class="status-banner">
+      <div class="status-header">
+        <div class="status-title-box">
+          <span class="status-badge" [ngClass]="getStatusBadgeClass(data.clinic.subscriptionStatus)">
+            {{ getStatusLabel(data.clinic.subscriptionStatus) }}
+          </span>
+          <h2>{{ data.clinic.name }}</h2>
+        </div>
+        <div class="status-dates">
+          @if (data.clinic.subscriptionStatus === 'trial') {
+            <span class="highlight-date">
+              <span class="material-symbols-outlined">timer</span>
+              {{ data.clinic.daysRemaining }} días restantes de prueba gratuita
+            </span>
+          } @else if (data.clinic.nextBillingDate) {
+            <span class="highlight-date">
+              <span class="material-symbols-outlined">event_repeat</span>
+              Próximo corte: {{ data.clinic.nextBillingDate | date:'mediumDate' }} ({{ data.clinic.daysRemaining }} días)
+            </span>
+          }
+        </div>
+      </div>
+
+      <div class="status-metrics">
+        <div class="metric-item">
+          <span class="metric-label">Plan Actual</span>
+          <span class="metric-value capitalize">{{ data.clinic.plan }}</span>
+        </div>
+        <div class="metric-item">
+          <span class="metric-label">Ciclo de Facturación</span>
+          <span class="metric-value">{{ data.clinic.billingCycle === 'annual' ? 'Anual (-15%)' : 'Mensual' }}</span>
+        </div>
+        <div class="metric-item">
+          <span class="metric-label">Bitácora IA Clínica</span>
+          <span class="metric-value">{{ data.clinic.aiMinutesUsed | number:'1.0-0' }} / {{ data.clinic.aiMinutesLimit }} min</span>
+        </div>
+        <div class="metric-item">
+          <span class="metric-label">Inversión Mensual</span>
+          <span class="metric-value price">{{ data.pricing.monthlyPrice | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Selector de Ciclo de Facturación -->
+    <section class="billing-toggle-section">
+      <span class="toggle-label" [class.active]="selectedCycle() === 'monthly'">Facturación Mensual</span>
+      <button 
+        type="button" 
+        class="switch-btn" 
+        [class.checked]="selectedCycle() === 'annual'"
+        (click)="selectedCycle.set(selectedCycle() === 'monthly' ? 'annual' : 'monthly')"
+        aria-label="Alternar ciclo de facturación"
+      >
+        <span class="switch-handle"></span>
+      </button>
+      <span class="toggle-label" [class.active]="selectedCycle() === 'annual'">
+        Facturación Anual
+        <span class="discount-badge">15% Dcto. (2 meses gratis)</span>
+      </span>
+    </section>
+
+    <!-- Grilla de Planes -->
+    <section class="plans-grid">
+      @for (plan of plans; track plan.id) {
+        <div class="plan-card" [class.popular]="plan.popular" [class.current]="data.clinic.plan === plan.id">
+          @if (plan.popular) {
+            <div class="popular-ribbon">MÁS POPULAR ⭐</div>
+          }
+
+          <div class="plan-header">
+            <h3 class="plan-name">{{ plan.name }}</h3>
+            <p class="plan-subtitle">{{ plan.subtitle }}</p>
+          </div>
+
+          <div class="plan-pricing">
+            <div class="price-row">
+              <span class="currency-symbol">$</span>
+              <span class="amount">
+                {{ (selectedCycle() === 'annual' ? (plan.annualPrice / 12) : plan.monthlyPrice) | number:'1.0-0' }}
+              </span>
+              <span class="period">COP / mes</span>
+            </div>
+            @if (selectedCycle() === 'annual') {
+              <small class="billed-annually">Facturado anualmente ({{ plan.annualPrice | currency:'COP':'symbol-narrow':'1.0-0' }} / año)</small>
+            }
+          </div>
+
+          <ul class="features-list">
+            @for (feat of plan.features; track feat) {
+              <li>
+                <span class="material-symbols-outlined check-icon">check_circle</span>
+                <span>{{ feat }}</span>
+              </li>
+            }
+          </ul>
+
+          <div class="plan-actions">
+            @if (data.clinic.plan === plan.id && data.clinic.subscriptionStatus === 'active') {
+              <button class="btn btn-current" disabled>
+                <span class="material-symbols-outlined">done</span>
+                Plan Actual
+              </button>
+            } @else {
+              <button 
+                class="btn" 
+                [class.btn-primary]="plan.popular" 
+                [class.btn-secondary]="!plan.popular"
+                [disabled]="checkoutLoading()"
+                (click)="selectPlan(plan.id)"
+              >
+                {{ data.clinic.plan === plan.id ? 'Renovar Suscripción' : 'Elegir ' + plan.name }}
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </section>
+
+    <!-- Historial de Pagos de Suscripción -->
+    <section class="history-section">
+      <h3>Historial de Pagos de Licencia</h3>
+      @if (data.payments.length === 0) {
+        <p class="empty-payments">No hay registros de cobros previos. Tu clínica se encuentra en período de prueba inicial.</p>
+      } @else {
+        <div class="table-responsive">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Referencia</th>
+                <th>Plan</th>
+                <th>Ciclo</th>
+                <th>Monto</th>
+                <th>Método</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (pay of data.payments; track pay.id) {
+                <tr>
+                  <td>{{ pay.createdAt | date:'mediumDate' }}</td>
+                  <td><code>{{ pay.wompiReference }}</code></td>
+                  <td class="capitalize"><strong>{{ pay.plan }}</strong></td>
+                  <td>{{ pay.billingCycle === 'annual' ? 'Anual' : 'Mensual' }}</td>
+                  <td>{{ (pay.amountInCents / 100) | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+                  <td>{{ pay.paymentMethod || 'Wompi' }}</td>
+                  <td>
+                    <span class="status-pill" [class.approved]="pay.status === 'APPROVED'" [class.pending]="pay.status === 'PENDING'">
+                      {{ pay.status === 'APPROVED' ? 'Aprobado' : pay.status }}
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
+
+  <!-- MODAL DE CHECKOUT WOMPI -->
+  @if (showCheckoutModal() && currentCheckout(); as checkout) {
+    <div class="modal-overlay">
+      <div class="modal-card">
+        <header class="modal-header">
+          <h2>Activar Suscripción VetPro</h2>
+          <button class="close-btn" (click)="closeModal()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </header>
+
+        <main class="modal-body">
+          <div class="checkout-summary">
+            <div class="summary-row">
+              <span>Plan Seleccionado:</span>
+              <strong class="capitalize">{{ checkout.plan }}</strong>
+            </div>
+            <div class="summary-row">
+              <span>Modalidad de Cobro:</span>
+              <strong>{{ checkout.billingCycle === 'annual' ? 'Facturación Anual (-15% Dcto)' : 'Facturación Mensual' }}</strong>
+            </div>
+            <div class="summary-row total">
+              <span>Total a Pagar:</span>
+              <span class="total-price">{{ checkout.amountInPesos | currency:'COP':'symbol-narrow':'1.0-0' }} COP</span>
+            </div>
+            <div class="summary-ref">
+              <small>Referencia de Pago: <code>{{ checkout.reference }}</code></small>
+            </div>
+          </div>
+
+          <div class="wompi-security-badge">
+            <span class="material-symbols-outlined">verified_user</span>
+            <p>Procesado de forma 100% segura por <strong>Wompi Bancolombia</strong>. Acepta Tarjetas de Crédito/Débito, PSE, Nequi y Botón Bancolombia.</p>
+          </div>
+        </main>
+
+        <footer class="modal-footer">
+          <button class="btn btn-ghost" (click)="closeModal()">Cancelar</button>
+          <button class="btn btn-test" [disabled]="simulatingLoading()" (click)="simulateApproval()">
+            <span class="material-symbols-outlined">science</span>
+            {{ simulatingLoading() ? 'Simulando...' : 'Simular Pago Aprobado (Test)' }}
+          </button>
+          <button class="btn btn-primary" (click)="openWompiWidget()">
+            <span class="material-symbols-outlined">payments</span>
+            Pagar con Wompi
+          </button>
+        </footer>
+      </div>
+    </div>
+  }
+</div>

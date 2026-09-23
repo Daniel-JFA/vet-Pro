@@ -277,6 +277,7 @@ export class ShellComponent implements OnInit {
         { label: 'Plantillas Mensajes', icon: 'edit_note', path: '/notifications/templates' },
         { label: 'CRM Reactivación', icon: 'contact_phone', path: '/crm' },
         { label: 'Reportes', icon: 'bar_chart', path: '/reports' },
+        { label: 'Mi Suscripción', icon: 'loyalty', path: '/suscripcion' },
       );
     } else if (role === 'vet') {
       items.push(

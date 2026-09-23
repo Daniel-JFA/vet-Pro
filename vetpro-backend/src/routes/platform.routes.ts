@@ -100,4 +100,90 @@ router.get('/clinics', platformAuthMiddleware as any, async (_req: PlatformAuthR
   }
 });
 
+// GET /platform/subscriptions/stats (Métricas SaaS: MRR, ARR, conteo de planes y estados)
+router.get('/subscriptions/stats', platformAuthMiddleware as any, async (_req: PlatformAuthRequest, res: Response) => {
+  try {
+    const clinics = await prisma.clinic.findMany({
+      select: {
+        id: true,
+        name: true,
+        plan: true,
+        subscriptionStatus: true,
+        billingCycle: true,
+        nextBillingDate: true,
+        createdAt: true
+      }
+    });
+
+    const activeCount = clinics.filter(c => c.subscriptionStatus === 'active').length;
+    const trialCount = clinics.filter(c => c.subscriptionStatus === 'trial').length;
+    const pastDueCount = clinics.filter(c => c.subscriptionStatus === 'past_due').length;
+    const suspendedCount = clinics.filter(c => c.subscriptionStatus === 'suspended').length;
+
+    // Precios mensuales base
+    const priceMap: Record<string, number> = {
+      starter: 80000,
+      pro: 150000,
+      enterprise: 300000
+    };
+
+    // Calcular MRR (Monthly Recurring Revenue) de clínicas activas
+    const mrr = clinics
+      .filter(c => c.subscriptionStatus === 'active')
+      .reduce((sum, c) => sum + (priceMap[c.plan] || 0), 0);
+
+    const arr = mrr * 12;
+
+    return res.json({
+      mrr,
+      arr,
+      totalClinics: clinics.length,
+      activeCount,
+      trialCount,
+      pastDueCount,
+      suspendedCount,
+      planBreakdown: {
+        starter: clinics.filter(c => c.plan === 'starter').length,
+        pro: clinics.filter(c => c.plan === 'pro').length,
+        enterprise: clinics.filter(c => c.plan === 'enterprise').length
+      }
+    });
+  } catch (error) {
+    console.error('Error en /platform/subscriptions/stats:', error);
+    return res.status(500).json({ error: 'Error al calcular métricas de suscripciones.' });
+  }
+});
+
+// POST /platform/subscriptions/clinics/:id/grant-extension (Extender días de prueba o cortesía)
+router.post('/subscriptions/clinics/:id/grant-extension', platformAuthMiddleware as any, async (req: PlatformAuthRequest, res: Response) => {
+  const { id } = req.params;
+  const { days = 14, notes } = req.body;
+
+  try {
+    const clinic = await prisma.clinic.findUnique({ where: { id } });
+    if (!clinic) return res.status(404).json({ error: 'Clínica no encontrada.' });
+
+    const currentExpiry = clinic.nextBillingDate || clinic.trialEndsAt || new Date();
+    const newExpiry = new Date(currentExpiry.getTime() + (parseInt(days, 10) || 14) * 24 * 60 * 60 * 1000);
+
+    const updated = await prisma.clinic.update({
+      where: { id },
+      data: {
+        subscriptionStatus: 'active',
+        nextBillingDate: newExpiry,
+        trialEndsAt: newExpiry
+      }
+    });
+
+    console.log(`[Platform Admin] Extensión de ${days} días concedida a clínica ${clinic.name}. Nueva fecha: ${newExpiry.toISOString()}`);
+    return res.json({
+      message: `Extensión de ${days} días otorgada exitosamente.`,
+      clinic: updated
+    });
+  } catch (error) {
+    console.error('Error en /platform/subscriptions/grant-extension:', error);
+    return res.status(500).json({ error: 'Error al otorgar extensión de suscripción.' });
+  }
+});
+
 export const PLATFORM_ROUTES = router;

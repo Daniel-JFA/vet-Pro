@@ -139,6 +139,11 @@ export const routes: Routes = [
         path: 'verificaciones',
         canActivate: [roleGuard(['admin'])],
         loadComponent: () => import('./features/marketplace/admin-verifications/admin-verifications.component').then(m => m.AdminVerificationsComponent)
+      },
+      {
+        path: 'suscripcion',
+        canActivate: [roleGuard(['admin'])],
+        loadComponent: () => import('./features/subscription/subscription-management/subscription-management.component').then(m => m.SubscriptionManagementComponent)
       }
     ]
   },
