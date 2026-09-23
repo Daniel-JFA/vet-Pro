@@ -292,6 +292,31 @@ La landing hoy muestra "Cotización personalizada" (se retiraron precios inventa
   - **8.7 Resumen Médico de Consulta a WhatsApp en 1 Clic (`/medical-records/:id`):** botón para compartir al tutor el diagnóstico, medicación formulada, signos de alarma y enlace directo a su historia clínica en el portal web mediante mensaje formateado en WhatsApp.
   - **8.8 Suite de Tests de Integración E2E:** 65 tests pasando en Vitest (incluyendo importación masiva, CRM, recordatorios, comisiones de marketplace y ciclo clínico a facturación) + Angular Unit Tests pasando al 100%.
 
-**Sprints 0 al 8:** **¡100% completados y aprobados!** La plataforma cuenta con núcleo clínico completo, facturación en 1 clic, migración masiva de pacientes, módulo de spa, CRM con recordatorios automáticos de WhatsApp y la red de marketplace web de veterinarios verificados con agendamiento ágil, balance de ingresos, membresía Pro Vet y flujo anti-burnout de WhatsApp.
+- **Sprint 9 — Marketplace Wompi Payments, Liquidación y Rendimiento:**
+  - Integración de pasarela Wompi Colombia (tarjeta, PSE, Nequi, Bancolombia).
+  - Webhook transaccional con firma de integridad SHA-256.
+  - Índices compuestos de base de datos para alta concurrencia.
+  - 87 tests pasando en Vitest.
 
-**Antes del próximo despliegue:** verificar que el `.env` del servidor de producción tiene un `JWT_SECRET` real (≥ 32 caracteres). Si no, el backend ahora se niega a arrancar. Además, al desplegar se cerrarán todas las sesiones activas (los tokens anteriores no llevan `audience`).
+- **Sprint 10 — Hardening Final, Migraciones Prisma, Backups y Go-Live:**
+  - Migración Prisma formal `20260923040000_sprint9_marketplace_wompi_and_perf` aplicada (11 migraciones al día).
+  - Hardening TypeScript y builds de producción exitosos sin errores.
+  - Script de backup y restauración local `backup-local.sh` verificado con Docker PostgreSQL.
+  - Docker Compose y templates `.env.example` de producción listos con Traefik.
+
+- **Sprint 11 — Centro de Notificaciones & Automatización de Plantillas WhatsApp (Commit `148db7c`):**
+  - **11.1 Backend de Notificaciones:** nuevo módulo `notifications.routes.ts` con CRUD para `NotificationTemplate`, autosembrado de plantillas base (24h, 2h, vacunas, cumpleaños, lab), historial `NotificationLog` paginado y enriquecido con datos de paciente/tutor, y endpoint `POST /dispatch-reminders`.
+  - **11.2 Frontend Integrado:** servicio reactivo `NotificationsService` y componentes `NotificationCenterComponent` y `NotificationTemplatesComponent` conectados a la API real, eliminando mocks.
+  - **11.3 Enrutamiento y Navegación:** rutas montadas en `app.routes.ts` y enlaces en la barra lateral `shell.component.ts`.
+  - **11.4 Suite de Tests:** 95 tests pasando en Vitest (8 nuevos tests de integración para notificaciones y despacho automático).
+
+---
+
+### 🗺️ Sprints Restantes (Fase Evolutiva / Post-Lanzamiento)
+Quedan **3 sprints evolutivos** en el backlog de producto:
+1. **Sprint 12 — Almacenamiento Cloudflare R2 / AWS S3:** URLs prefirmadas para historias clínicas, fotos y consentimientos en la nube.
+2. **Sprint 13 — Conector Oficial Facturación Electrónica DIAN:** Integración con proveedor tecnológico (Factus / Alegra) para emisión real de XML firmado y CUFE en producción.
+3. **Sprint 14 — Suscripciones y Cobro Recurrente SaaS:** Facturación periódica mensual/anual de licencias (Starter, Pro, Enterprise) para las veterinarias clientes.
+
+**Sprints 0 al 11:** **¡100% completados, probados y desplegados en main!**
+
