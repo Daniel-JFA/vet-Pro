@@ -282,14 +282,16 @@ La landing hoy muestra "Cotización personalizada" (se retiraron precios inventa
   - **7.3 Atención Integrada con Historia Clínica:** citas creadas desde el marketplace aparecen en la agenda de la clínica y Kanban listas para ser atendidas con la Bitácora IA (SOAP) de VetPro.
   - **7.4 Sistema de Reseñas:** calificación de 1 a 5 estrellas y comentarios con recálculo transaccional en base de datos. 53 tests de integración pasando.
 
-- **Sprint 8 — Monetización, Comisiones (15%), Pro Vet y Recordatorios de WhatsApp (Commit `a638ef1`):**
+- **Sprint 8 — Monetización, Comisiones (15%), Pro Vet y Automatizaciones de WhatsApp (Commits `a638ef1`, `b6b12e0`, `bdc69fd`, `8516654`, `dfda9d8`):**
   - **8.1 Dashboard de Ingresos del Veterinario:** endpoint `GET /api/v1/marketplace/profile/earnings` calculando volumen de citas recibidas, facturación bruta acumulada, comisión retenida de plataforma (15%) e ingresos netos a favor del veterinario (85%).
   - **8.2 Configuración de Dispersión / Cuenta de Pago:** campos `payoutBank` y `payoutAccount` en `VetProfile` para registrar cuenta Bancolombia, Nequi o Daviplata donde el veterinario recibe sus pagos.
   - **8.3 UI de Balance en Perfil Profesional:** tarjeta de métricas financieras y listado de citas recientes en `/perfil-profesional`.
   - **8.4 Insignia y Membresía Pro Vet (Destacado ⭐):** toggle administrativo en `/verificaciones` para destacar veterinarios en los primeros resultados de búsqueda del marketplace web.
   - **8.5 Recordatorios Automáticos de WhatsApp (Citas de Mañana y Vacunas):** endpoint `GET /api/v1/crm/reminders/upcoming` con mensajes estructurados de confirmación para citas del día siguiente y refuerzo de vacunas en los próximos 7 días.
-  - **8.6 Suite de Tests de Integración E2E:** 65 tests pasando en Vitest (incluyendo importación masiva, CRM, recordatorios y ciclo clínico a facturación).
+  - **8.6 Modal de Recordatorios en la Agenda/Kanban (`/appointments`):** botón "Recordatorios Mañana" con badge reactivo de conteo en la cabecera del Kanban; modal interactivo con tarjetas de pacientes citados para el día siguiente, previsualización del mensaje formal, botón de copiado rápido y botón de 1 clic directo a WhatsApp (`wa.me`) para eliminar inasistencias.
+  - **8.7 Resumen Médico de Consulta a WhatsApp en 1 Clic (`/medical-records/:id`):** botón para compartir al tutor el diagnóstico, medicación formulada, signos de alarma y enlace directo a su historia clínica en el portal web mediante mensaje formateado en WhatsApp.
+  - **8.8 Suite de Tests de Integración E2E:** 65 tests pasando en Vitest (incluyendo importación masiva, CRM, recordatorios, comisiones de marketplace y ciclo clínico a facturación) + Angular Unit Tests pasando al 100%.
 
-**Sprints 0 al 8:** **¡100% completados y aprobados!** La plataforma cuenta con núcleo clínico completo, facturación, migración masiva, módulo de spa, CRM con recordatorios automáticos de WhatsApp y la red de marketplace web de veterinarios verificados con agendamiento ágil, balance de ingresos y membresía Pro Vet.
+**Sprints 0 al 8:** **¡100% completados y aprobados!** La plataforma cuenta con núcleo clínico completo, facturación en 1 clic, migración masiva de pacientes, módulo de spa, CRM con recordatorios automáticos de WhatsApp y la red de marketplace web de veterinarios verificados con agendamiento ágil, balance de ingresos, membresía Pro Vet y flujo anti-burnout de WhatsApp.
 
 **Antes del próximo despliegue:** verificar que el `.env` del servidor de producción tiene un `JWT_SECRET` real (≥ 32 caracteres). Si no, el backend ahora se niega a arrancar. Además, al desplegar se cerrarán todas las sesiones activas (los tokens anteriores no llevan `audience`).
