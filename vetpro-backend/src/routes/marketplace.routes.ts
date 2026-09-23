@@ -14,6 +14,7 @@ import {
   AppointmentStatus,
   ServiceModality
 } from '@prisma/client';
+import { WompiService } from '../services/wompi.service.js';
 
 const router = Router();
 
@@ -463,6 +464,89 @@ Quedo atento(a) a su confirmación. ¡Muchas gracias!`;
 });
 
 // ─────────────────────────────────────────────
+// 💳 PASARELA DE PAGOS WOMPI COLOMBIA & COMPROBANTES
+// ─────────────────────────────────────────────
+
+/**
+ * POST /api/v1/marketplace/appointments/:id/checkout
+ * Genera la sesión de checkout con firma de integridad para pagar por Wompi
+ */
+router.post('/appointments/:id/checkout', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const checkout = await WompiService.createAppointmentCheckout(id);
+    res.json(checkout);
+  } catch (err: any) {
+    res.status(err.message === 'Cita médica no encontrada' ? 404 : 500).json({
+      error: err.message || 'Error al generar checkout de pago'
+    });
+  }
+});
+
+/**
+ * POST /api/v1/marketplace/payments/webhook
+ * Webhook oficial para recibir actualizaciones de transacciones desde Wompi
+ */
+router.post('/payments/webhook', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const payload = req.body;
+
+    // Validación de firma si se envió checksum y no estamos en entorno de pruebas libres
+    if (payload?.signature?.checksum) {
+      const isValid = WompiService.verifyWebhookSignature(payload);
+      if (!isValid && process.env.NODE_ENV === 'production') {
+        res.status(401).json({ error: 'Firma de evento inválida' });
+        return;
+      }
+    }
+
+    const transaction = payload?.data?.transaction;
+    if (!transaction?.reference) {
+      res.status(400).json({ error: 'El evento no contiene referencia de transacción válida' });
+      return;
+    }
+
+    const result = await WompiService.processTransaction(transaction);
+    res.status(200).json({ success: true, processed: true, result });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Error al procesar webhook de pago' });
+  }
+});
+
+/**
+ * POST /api/v1/marketplace/payments/mock-simulate
+ * Endpoint de sandbox / desarrollo para simular pagos sin pasar por la pasarela real
+ */
+router.post('/payments/mock-simulate', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { reference, status = 'APPROVED', paymentMethod = 'CARD' } = req.body;
+    if (!reference) {
+      res.status(400).json({ error: 'El campo reference es obligatorio' });
+      return;
+    }
+
+    const result = await WompiService.mockSimulatePayment(reference, status, paymentMethod);
+    res.json({ success: true, simulated: true, result });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Error al simular pago' });
+  }
+});
+
+/**
+ * GET /api/v1/marketplace/appointments/:id/voucher
+ * Comprobante digital / Voucher con código de reserva, detalle y estado de pago
+ */
+router.get('/appointments/:id/voucher', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const voucher = await WompiService.getAppointmentVoucher(id);
+    res.json(voucher);
+  } catch (err: any) {
+    res.status(404).json({ error: err.message || 'Comprobante no encontrado' });
+  }
+});
+
+// ─────────────────────────────────────────────
 // 🔒 RUTAS PRIVADAS DEL VETERINARIO (Autenticado)
 // ─────────────────────────────────────────────
 
@@ -666,6 +750,79 @@ router.post(
     }
   }
 );
+
+/**
+ * POST /api/v1/marketplace/profile/subscription
+ * Suscripción mensual a "Pro Vet" ($49.000 COP) para destacar perfil ⭐
+ */
+router.post('/profile/subscription', authMiddleware as any, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user!.id;
+    const { instantActivate = false } = req.body || {};
+
+    const checkout = await WompiService.createSubscriptionCheckout(userId);
+
+    if (instantActivate) {
+      const simResult = await WompiService.mockSimulatePayment(checkout.reference, 'APPROVED', 'CARD');
+      res.status(201).json({
+        success: true,
+        message: '¡Membresía Pro Vet ⭐ activada exitosamente!',
+        checkout,
+        simulated: true,
+        result: simResult
+      });
+      return;
+    }
+
+    res.status(201).json({
+      success: true,
+      checkout
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Error al generar suscripción Pro Vet' });
+  }
+});
+
+/**
+ * GET /api/v1/marketplace/profile/subscription
+ * Consultar estado actual de membresía Pro Vet
+ */
+router.get('/profile/subscription', authMiddleware as any, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user!.id;
+    const profile = await prisma.vetProfile.findUnique({
+      where: { userId },
+      include: {
+        marketplacePayments: {
+          where: { paymentType: 'subscription_pro_vet' },
+          orderBy: { createdAt: 'desc' }
+        }
+      }
+    });
+
+    if (!profile) {
+      res.status(404).json({ error: 'Perfil de veterinario no encontrado' });
+      return;
+    }
+
+    const isSubActive =
+      profile.isFeatured &&
+      profile.subscriptionStatus === 'active' &&
+      (!profile.subscriptionExpiresAt || profile.subscriptionExpiresAt > new Date());
+
+    res.json({
+      isFeatured: profile.isFeatured,
+      subscriptionStatus: profile.subscriptionStatus || 'free',
+      subscriptionExpiresAt: profile.subscriptionExpiresAt,
+      isActive: isSubActive,
+      pricePerMonth: 49000,
+      currency: 'COP',
+      payments: profile.marketplacePayments
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Error al consultar estado de membresía' });
+  }
+});
 
 // ─────────────────────────────────────────────
 // 🛡️ RUTAS ADMINISTRATIVAS DE VERIFICACIÓN (Admin)

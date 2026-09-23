@@ -651,6 +651,186 @@
   }
 }
 
+/* ⭐ Tarjeta de Membresía Pro Vet ($49.000 COP / mes) */
+.pro-vet-banner-card {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #fde68a 100%);
+  border: 2px solid #f59e0b;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 10px 25px rgba(245, 158, 11, 0.15);
+  position: relative;
+  overflow: hidden;
+
+  &.active-membership {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border-color: #10b981;
+    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.15);
+  }
+
+  .pro-vet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(245, 158, 11, 0.3);
+
+    .pro-badge-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .pro-star-icon {
+        font-size: 32px;
+        filter: drop-shadow(0 2px 4px rgba(245, 158, 11, 0.4));
+      }
+
+      h3 {
+        margin: 0 0 4px 0;
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #92400e;
+      }
+
+      .pro-tagline {
+        font-size: 13px;
+        color: #b45309;
+        font-weight: 500;
+      }
+    }
+
+    .pro-pricing-tag {
+      background: #78350f;
+      color: #fef3c7;
+      padding: 8px 16px;
+      border-radius: 999px;
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      box-shadow: 0 2px 8px rgba(120, 53, 15, 0.2);
+
+      .price-value {
+        font-size: 18px;
+        font-weight: 800;
+      }
+
+      .price-period {
+        font-size: 12px;
+        opacity: 0.9;
+      }
+    }
+  }
+
+  .pro-vet-body {
+    .pro-active-box {
+      background: white;
+      border-radius: 12px;
+      padding: 16px 20px;
+      border: 1px solid #a7f3d0;
+
+      .active-badge-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: #065f46;
+        font-weight: 700;
+        font-size: 14px;
+        margin-bottom: 8px;
+
+        span {
+          font-size: 20px;
+          color: #059669;
+        }
+      }
+
+      p {
+        margin: 0;
+        font-size: 13px;
+        color: #064e3b;
+        line-height: 1.5;
+
+        span {
+          display: block;
+          margin-top: 6px;
+          font-size: 12px;
+          color: #047857;
+        }
+      }
+    }
+
+    .pro-features-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+
+      .feat-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(255, 255, 255, 0.7);
+        padding: 10px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        color: #78350f;
+        border: 1px solid rgba(245, 158, 11, 0.2);
+
+        span.material-symbols-outlined {
+          color: #d97706;
+          font-size: 20px;
+        }
+      }
+    }
+
+    .pro-action-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+
+      .btn-activate-pro {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+        box-shadow: 0 4px 14px rgba(180, 83, 9, 0.35);
+        transition: all 0.2s;
+
+        &:hover:not(:disabled) {
+          background: #92400e;
+          transform: translateY(-1px);
+        }
+
+        &:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+
+        span.material-symbols-outlined {
+          font-size: 20px;
+          color: #fef08a;
+        }
+      }
+
+      .sub-hint {
+        font-size: 12px;
+        color: #92400e;
+        font-weight: 500;
+      }
+    }
+  }
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);

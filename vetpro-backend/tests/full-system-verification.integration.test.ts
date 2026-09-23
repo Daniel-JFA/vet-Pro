@@ -115,6 +115,7 @@ describe('Comprehensive System Verification — Full Stack End-to-End Audit', ()
     try {
       if (clinicId) {
         await prisma.vaccine.deleteMany({ where: { patient: { clinicId } } });
+        await prisma.marketplacePayment.deleteMany({ where: { clinicId } });
         await prisma.vetReview.deleteMany({ where: { vetProfile: { clinicId } } });
         await prisma.vetProfile.deleteMany({ where: { clinicId } });
         await prisma.invoicePayment.deleteMany({ where: { invoice: { clinicId } } });
@@ -616,5 +617,77 @@ describe('Comprehensive System Verification — Full Stack End-to-End Audit', ()
     const vacReminder = res.body.vaccines[0];
     expect(vacReminder.whatsappUrl).toContain('https://wa.me/');
     expect(vacReminder.message).toContain('Rabia Anual');
+  });
+
+  // ─────────────────────────────────────────────
+  // 15. PASARELA WOMPI, COMPROBANTE (VOUCHER) Y PRO VET
+  // ─────────────────────────────────────────────
+  it('15. Flujo integral Wompi Colombia: Checkout, Webhook, Comprobante Digital y Membresía Pro Vet', async () => {
+    // 1. Iniciar checkout Wompi para la cita del marketplace
+    const checkoutRes = await request(app)
+      .post(`/api/v1/marketplace/appointments/${appointmentId}/checkout`);
+
+    expect(checkoutRes.status).toBe(200);
+    expect(checkoutRes.body.publicKey).toBeDefined();
+    expect(checkoutRes.body.reference).toMatch(/^VP-APT-/);
+    expect(checkoutRes.body.amount).toBe(85000);
+    expect(checkoutRes.body.platformFee).toBe(12750); // 15% de 85.000 = 12.750
+    expect(checkoutRes.body.vetAmount).toBe(72250);   // 85% de 85.000 = 72.250
+    expect(checkoutRes.body.signatureIntegrity).toBeDefined();
+
+    const paymentRef = checkoutRes.body.reference;
+
+    // 2. Procesar evento de pago aprobado vía webhook Wompi
+    const webhookRes = await request(app)
+      .post('/api/v1/marketplace/payments/webhook')
+      .send({
+        event: 'transaction.updated',
+        data: {
+          transaction: {
+            id: `WOMPI-VERIF-${Date.now()}`,
+            reference: paymentRef,
+            status: 'APPROVED',
+            amount_in_cents: 8500000,
+            currency: 'COP',
+            payment_method_type: 'PSE'
+          }
+        },
+        sent_at: new Date().toISOString(),
+        timestamp: Math.floor(Date.now() / 1000)
+      });
+
+    expect(webhookRes.status).toBe(200);
+    expect(webhookRes.body.success).toBe(true);
+    expect(webhookRes.body.processed).toBe(true);
+
+    // 3. Consultar Comprobante Digital Oficial (Voucher)
+    const voucherRes = await request(app)
+      .get(`/api/v1/marketplace/appointments/${appointmentId}/voucher`);
+
+    expect(voucherRes.status).toBe(200);
+    expect(voucherRes.body.pricing.paymentStatus).toBe('paid');
+    expect(voucherRes.body.pricing.paymentMethod).toBe('PSE');
+    expect(voucherRes.body.pricing.totalAmount).toBe(85000);
+    expect(voucherRes.body.security.voucherHash).toBeDefined();
+
+    // 4. Activar Membresía Pro Vet ($49.000 COP) para el veterinario
+    const subRes = await request(app)
+      .post('/api/v1/marketplace/profile/subscription')
+      .set('Authorization', `Bearer ${vetToken}`)
+      .send({ instantActivate: true });
+
+    expect(subRes.status).toBe(201);
+    expect(subRes.body.success).toBe(true);
+    expect(subRes.body.checkout.amount).toBe(49000);
+
+    // 5. Verificar que el perfil ahora cuenta con el distintivo ⭐ Pro Vet activo
+    const mySubRes = await request(app)
+      .get('/api/v1/marketplace/profile/subscription')
+      .set('Authorization', `Bearer ${vetToken}`);
+
+    expect(mySubRes.status).toBe(200);
+    expect(mySubRes.body.isFeatured).toBe(true);
+    expect(mySubRes.body.isActive).toBe(true);
+    expect(mySubRes.body.subscriptionStatus).toBe('active');
   });
 });

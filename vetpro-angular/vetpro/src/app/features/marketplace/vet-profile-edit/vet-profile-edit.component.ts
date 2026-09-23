@@ -2,7 +2,7 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { MarketplaceService, MyVetProfile } from '../../../core/services/marketplace.service';
+import { MarketplaceService, MyVetProfile, ProVetSubscriptionStatus } from '../../../core/services/marketplace.service';
 import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
@@ -19,9 +19,11 @@ export class VetProfileEditComponent implements OnInit {
   loading = signal<boolean>(true);
   saving = signal<boolean>(false);
   uploadingDocs = signal<boolean>(false);
+  subscribing = signal<boolean>(false);
 
   profile = signal<MyVetProfile | null>(null);
   earnings = signal<any>(null);
+  subscription = signal<ProVetSubscriptionStatus | null>(null);
 
   // Campos de formulario
   professionalCard = '';
@@ -61,6 +63,30 @@ export class VetProfileEditComponent implements OnInit {
   ngOnInit(): void {
     this.loadProfile();
     this.loadEarnings();
+    this.loadSubscription();
+  }
+
+  loadSubscription(): void {
+    this.marketplaceService.getSubscriptionStatus().subscribe({
+      next: (sub) => this.subscription.set(sub),
+      error: () => {}
+    });
+  }
+
+  activateProVet(): void {
+    this.subscribing.set(true);
+    this.marketplaceService.subscribeProVet(true).subscribe({
+      next: () => {
+        this.toast.success('¡Felicidades! Membresía Pro Vet ⭐ activada exitosamente.');
+        this.subscribing.set(false);
+        this.loadSubscription();
+        this.loadProfile();
+      },
+      error: (err) => {
+        this.toast.error(err.error?.error || 'Error al procesar suscripción');
+        this.subscribing.set(false);
+      }
+    });
   }
 
   loadProfile(): void {

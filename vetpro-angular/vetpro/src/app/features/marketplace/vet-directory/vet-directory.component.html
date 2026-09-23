@@ -343,13 +343,13 @@
     <div class="modal-backdrop" (click)="closeBooking()">
       <div class="modal-dialog booking-dialog" (click)="$event.stopPropagation()">
         @if (bookingSuccess(); as succ) {
-          <!-- Pantalla de Éxito con Enlace WhatsApp -->
+          <!-- Pantalla de Éxito con Enlace WhatsApp, Pasarela Wompi y Comprobante Digital -->
           <div class="booking-success-view">
             <div class="success-icon">
               <span class="material-symbols-outlined">check_circle</span>
             </div>
-            <h2>¡Tu Cita ha sido Solicitada!</h2>
-            <p class="success-sub">Tu solicitud quedó registrada en la agenda del médico y se ha abierto tu expediente en VetPro.</p>
+            <h2>¡Tu Cita ha sido Registrada!</h2>
+            <p class="success-sub">Tu solicitud quedó agendada en el sistema de la clínica con expediente clínico digital abierto.</p>
 
             <div class="reservation-card">
               <div class="res-row">
@@ -361,21 +361,108 @@
                 <span>{{ succ.patientName }}</span>
               </div>
               <div class="res-row">
-                <span class="res-label">Médico:</span>
-                <span>{{ succ.vetName }}</span>
+                <span class="res-label">Médico Asignado:</span>
+                <span>Dr(a). {{ succ.vetName }}</span>
               </div>
               <div class="res-row">
                 <span class="res-label">Modalidad:</span>
                 <span>{{ succ.modality === 'home_visit' ? 'A Domicilio 🚗' : 'En Consultorio 🏥' }}</span>
               </div>
               <div class="res-row">
-                <span class="res-label">Tarifa Estimada:</span>
-                <strong class="price-highlight">\${{ succ.amountCharged | number:'1.0-0' }} COP</strong>
+                <span class="res-label">Valor de la Consulta:</span>
+                <strong class="price-highlight">${{ succ.amountCharged | number:'1.0-0' }} COP</strong>
               </div>
             </div>
 
+            <!-- Pasarela de Pagos Wompi Colombia -->
+            <div class="payment-checkout-section">
+              @if (paymentSuccess()) {
+                <div class="payment-approved-box">
+                  <div class="approved-badge">
+                    <span class="material-symbols-outlined">verified</span>
+                    <strong>¡Pago Aprobado y Conciliado con Wompi!</strong>
+                  </div>
+                  <p>La consulta se encuentra 100% pagada. El médico ha recibido la notificación de pago automático.</p>
+                  <button class="btn-view-voucher" (click)="openVoucher(succ.appointmentId)">
+                    <span class="material-symbols-outlined">receipt_long</span>
+                    Ver Comprobante Digital Oficial (Voucher)
+                  </button>
+                </div>
+              } @else if (checkoutData(); as checkout) {
+                <div class="wompi-box">
+                  <div class="wompi-header">
+                    <div class="wompi-logo-title">
+                      <span class="material-symbols-outlined">lock</span>
+                      <h4>Wompi Colombia — Pasarela de Pago Segura</h4>
+                    </div>
+                    <span class="secure-badge">256-bit SSL</span>
+                  </div>
+
+                  <p class="wompi-desc">Selecciona tu método de pago preferido para pagar los <strong>${{ checkout.amount | number:'1.0-0' }} COP</strong> de tu cita:</p>
+
+                  <div class="payment-methods-grid">
+                    <label class="pay-method-pill" [class.selected]="selectedPaymentMethod() === 'CARD'">
+                      <input type="radio" name="payMethod" value="CARD" [checked]="selectedPaymentMethod() === 'CARD'" (change)="selectedPaymentMethod.set('CARD')" />
+                      <span class="material-symbols-outlined">credit_card</span>
+                      <span>Tarjeta Crédito/Débito</span>
+                    </label>
+
+                    <label class="pay-method-pill" [class.selected]="selectedPaymentMethod() === 'PSE'">
+                      <input type="radio" name="payMethod" value="PSE" [checked]="selectedPaymentMethod() === 'PSE'" (change)="selectedPaymentMethod.set('PSE')" />
+                      <span class="material-symbols-outlined">account_balance</span>
+                      <span>PSE (Todos los Bancos)</span>
+                    </label>
+
+                    <label class="pay-method-pill" [class.selected]="selectedPaymentMethod() === 'NEQUI'">
+                      <input type="radio" name="payMethod" value="NEQUI" [checked]="selectedPaymentMethod() === 'NEQUI'" (change)="selectedPaymentMethod.set('NEQUI')" />
+                      <span class="material-symbols-outlined">smartphone</span>
+                      <span>Nequi / Daviplata</span>
+                    </label>
+
+                    <label class="pay-method-pill" [class.selected]="selectedPaymentMethod() === 'BANCOLOMBIA'">
+                      <input type="radio" name="payMethod" value="BANCOLOMBIA" [checked]="selectedPaymentMethod() === 'BANCOLOMBIA'" (change)="selectedPaymentMethod.set('BANCOLOMBIA')" />
+                      <span class="material-symbols-outlined">savings</span>
+                      <span>Bancolombia Transfer</span>
+                    </label>
+                  </div>
+
+                  <div class="wompi-ref-row">
+                    <span>Referencia: <code>{{ checkout.reference }}</code></span>
+                    <small>Firma SHA256 verificada</small>
+                  </div>
+
+                  <button
+                    class="btn-pay-wompi-submit"
+                    [disabled]="processingPayment()"
+                    (click)="simulatePayment()"
+                  >
+                    @if (processingPayment()) {
+                      <span>Procesando pago seguro...</span>
+                    } @else {
+                      <span class="material-symbols-outlined">payments</span>
+                      <span>Pagar ${{ checkout.amount | number:'1.0-0' }} COP con Wompi</span>
+                    }
+                  </button>
+                </div>
+              } @else {
+                <div class="pay-options-prompt">
+                  <h4>¿Cómo prefieres realizar el pago?</h4>
+                  <div class="pay-actions-row">
+                    <button class="btn-pay-online" [disabled]="loadingCheckout()" (click)="startOnlinePayment(succ.appointmentId)">
+                      <span class="material-symbols-outlined">credit_card</span>
+                      <span>{{ loadingCheckout() ? 'Iniciando pasarela...' : 'Pagar en Línea con Wompi (PSE, Tarjeta, Nequi)' }}</span>
+                    </button>
+                    <button class="btn-view-voucher-outline" (click)="openVoucher(succ.appointmentId)">
+                      <span class="material-symbols-outlined">receipt_long</span>
+                      <span>Ver Comprobante Digital (Voucher)</span>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+
             <div class="whatsapp-cta-box">
-              <p>Envía la confirmación al WhatsApp del médico para coordinar el horario exacto sin tener que repetir datos:</p>
+              <p>¿Prefieres coordinar horario y pagar en consulta? Envía la confirmación al WhatsApp del médico:</p>
               <a
                 [href]="succ.whatsappUrl"
                 target="_blank"
@@ -549,6 +636,109 @@
               }
             </button>
           </footer>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Modal Comprobante Digital Oficial (Voucher) -->
+  @if (showVoucherModal()) {
+    <div class="modal-backdrop" (click)="closeVoucher()">
+      <div class="modal-dialog voucher-dialog" (click)="$event.stopPropagation()">
+        @if (loadingVoucher()) {
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Generando comprobante digital oficial...</p>
+          </div>
+        } @else if (voucherData(); as v) {
+          <div class="voucher-container">
+            <header class="voucher-header">
+              <div class="voucher-brand">
+                <span class="brand-name">🐾 VetPro SaaS</span>
+                <span class="brand-tag">Comprobante Oficial de Reserva Médica</span>
+              </div>
+              <button class="btn-close" (click)="closeVoucher()">
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            </header>
+
+            <div class="voucher-body printable-area">
+              <div class="voucher-top-bar">
+                <div>
+                  <span class="res-num-label">CÓDIGO DE RESERVA</span>
+                  <h2 class="voucher-code">#{{ v.reservationCode }}</h2>
+                  <span class="voucher-date">{{ v.scheduledAt | date:'fullDate' }} · {{ v.scheduledAt | date:'shortTime' }}</span>
+                </div>
+                <div class="voucher-status-pill" [class.paid]="v.pricing.paymentStatus === 'paid'">
+                  <span class="material-symbols-outlined">{{ v.pricing.paymentStatus === 'paid' ? 'check_circle' : 'schedule' }}</span>
+                  <span>{{ v.pricing.paymentStatus === 'paid' ? 'PAGADA & CONCILIADA' : 'AGENDADA (PAGO PENDIENTE)' }}</span>
+                </div>
+              </div>
+
+              <div class="voucher-grid-2">
+                <div class="voucher-card">
+                  <h4>Información del Paciente & Tutor</h4>
+                  <div class="v-row"><span>Mascota:</span> <strong>{{ v.patient.name }} ({{ v.patient.species }})</strong></div>
+                  <div class="v-row"><span>Tutor Responsable:</span> <span>{{ v.tutor.name }}</span></div>
+                  <div class="v-row"><span>Teléfono:</span> <span>{{ v.tutor.phone }}</span></div>
+                  @if (v.tutor.email) {
+                    <div class="v-row"><span>Correo:</span> <span>{{ v.tutor.email }}</span></div>
+                  }
+                </div>
+
+                <div class="voucher-card">
+                  <h4>Médico Veterinario & Sede</h4>
+                  <div class="v-row"><span>Profesional:</span> <strong>{{ v.vet.name }}</strong></div>
+                  <div class="v-row"><span>Tarjeta Profesional:</span> <span class="comvezcol-badge">COMVEZCOL: {{ v.vet.professionalCard }}</span></div>
+                  <div class="v-row"><span>Clínica / Centro:</span> <span>{{ v.clinic.name }}</span></div>
+                  <div class="v-row"><span>Modalidad:</span> <span>{{ v.modality === 'home_visit' ? 'A Domicilio' : 'En Consultorio' }}</span></div>
+                  @if (v.address) {
+                    <div class="v-row"><span>Dirección:</span> <span>{{ v.address }}</span></div>
+                  }
+                </div>
+              </div>
+
+              <div class="voucher-pricing-box">
+                <h4>Desglose de Liquidación</h4>
+                <div class="v-price-row">
+                  <span>{{ v.serviceType || 'Consulta Médica Veterinaria' }}</span>
+                  <strong>${{ v.pricing.totalAmount | number:'1.0-0' }} COP</strong>
+                </div>
+                @if (v.pricing.paymentReference) {
+                  <div class="v-price-row ref">
+                    <span>Referencia de Pago Wompi:</span>
+                    <code>{{ v.pricing.paymentReference }}</code>
+                  </div>
+                }
+                @if (v.pricing.paymentMethod) {
+                  <div class="v-price-row method">
+                    <span>Método de Pago:</span>
+                    <span>{{ v.pricing.paymentMethod }}</span>
+                  </div>
+                }
+                <div class="v-total-row">
+                  <span>TOTAL LIQUIDADO:</span>
+                  <span class="v-total-amount">${{ v.pricing.totalAmount | number:'1.0-0' }} COP</span>
+                </div>
+              </div>
+
+              <div class="voucher-security-footer">
+                <div class="hash-box">
+                  <span class="hash-title">Token de Seguridad & Trazabilidad Blockchain:</span>
+                  <code class="hash-code">{{ v.security.voucherHash }}</code>
+                </div>
+                <small class="issued-text">Emitido el {{ v.security.issuedAt | date:'medium' }} vía VetPro Marketplace</small>
+              </div>
+            </div>
+
+            <footer class="voucher-footer">
+              <button class="btn-cancel" (click)="closeVoucher()">Cerrar</button>
+              <button class="btn-print" (click)="printVoucher()">
+                <span class="material-symbols-outlined">print</span>
+                Imprimir Comprobante / Guardar PDF
+              </button>
+            </footer>
+          </div>
         }
       </div>
     </div>

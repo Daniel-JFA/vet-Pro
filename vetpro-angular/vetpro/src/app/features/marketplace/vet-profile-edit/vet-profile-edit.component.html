@@ -71,6 +71,76 @@
       </div>
     </div>
 
+    <!-- ⭐ Tarjeta de Membresía Pro Vet ($49.000 COP / mes) -->
+    <div class="pro-vet-banner-card" [class.active-membership]="subscription()?.isActive">
+      <div class="pro-vet-header">
+        <div class="pro-badge-group">
+          <span class="pro-star-icon">⭐</span>
+          <div>
+            <h3>Membresía Pro Vet Verificado</h3>
+            <span class="pro-tagline">Destaca en los primeros resultados de búsqueda y multiplica tus consultas</span>
+          </div>
+        </div>
+        <div class="pro-pricing-tag">
+          <span class="price-value">$49.000 COP</span>
+          <span class="price-period">/ mes</span>
+        </div>
+      </div>
+
+      <div class="pro-vet-body">
+        @if (subscription()?.isActive) {
+          <div class="pro-active-box">
+            <div class="active-badge-pill">
+              <span class="material-symbols-outlined">verified</span>
+              <strong>Membresía Activa</strong>
+            </div>
+            <p>
+              Tu perfil cuenta con la insignia dorada <strong>⭐ Pro Vet</strong> y tiene máxima prioridad en las búsquedas en tu ciudad.
+              @if (subscription()?.subscriptionExpiresAt) {
+                <span>Vigencia hasta: <strong>{{ subscription()?.subscriptionExpiresAt | date:'longDate' }}</strong></span>
+              }
+            </p>
+          </div>
+        } @else {
+          <div class="pro-features-list">
+            <div class="feat-item">
+              <span class="material-symbols-outlined">workspace_premium</span>
+              <span>Insignia dorada <strong>⭐ Pro Vet</strong> en el directorio público</span>
+            </div>
+            <div class="feat-item">
+              <span class="material-symbols-outlined">rocket_launch</span>
+              <span>Posicionamiento prioritario en resultados por ciudad y especialidades</span>
+            </div>
+            <div class="feat-item">
+              <span class="material-symbols-outlined">trending_up</span>
+              <span>3x más clics y reservas directas a domicilio y consultorio</span>
+            </div>
+            <div class="feat-item">
+              <span class="material-symbols-outlined">credit_score</span>
+              <span>Pagos online seguros integrados con Wompi (Tarjetas, PSE, Nequi)</span>
+            </div>
+          </div>
+
+          <div class="pro-action-row">
+            <button
+              type="button"
+              class="btn-activate-pro"
+              [disabled]="subscribing()"
+              (click)="activateProVet()"
+            >
+              @if (subscribing()) {
+                <span>Activando membresía...</span>
+              } @else {
+                <span class="material-symbols-outlined">star</span>
+                <span>Activar Membresía Pro Vet ⭐ ($49.000 COP / mes)</span>
+              }
+            </button>
+            <span class="sub-hint">Cancela en cualquier momento sin penalidades</span>
+          </div>
+        }
+      </div>
+    </div>
+
     <div class="form-grid">
       <!-- Columna Izquierda: Información Profesional y Tarifas -->
       <div class="form-card">

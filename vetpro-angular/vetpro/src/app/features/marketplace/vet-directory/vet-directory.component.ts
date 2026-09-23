@@ -2,7 +2,13 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { MarketplaceService, PublicVetItem, PublicVetDetail } from '../../../core/services/marketplace.service';
+import {
+  MarketplaceService,
+  PublicVetItem,
+  PublicVetDetail,
+  WompiCheckoutData,
+  AppointmentVoucherData
+} from '../../../core/services/marketplace.service';
 import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
@@ -37,6 +43,18 @@ export class VetDirectoryComponent implements OnInit {
   bookingVet = signal<PublicVetItem | null>(null);
   bookingSubmitting = signal<boolean>(false);
   bookingSuccess = signal<any | null>(null);
+
+  // Pasarela Wompi & Checkout
+  checkoutData = signal<WompiCheckoutData | null>(null);
+  loadingCheckout = signal<boolean>(false);
+  processingPayment = signal<boolean>(false);
+  paymentSuccess = signal<boolean>(false);
+  selectedPaymentMethod = signal<'CARD' | 'PSE' | 'NEQUI' | 'BANCOLOMBIA'>('CARD');
+
+  // Comprobante Digital (Voucher)
+  voucherData = signal<AppointmentVoucherData | null>(null);
+  loadingVoucher = signal<boolean>(false);
+  showVoucherModal = signal<boolean>(false);
 
   bookingForm = {
     tutorName: '',
@@ -174,6 +192,67 @@ export class VetDirectoryComponent implements OnInit {
     this.showBookingModal.set(false);
     this.bookingVet.set(null);
     this.bookingSuccess.set(null);
+    this.checkoutData.set(null);
+    this.paymentSuccess.set(false);
+  }
+
+  startOnlinePayment(appointmentId: string): void {
+    this.loadingCheckout.set(true);
+    this.marketplaceService.getAppointmentCheckout(appointmentId).subscribe({
+      next: (data) => {
+        this.checkoutData.set(data);
+        this.loadingCheckout.set(false);
+      },
+      error: (err) => {
+        this.toast.error(err.error?.error || 'Error al iniciar sesión de pago Wompi');
+        this.loadingCheckout.set(false);
+      }
+    });
+  }
+
+  simulatePayment(): void {
+    const checkout = this.checkoutData();
+    if (!checkout) return;
+
+    this.processingPayment.set(true);
+    this.marketplaceService
+      .simulateMockPayment(checkout.reference, 'APPROVED', this.selectedPaymentMethod())
+      .subscribe({
+        next: () => {
+          this.toast.success('¡Pago verificado y aprobado con éxito vía Wompi Colombia!');
+          this.paymentSuccess.set(true);
+          this.processingPayment.set(false);
+        },
+        error: (err) => {
+          this.toast.error(err.error?.error || 'Error al procesar simulación de pago');
+          this.processingPayment.set(false);
+        }
+      });
+  }
+
+  openVoucher(appointmentId: string): void {
+    this.loadingVoucher.set(true);
+    this.showVoucherModal.set(true);
+    this.marketplaceService.getAppointmentVoucher(appointmentId).subscribe({
+      next: (voucher) => {
+        this.voucherData.set(voucher);
+        this.loadingVoucher.set(false);
+      },
+      error: (err) => {
+        this.toast.error(err.error?.error || 'Error al consultar comprobante digital');
+        this.loadingVoucher.set(false);
+        this.showVoucherModal.set(false);
+      }
+    });
+  }
+
+  closeVoucher(): void {
+    this.showVoucherModal.set(false);
+    this.voucherData.set(null);
+  }
+
+  printVoucher(): void {
+    window.print();
   }
 
   submitBooking(): void {

@@ -127,6 +127,7 @@ model Clinic {
   groomingServices      GroomingService[]
   crmCampaigns          CrmCampaign[]
   vetProfiles           VetProfile[]
+  marketplacePayments   MarketplacePayment[]
 
   @@map("clinics")
 }
@@ -243,6 +244,7 @@ model Tutor {
   invoices     Invoice[]
   walkBookings WalkBooking[]
   vetReviews   VetReview[]
+  marketplacePayments MarketplacePayment[]
 
   @@index([clinicId])
   @@index([phone])
@@ -380,9 +382,15 @@ model Appointment {
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
+  // Información de Pago (Wompi / Marketplace)
+  paymentStatus   String?           @default("unpaid") // "unpaid", "pending", "paid", "refunded"
+  paymentMethod   String?           // "CARD", "PSE", "NEQUI", "BANCOLOMBIA_TRANSFER", "cash_at_clinic"
+  paymentReference String?
+
   // Relaciones
-  medicalRecords MedicalRecord[]
-  invoices       Invoice[]
+  medicalRecords      MedicalRecord[]
+  invoices            Invoice[]
+  marketplacePayments MarketplacePayment[]
 
   @@index([clinicId])
   @@index([branchId])
@@ -977,10 +985,16 @@ model VetProfile {
   whatsappNumber     String?            // WhatsApp para recibir citas
   payoutBank         String?            // Entidad de dispersión (Nequi, Daviplata, Bancolombia, etc.)
   payoutAccount      String?            // Número de cuenta o celular para pago de honorarios
+
+  // Membresía Pro Vet ($49.000 COP/mes)
+  subscriptionStatus    String?            @default("free") // "free", "active", "cancelled", "expired"
+  subscriptionExpiresAt DateTime?
+
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
-  reviews            VetReview[]
+  reviews             VetReview[]
+  marketplacePayments MarketplacePayment[]
 
   @@index([clinicId])
   @@index([verificationStatus])
@@ -1002,6 +1016,50 @@ model VetReview {
 
   @@index([vetProfileId])
   @@map("vet_reviews")
+}
+
+// ─────────────────────────────────────────────
+// 💳 PAGOS MARKETPLACE (PASARELA WOMPI COLOMBIA)
+// ─────────────────────────────────────────────
+
+enum MarketplacePaymentStatus {
+  pending
+  approved
+  declined
+  voided
+  error
+}
+
+model MarketplacePayment {
+  id                 String                   @id @default(uuid())
+  clinicId           String
+  clinic             Clinic                   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  appointmentId      String?
+  appointment        Appointment?             @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  vetProfileId       String?
+  vetProfile         VetProfile?              @relation(fields: [vetProfileId], references: [id], onDelete: SetNull)
+  tutorId            String?
+  tutor              Tutor?                   @relation(fields: [tutorId], references: [id], onDelete: SetNull)
+  amount             Float
+  platformFee        Float                    @default(0) // 15% comisión VetPro
+  vetAmount          Float                    @default(0) // 85% para el veterinario
+  currency           String                   @default("COP")
+  paymentType        String                   @default("appointment_booking") // "appointment_booking", "subscription_pro_vet"
+  paymentMethod      String?                  // "CARD", "PSE", "NEQUI", "BANCOLOMBIA_TRANSFER"
+  status             MarketplacePaymentStatus @default(pending)
+  wompiTransactionId String?                  @unique
+  wompiReference     String                   @unique
+  gatewayResponse    Json?
+  paidAt             DateTime?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+
+  @@index([clinicId])
+  @@index([appointmentId])
+  @@index([vetProfileId])
+  @@index([status])
+  @@index([wompiReference])
+  @@map("marketplace_payments")
 }
 
 // ─────────────────────────────────────────────

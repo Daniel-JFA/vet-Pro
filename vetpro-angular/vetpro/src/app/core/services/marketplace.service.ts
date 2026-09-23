@@ -210,4 +210,135 @@ export class MarketplaceService {
   getEarnings(): Observable<VetEarningsSummary> {
     return this.api.get<VetEarningsSummary>('/marketplace/profile/earnings');
   }
+
+  /**
+   * Generar sesión de pago Wompi para una cita médica
+   */
+  getAppointmentCheckout(appointmentId: string): Observable<WompiCheckoutData> {
+    return this.api.post<WompiCheckoutData>(`/marketplace/appointments/${appointmentId}/checkout`, {});
+  }
+
+  /**
+   * Simular pago instantáneo en Sandbox / Dev
+   */
+  simulateMockPayment(reference: string, status: 'APPROVED' | 'DECLINED' = 'APPROVED', paymentMethod: string = 'CARD'): Observable<any> {
+    return this.api.post<any>('/marketplace/payments/mock-simulate', { reference, status, paymentMethod });
+  }
+
+  /**
+   * Obtener comprobante digital (Voucher) de una cita
+   */
+  getAppointmentVoucher(appointmentId: string): Observable<AppointmentVoucherData> {
+    return this.api.get<AppointmentVoucherData>(`/marketplace/appointments/${appointmentId}/voucher`);
+  }
+
+  /**
+   * Consultar estado de membresía Pro Vet ⭐
+   */
+  getSubscriptionStatus(): Observable<ProVetSubscriptionStatus> {
+    return this.api.get<ProVetSubscriptionStatus>('/marketplace/profile/subscription');
+  }
+
+  /**
+   * Suscribirse o activar membresía Pro Vet ⭐ ($49.000 COP / mes)
+   */
+  subscribeProVet(instantActivate: boolean = true): Observable<any> {
+    return this.api.post<any>('/marketplace/profile/subscription', { instantActivate });
+  }
 }
+
+export interface WompiCheckoutData {
+  paymentId: string;
+  publicKey: string;
+  currency: string;
+  amountInCents: number;
+  amount: number;
+  platformFee: number;
+  vetAmount: number;
+  reference: string;
+  signatureIntegrity: string;
+  redirectUrl: string;
+  customerData: {
+    email?: string;
+    fullName?: string;
+    phoneNumber?: string;
+  };
+  appointment: {
+    id: string;
+    reservationCode: string;
+    scheduledAt: string;
+    serviceType: string;
+    modality: string;
+    patientName: string;
+    vetName: string;
+    clinicName: string;
+  };
+}
+
+export interface AppointmentVoucherData {
+  voucherId: string;
+  reservationCode: string;
+  appointmentId: string;
+  scheduledAt: string;
+  status: string;
+  modality: string;
+  serviceType: string;
+  reason: string;
+  notes?: string;
+  address?: string;
+  city?: string;
+  pricing: {
+    totalAmount: number;
+    platformFee: number;
+    netVetAmount: number;
+    currency: string;
+    paymentStatus: string;
+    paymentMethod: string;
+    paymentReference?: string;
+    paidAt?: string;
+  };
+  patient: {
+    id?: string;
+    name: string;
+    species: string;
+    breed?: string;
+  };
+  tutor: {
+    name: string;
+    phone: string;
+    email?: string;
+    documentId?: string;
+    address?: string;
+  };
+  vet: {
+    name: string;
+    phone?: string;
+    professionalCard?: string;
+    specialties: string[];
+    isFeatured: boolean;
+  };
+  clinic: {
+    name: string;
+    nit?: string;
+    phone?: string;
+    email?: string;
+    address?: string;
+    city?: string;
+  };
+  security: {
+    voucherHash: string;
+    issuedAt: string;
+    verificationUrl: string;
+  };
+}
+
+export interface ProVetSubscriptionStatus {
+  isFeatured: boolean;
+  subscriptionStatus: string;
+  subscriptionExpiresAt?: string;
+  isActive: boolean;
+  pricePerMonth: number;
+  currency: string;
+  payments: any[];
+}
+
