@@ -282,6 +282,12 @@ La landing hoy muestra "Cotización personalizada" (se retiraron precios inventa
   - **7.3 Atención Integrada con Historia Clínica:** citas creadas desde el marketplace aparecen en la agenda de la clínica y Kanban listas para ser atendidas con la Bitácora IA (SOAP) de VetPro.
   - **7.4 Sistema de Reseñas:** calificación de 1 a 5 estrellas y comentarios con recálculo transaccional en base de datos. 53 tests de integración pasando.
 
-**Sprints 0 al 7:** **¡100% completados y aprobados!** La plataforma cuenta con núcleo clínico completo, facturación, migración masiva, módulo de spa y la red de marketplace web de veterinarios verificados con agendamiento ágil.
+- **Sprint 8 — Monetización, Comisiones (15%) y Balance del Veterinario (Commit `a638ef1`):**
+  - **8.1 Dashboard de Ingresos del Veterinario:** endpoint `GET /api/v1/marketplace/profile/earnings` calculando volumen de citas recibidas, facturación bruta acumulada, comisión retenida de plataforma (15%) e ingresos netos a favor del veterinario (85%).
+  - **8.2 Configuración de Dispersión / Cuenta de Pago:** campos `payoutBank` y `payoutAccount` en `VetProfile` para registrar cuenta Bancolombia, Nequi o Daviplata donde el veterinario recibe sus pagos.
+  - **8.3 UI de Balance en Perfil Profesional:** tarjeta de métricas financieras y listado de citas recientes en `/perfil-profesional`.
+  - **8.4 Suite de Tests de Integración E2E:** 61 tests pasando en Vitest (incluyendo importación masiva con deduplicación y flujo de consulta a facturación).
+
+**Sprints 0 al 8:** **¡100% completados y aprobados!** La plataforma cuenta con núcleo clínico completo, facturación, migración masiva, módulo de spa y la red de marketplace web de veterinarios verificados con agendamiento ágil y balance de ingresos.
 
 **Antes del próximo despliegue:** verificar que el `.env` del servidor de producción tiene un `JWT_SECRET` real (≥ 32 caracteres). Si no, el backend ahora se niega a arrancar. Además, al desplegar se cerrarán todas las sesiones activas (los tokens anteriores no llevan `audience`).
