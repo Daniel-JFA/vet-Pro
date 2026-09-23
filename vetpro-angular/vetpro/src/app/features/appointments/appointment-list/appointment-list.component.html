@@ -21,12 +21,12 @@
             type="button"
             class="btn btn-ghost btn-reminders"
             (click)="openRemindersModal()"
-            title="Recordatorios automáticos de WhatsApp para las citas de mañana"
+            title="Recordatorios automáticos de WhatsApp para citas y vacunas"
           >
             <span class="material-symbols-outlined" style="color: #25D366">mark_chat_unread</span>
-            <span>Recordatorios Mañana</span>
-            @if (remindersCount() > 0) {
-              <span class="badge-reminder-count">{{ remindersCount() }}</span>
+            <span>Recordatorios WhatsApp</span>
+            @if (totalRemindersCount() > 0) {
+              <span class="badge-reminder-count">{{ totalRemindersCount() }}</span>
             }
           </button>
           <a routerLink="/appointments/calendar" class="btn btn-ghost">
@@ -680,7 +680,7 @@
     </div>
   }
 
-  <!-- Modal de Recordatorios de WhatsApp para Mañana -->
+  <!-- Modal de Recordatorios de WhatsApp para Citas y Vacunas -->
   @if (showRemindersModal()) {
     <div class="modal-backdrop" (click)="showRemindersModal.set(false)">
       <div class="modal-card" (click)="$event.stopPropagation()">
@@ -688,67 +688,143 @@
           <div class="modal-header-title">
             <span class="material-symbols-outlined modal-icon" style="color: #25D366">mark_chat_unread</span>
             <div>
-              <h2>Recordatorios para Mañana</h2>
-              <p class="modal-subtitle">Confirma visitas programadas vía WhatsApp para evitar inasistencias</p>
+              <h2>Recordatorios por WhatsApp</h2>
+              <p class="modal-subtitle">Confirma visitas de mañana y previene vacunas vencidas en 1 solo clic</p>
             </div>
           </div>
           <button type="button" class="close-btn" (click)="showRemindersModal.set(false)" aria-label="Cerrar">✕</button>
         </header>
 
+        <!-- Pestañas del Modal -->
+        <div class="modal-tabs-bar">
+          <button
+            type="button"
+            class="modal-tab-btn"
+            [class.active]="activeReminderTab() === 'appointments'"
+            (click)="activeReminderTab.set('appointments')"
+          >
+            <span class="material-symbols-outlined">event</span>
+            <span>Citas de Mañana ({{ appointmentsCount() }})</span>
+          </button>
+          <button
+            type="button"
+            class="modal-tab-btn"
+            [class.active]="activeReminderTab() === 'vaccines'"
+            (click)="activeReminderTab.set('vaccines')"
+          >
+            <span class="material-symbols-outlined">vaccines</span>
+            <span>Vacunas Próximas ({{ vaccinesCount() }})</span>
+          </button>
+        </div>
+
         <div class="modal-body">
           @if (loadingReminders()) {
             <div class="reminders-loading">
               <div class="spinner"></div>
-              <p>Consultando citas programadas para mañana...</p>
+              <p>Consultando recordatorios pendientes...</p>
             </div>
-          } @else if (!remindersData()?.appointments?.length) {
-            <div class="empty-reminders">
-              <span class="material-symbols-outlined empty-icon">event_available</span>
-              <h3>No hay visitas programadas para mañana</h3>
-              <p>Cuando los tutores o la clínica agenden citas para el día de mañana, aparecerán aquí con su mensaje de WhatsApp pre-redactado listo para enviar en 1 clic.</p>
-            </div>
+          } @else if (activeReminderTab() === 'appointments') {
+            <!-- VISTA DE CITAS DE MAÑANA -->
+            @if (!remindersData()?.appointments?.length) {
+              <div class="empty-reminders">
+                <span class="material-symbols-outlined empty-icon">event_available</span>
+                <h3>No hay visitas programadas para mañana</h3>
+                <p>Cuando los tutores o la clínica agenden citas para el día de mañana, aparecerán aquí con su mensaje de WhatsApp pre-redactado listo para enviar en 1 clic.</p>
+              </div>
+            } @else {
+              <div class="reminders-summary-bar">
+                <span>📋 <strong>{{ remindersData()?.appointments?.length }}</strong> cita(s) agendada(s) para mañana</span>
+                <span class="tip-text">💡 1 clic para abrir WhatsApp con el mensaje ya redactado</span>
+              </div>
+
+              <div class="reminders-list">
+                @for (item of remindersData()?.appointments; track item.id) {
+                  <div class="reminder-item-card">
+                    <div class="reminder-card-header">
+                      <div class="reminder-patient-info">
+                        <span class="patient-name">🐾 {{ item.patientName }}</span>
+                        <span class="tutor-name">Tutor: {{ item.tutorName }} ({{ item.phone }})</span>
+                      </div>
+                      <div class="reminder-time-badge">
+                        <span class="material-symbols-outlined">schedule</span>
+                        {{ item.scheduledAt | date:'shortTime' }}
+                      </div>
+                    </div>
+
+                    <div class="reminder-message-preview">
+                      {{ item.message }}
+                    </div>
+
+                    <div class="reminder-card-actions">
+                      <button type="button" class="btn btn-ghost-sm" (click)="copyMessage(item.message)">
+                        <span class="material-symbols-outlined">content_copy</span>
+                        Copiar
+                      </button>
+                      <a
+                        [href]="item.whatsappUrl"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="btn btn-whatsapp-sm"
+                      >
+                        <span class="material-symbols-outlined">chat</span>
+                        Enviar WhatsApp
+                      </a>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
           } @else {
-            <div class="reminders-summary-bar">
-              <span>📋 <strong>{{ remindersData()?.appointments?.length }}</strong> cita(s) agendada(s) para mañana</span>
-              <span class="tip-text">💡 1 clic para abrir WhatsApp con el mensaje ya redactado</span>
-            </div>
+            <!-- VISTA DE VACUNAS PRÓXIMAS (7 DÍAS) -->
+            @if (!remindersData()?.vaccines?.length) {
+              <div class="empty-reminders">
+                <span class="material-symbols-outlined empty-icon">health_and_safety</span>
+                <h3>No hay vacunas por vencer en los próximos 7 días</h3>
+                <p>Excelente: todos tus pacientes registrados se encuentran con sus esquemas vacunales al día para la próxima semana.</p>
+              </div>
+            } @else {
+              <div class="reminders-summary-bar" style="background: #eff6ff; border-color: #bfdbfe; color: #1e40af;">
+                <span>💉 <strong>{{ remindersData()?.vaccines?.length }}</strong> refuerzo(s) en los próximos 7 días</span>
+                <span class="tip-text" style="color: #2563eb;">💡 Fideliza al tutor avisándole antes de que venza</span>
+              </div>
 
-            <div class="reminders-list">
-              @for (item of remindersData()?.appointments; track item.id) {
-                <div class="reminder-item-card">
-                  <div class="reminder-card-header">
-                    <div class="reminder-patient-info">
-                      <span class="patient-name">🐾 {{ item.patientName }}</span>
-                      <span class="tutor-name">Tutor: {{ item.tutorName }} ({{ item.phone }})</span>
+              <div class="reminders-list">
+                @for (item of remindersData()?.vaccines; track item.id) {
+                  <div class="reminder-item-card" style="border-left: 3px solid #3b82f6;">
+                    <div class="reminder-card-header">
+                      <div class="reminder-patient-info">
+                        <span class="patient-name">🐾 {{ item.patientName }} — <strong>{{ item.vaccineName }}</strong></span>
+                        <span class="tutor-name">Tutor: {{ item.tutorName }} ({{ item.phone }})</span>
+                      </div>
+                      <div class="reminder-time-badge" style="background: #e0f2fe; border-color: #bae6fd; color: #0369a1;">
+                        <span class="material-symbols-outlined">event</span>
+                        Vence: {{ item.dueDate | date:'mediumDate' }}
+                      </div>
                     </div>
-                    <div class="reminder-time-badge">
-                      <span class="material-symbols-outlined">schedule</span>
-                      {{ item.scheduledAt | date:'shortTime' }}
+
+                    <div class="reminder-message-preview" style="border-left-color: #3b82f6;">
+                      {{ item.message }}
+                    </div>
+
+                    <div class="reminder-card-actions">
+                      <button type="button" class="btn btn-ghost-sm" (click)="copyMessage(item.message)">
+                        <span class="material-symbols-outlined">content_copy</span>
+                        Copiar
+                      </button>
+                      <a
+                        [href]="item.whatsappUrl"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="btn btn-whatsapp-sm"
+                      >
+                        <span class="material-symbols-outlined">chat</span>
+                        Avisar por WhatsApp
+                      </a>
                     </div>
                   </div>
-
-                  <div class="reminder-message-preview">
-                    {{ item.message }}
-                  </div>
-
-                  <div class="reminder-card-actions">
-                    <button type="button" class="btn btn-ghost-sm" (click)="copyMessage(item.message)">
-                      <span class="material-symbols-outlined">content_copy</span>
-                      Copiar
-                    </button>
-                    <a
-                      [href]="item.whatsappUrl"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="btn btn-whatsapp-sm"
-                    >
-                      <span class="material-symbols-outlined">chat</span>
-                      Enviar WhatsApp
-                    </a>
-                  </div>
-                </div>
-              }
-            </div>
+                }
+              </div>
+            }
           }
         </div>
 

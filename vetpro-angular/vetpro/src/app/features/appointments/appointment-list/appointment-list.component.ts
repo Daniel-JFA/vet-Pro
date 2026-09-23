@@ -25,13 +25,22 @@ export class AppointmentListComponent implements OnInit {
   appointments = signal<Appointment[]>([]);
   loading = signal(true);
 
-  // Recordatorios de citas de mañana (WhatsApp)
+  // Recordatorios de citas de mañana y vacunas (WhatsApp)
   remindersData = signal<UpcomingRemindersResponse | null>(null);
   showRemindersModal = signal(false);
   loadingReminders = signal(false);
+  activeReminderTab = signal<'appointments' | 'vaccines'>('appointments');
 
-  remindersCount = computed(() => 
+  appointmentsCount = computed(() => 
     this.remindersData()?.summary?.appointmentsTomorrowCount ?? 0
+  );
+
+  vaccinesCount = computed(() => 
+    this.remindersData()?.summary?.vaccinesUpcomingCount ?? 0
+  );
+
+  totalRemindersCount = computed(() => 
+    this.appointmentsCount() + this.vaccinesCount()
   );
 
   // Columnas Kanban reactivas basadas en los estados de hoy
