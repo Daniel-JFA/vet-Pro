@@ -189,4 +189,31 @@ export class VetProfileEditComponent implements OnInit {
         }
       });
   }
+
+  getPublicProfileUrl(): string {
+    const p = this.profile();
+    if (!p) return '';
+    const base = window.location.origin;
+    return `${base}/directorio?reviewVet=${p.id}`;
+  }
+
+  copyPublicProfileLink(): void {
+    const url = this.getPublicProfileUrl();
+    if (url && navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(url).then(() => {
+        this.toast.success('¡Enlace de tu perfil público copiado al portapapeles!');
+      }).catch(() => {
+        this.toast.error('No se pudo copiar el enlace automáticamente');
+      });
+    } else {
+      this.toast.info('Copia manual del enlace requerida');
+    }
+  }
+
+  shareOnWhatsApp(): void {
+    const url = this.getPublicProfileUrl();
+    if (!url) return;
+    const text = `🐾 ¡Hola! Puedes conocer mi perfil profesional, ver mis servicios veterinarios verificados y agendar tu cita aquí: ${url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  }
 }

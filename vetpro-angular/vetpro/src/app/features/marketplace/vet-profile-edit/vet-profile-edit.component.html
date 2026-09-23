@@ -47,6 +47,30 @@
       </div>
     </div>
 
+    <!-- Enlace Directo de Agendamiento Web & Redes Sociales -->
+    <div class="share-profile-card">
+      <div class="share-info">
+        <div class="share-icon-wrap">
+          <span class="material-symbols-outlined">link</span>
+        </div>
+        <div class="share-details">
+          <h4>Tu Enlace Personal de Agendamiento Web</h4>
+          <p>Comparte este link en tus estados de WhatsApp, biografía de Instagram o envíalo a clientes para agendar sin saturar tu chat:</p>
+          <div class="share-link-input-group">
+            <input type="text" readonly [value]="getPublicProfileUrl()" class="share-link-input" />
+            <button type="button" class="btn-copy-url" (click)="copyPublicProfileLink()" title="Copiar enlace">
+              <span class="material-symbols-outlined">content_copy</span>
+              Copiar
+            </button>
+            <button type="button" class="btn-share-wpp" (click)="shareOnWhatsApp()" title="Compartir en WhatsApp">
+              <span class="material-symbols-outlined">chat</span>
+              WhatsApp
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="form-grid">
       <!-- Columna Izquierda: Información Profesional y Tarifas -->
       <div class="form-card">
