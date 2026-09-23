@@ -311,12 +311,16 @@ La landing hoy muestra "Cotización personalizada" (se retiraron precios inventa
   - **11.3 Enrutamiento y Navegación:** rutas montadas en `app.routes.ts` y enlaces en la barra lateral `shell.component.ts`.
   - **11.4 Suite de Tests:** 95 tests pasando en Vitest (8 nuevos tests de integración para notificaciones y despacho automático).
 
+- **Sprint 12 — Facturación Electrónica DIAN Oficial y Arqueo POS de Caja (Commit `9e180dc`):**
+  - **12.1 Emisión DIAN en Comprobantes:** activación completa de UI en `billing-receipt.component.ts` y `.html` para emisión con un clic, generación de sello fiscal CUFE SHA-384, código QR oficial y badge de validación.
+  - **12.2 Control de Turnos y Caja POS:** apertura de caja con fondo base, seguimiento de efectivo en tiempo real y arqueo de caja con cálculo de descuadres/sobrantes en `billing-list.component.ts` y `.html`.
+  - **12.3 Gestión de Resoluciones DIAN:** modal interactivo en el panel de facturación para configurar prefijo, número de resolución, rangos y clave técnica DIAN.
+
 ---
 
 ### 🗺️ Sprints Restantes (Fase Evolutiva / Post-Lanzamiento)
-Al haber establecido el almacenamiento local en el servidor propio (sin S3/R2), quedan únicamente **2 sprints evolutivos** en el backlog de producto:
-1. **Sprint 12 — Facturación Electrónica DIAN Oficial y Arqueo POS de Caja:** Conexión de resoluciones DIAN, cálculo de CUFE/QR oficial y control de turnos de caja en la UI.
-2. **Sprint 13 — Suscripciones y Cobro Recurrente SaaS para Clínicas:** Facturación mensual/anual automatizada de licencias (Starter, Pro, Enterprise) para las veterinarias clientes.
+Al haber establecido el almacenamiento local en el servidor propio (sin S3/R2) y completado la DIAN y POS de caja, queda **únicamente 1 sprint final**:
+1. **Sprint 13 — Suscripciones y Cobro Recurrente SaaS para Clínicas:** Facturación mensual/anual automatizada de licencias (Starter, Pro, Enterprise) para las veterinarias clientes mediante Wompi Subscriptions.
 
-**Sprints 0 al 11:** **¡100% completados, probados y desplegados en main!**
+**Sprints 0 al 12:** **¡100% completados, probados y desplegados en main!**
 
