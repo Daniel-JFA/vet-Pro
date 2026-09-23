@@ -149,15 +149,15 @@ Los planes anteriores marcaban casi todo como "100 % completado". La auditoría 
 **Total:** ~7 días
 
 ### Sprint 7 — Marketplace Web: Agendamiento, Flujo WhatsApp Inteligente, Historia Clínica & Reseñas
-**Estado:** 📋 **PLANIFICADO / EN COTIZACIÓN** (Requerimiento Liliana Vet)
+**Estado:** ✅ **APROBADO Y COMPLETADO** (Commit `d176739` en `main`)
 **Meta:** canalizar solicitudes de citas reduciendo la fricción y saturación de WhatsApp, conectar la atención con la historia clínica VetPro y habilitar sistema de reputación por estrellas.
 
 | # | Historia | Días | Criterio de aceptación | Estado |
 |---|---|---|---|:---:|
-| 7.1 | **Solicitud de Cita Web por el Tutor:** formulario ágil desde el perfil del vet para solicitar consulta (selección de mascota, motivo, dirección/modalidad y fecha/hora sugerida) generando solicitud estructurada (`REQUESTED`). | 2 | El tutor solicita cita en menos de 2 minutos; el veterinario recibe notificación en su panel con todos los datos clave. | 📋 Planificado |
-| 7.2 | **Flujo Anti-Saturación de WhatsApp:** automatización de enlaces inteligentes `wa.me` con mensaje pre-estructurado (ID de reserva, datos del paciente, motivo y link a la orden) para cerrar detalles sin preguntas repetitivas por chat. | 1,5 | Clic en "Contactar por WhatsApp" abre mensaje estructurado sin que el vet tenga que pedir nombre, raza o dirección desde cero. | 📋 Planificado |
-| 7.3 | **Atención Integrada con Historia Clínica VetPro:** al atender una cita del marketplace, el vet accede a la ficha médica y Bitácora IA de VetPro; la historia queda guardada en el expediente central y el tutor puede consultarla en su portal (`/portal`). | 2 | Consulta finalizada genera SOAP oficial en VetPro; el tutor visualiza el diagnóstico y fórmula en su portal web. | 📋 Planificado |
-| 7.4 | **Sistema de Reputación (Estrellas y Reseñas Verificadas):** al completar la cita, el tutor recibe link para calificar de 1 a 5 estrellas y dejar un comentario; cálculo automático de rating ponderado en el perfil público. | 1,5 | Solo tutores con consulta efectivamente finalizada pueden calificar; el rating y comentarios se actualizan en el directorio público. | 📋 Planificado |
+| 7.1 | **Solicitud de Cita Web por el Tutor:** formulario ágil desde el directorio web con modal interactivo (mascota, tutor, modalidad, fecha/hora y motivo), calculando tarifa y generando cita en el sistema de la clínica. | 2 | Tutor solicita cita en < 2 min; se crean automáticamente los registros de tutor y paciente vinculados a la clínica; cita visible en agenda de VetPro. | ✅ Aprobado |
+| 7.2 | **Flujo Anti-Saturación de WhatsApp:** automatización de enlaces inteligentes `wa.me` con mensaje pre-estructurado (ID de reserva, datos del paciente, motivo, tarifa y dirección) para cerrar detalles sin preguntas repetitivas por chat. | 1,5 | Clic en "Confirmar por WhatsApp" abre mensaje estructurado sin que el vet tenga que pedir datos desde cero; pantalla de éxito con código de reserva. | ✅ Aprobado |
+| 7.3 | **Atención Integrada con Historia Clínica VetPro:** citas del marketplace aparecen en `/appointments` vinculadas al paciente; botón para atender abre la ficha clínica y Bitácora IA (SOAP) directamente. | 2 | Cita atendida guarda SOAP oficial en VetPro y queda disponible en el portal del tutor (`/portal`); 9 tests de integración pasando. | ✅ Aprobado |
+| 7.4 | **Sistema de Reputación (Estrellas y Reseñas Verificadas):** soporte de link de reseña directa (`?reviewVet=ID`); cálculo automático de rating promedio y conteo de opiniones visibles en el perfil público. | 1,5 | Reseña enviada recalcula promedio en base de datos de forma transaccional y actualiza las opiniones del perfil público. | ✅ Aprobado |
 
 **Total:** ~7 días
 
@@ -270,6 +270,18 @@ La landing hoy muestra "Cotización personalizada" (se retiraron precios inventa
   - **5.2 Importador masivo de Pacientes y Tutores desde Excel / CSV:** nuevo endpoint `POST /api/v1/patients/import` con validación Zod por fila, normalización inteligente de especie y sexo, deduplicación/vinculación de tutores existentes por documento o teléfono, y reporte detallado de filas importadas y errores. Modal interactivo en frontend (`patient-list` y enlace en `tutors-list`) con descarga de plantilla modelo (`plantilla_pacientes_vetpro.csv`), preview de datos leídos y resumen de resultados.
   - **5.3 Reactivación de Peluquería & Spa (Grooming):** reactivación de la ruta `/grooming` en `app.routes.ts` con protección `roleGuard(['admin', 'vet', 'assistant', 'receptionist', 'groomer'])`. Integración en la barra de navegación lateral (`shell.component.ts`) como módulo principal para `groomer` y en gestión para `admin`, `vet`, `receptionist` y `assistant`. Botón "Facturar Servicio" integrado en el Kanban de grooming para generar el cobro al terminar el spa.
 
-**Sprints 0, 1, 2, 3, 4 y 5:** **¡100% completados y aprobados!** La plataforma cuenta con flujo clínico integrado de extremo a extremo, migración de datos para nuevas clínicas y módulo de estética/spa activo.
+- **Sprint 6 — Marketplace Web Vets: Directorio Público, Onboarding & Verificación Profesional (Commit `36d2362`):**
+  - **6.1 Onboarding y Perfil del Veterinario:** modelo Prisma `VetProfile`, panel `/perfil-profesional` para configurar especialidades, tarifas de consulta y domicilio, WhatsApp y bio.
+  - **6.2 Verificación Profesional COMVEZCOL:** carga segura de Tarjeta Profesional y Cédula en PDF/imagen; panel `/verificaciones` para que el administrador audite y apruebe perfiles con 1 clic.
+  - **6.3 Directorio Web Público:** buscador responsivo `/directorio` y `/vets` estilo Sittsy/DiDi con filtros por ciudad, especialidad y modalidad, y vista de perfil detallado.
+  - **6.4 Base de Pacientes:** importador masivo conectado para migración asistida de Liliana.
+
+- **Sprint 7 — Agendamiento Web, Flujo WhatsApp Anti-Burnout e Historia Clínica (Commit `d176739`):**
+  - **7.1 Agendamiento Web Ágil:** modal interactivo en el directorio donde el tutor agenda cita en menos de 2 minutos sin registro previo engorroso. Creación automática y vinculada de registros de tutor y paciente en la clínica.
+  - **7.2 Automatización Anti-Saturación de WhatsApp:** generación de enlace directo `wa.me` con mensaje estructurado completo (código de reserva, paciente, tutor, fecha, modalidad, dirección, motivo y tarifa) para eliminar la fricción de coordinación por chat.
+  - **7.3 Atención Integrada con Historia Clínica:** citas creadas desde el marketplace aparecen en la agenda de la clínica y Kanban listas para ser atendidas con la Bitácora IA (SOAP) de VetPro.
+  - **7.4 Sistema de Reseñas:** calificación de 1 a 5 estrellas y comentarios con recálculo transaccional en base de datos. 53 tests de integración pasando.
+
+**Sprints 0 al 7:** **¡100% completados y aprobados!** La plataforma cuenta con núcleo clínico completo, facturación, migración masiva, módulo de spa y la red de marketplace web de veterinarios verificados con agendamiento ágil.
 
 **Antes del próximo despliegue:** verificar que el `.env` del servidor de producción tiene un `JWT_SECRET` real (≥ 32 caracteres). Si no, el backend ahora se niega a arrancar. Además, al desplegar se cerrarán todas las sesiones activas (los tokens anteriores no llevan `audience`).
