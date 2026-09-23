@@ -1,5 +1,6 @@
 import { Router, Response } from 'express';
 import { z } from 'zod';
+import { AppointmentStatus } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
 import { roleMiddleware } from '../middleware/role.js';
@@ -7,7 +8,7 @@ import { roleMiddleware } from '../middleware/role.js';
 export const CRM_ROUTES = Router();
 
 CRM_ROUTES.use(authMiddleware as any);
-CRM_ROUTES.use(roleMiddleware(['admin', 'receptionist']) as any);
+CRM_ROUTES.use(roleMiddleware(['admin', 'receptionist', 'vet']) as any);
 
 // ─────────────────────────────────────────────
 // ESQUEMAS DE VALIDACIÓN ZOD
@@ -270,5 +271,113 @@ CRM_ROUTES.post('/broadcast', async (req: AuthRequest, res: Response) => {
     }
     console.error('[CRM] Error al enviar campaña:', error);
     return res.status(500).json({ error: 'Error al procesar campaña masiva de reactivación.' });
+  }
+});
+
+// ─────────────────────────────────────────────
+// ⏰ RECORDATORIOS AUTOMÁTICOS & WHATSAPP
+// ─────────────────────────────────────────────
+
+// GET /api/v1/crm/reminders/upcoming (Citas de mañana y vacunas próximas)
+CRM_ROUTES.get('/reminders/upcoming', async (req: AuthRequest, res: Response) => {
+  const clinicId = req.user?.clinicId;
+  if (!clinicId) return res.status(401).json({ error: 'No autorizado.' });
+
+  try {
+    const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
+    const clinicName = clinic?.name || 'VetPro';
+
+    const now = new Date();
+    const tomorrowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
+    const tomorrowEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 23, 59, 59);
+    const nextWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7, 23, 59, 59);
+
+    // 1. Citas programadas para mañana
+    const tomorrowAppointments = await prisma.appointment.findMany({
+      where: {
+        clinicId,
+        scheduledAt: { gte: tomorrowStart, lte: tomorrowEnd },
+        status: { in: [AppointmentStatus.scheduled, AppointmentStatus.waiting] }
+      },
+      include: {
+        patient: { include: { tutor: true } },
+        vet: { select: { firstName: true, lastName: true } }
+      },
+      orderBy: { scheduledAt: 'asc' }
+    });
+
+    // 2. Vacunas que vencen en los próximos 7 días
+    const upcomingVaccines = await prisma.vaccine.findMany({
+      where: {
+        patient: { clinicId, status: 'active', deletedAt: null },
+        nextDueAt: { gte: now, lte: nextWeek }
+      },
+      include: {
+        patient: { include: { tutor: true } }
+      },
+      orderBy: { nextDueAt: 'asc' }
+    });
+
+    const appointmentReminders = tomorrowAppointments
+      .filter(a => a.patient?.tutor?.phone || a.prospectPhone)
+      .map(a => {
+        const tutorName = a.patient?.tutor?.firstName || a.prospectName || 'Tutor';
+        const petName = a.patient?.name || 'su mascota';
+        const rawPhone = (a.patient?.tutor?.phone || a.prospectPhone || '').replace(/[^0-9]/g, '');
+        const timeStr = a.scheduledAt.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+        const vetStr = a.vet ? ` con Dr(a). ${a.vet.firstName} ${a.vet.lastName}` : '';
+        const modalityStr = a.modality === 'home_visit' ? 'a domicilio' : 'en consultorio';
+
+        const text = `🐾 *¡Hola ${tutorName}!* Le recordamos que mañana tiene una cita médica para *${petName}* (${modalityStr}${vetStr}) a las *${timeStr}* en *${clinicName}*.\n\nPor favor confirme su asistencia respondiendo a este mensaje. ¡Muchas gracias!`;
+        const phoneWithCode = rawPhone.length === 10 && !rawPhone.startsWith('57') ? '57' + rawPhone : rawPhone;
+
+        return {
+          id: a.id,
+          type: 'appointment',
+          scheduledAt: a.scheduledAt,
+          patientName: petName,
+          tutorName,
+          phone: phoneWithCode,
+          message: text,
+          whatsappUrl: `https://wa.me/${phoneWithCode}?text=${encodeURIComponent(text)}`
+        };
+      });
+
+    const vaccineReminders = upcomingVaccines
+      .filter(v => v.patient.tutor?.phone)
+      .map(v => {
+        const tutorName = v.patient.tutor.firstName;
+        const petName = v.patient.name;
+        const rawPhone = (v.patient.tutor.phone || '').replace(/[^0-9]/g, '');
+        const dateStr = v.nextDueAt ? v.nextDueAt.toLocaleDateString('es-CO', { day: 'numeric', month: 'long' }) : 'próximamente';
+
+        const text = `🐾 *¡Hola ${tutorName}!* Le recordamos desde *${clinicName}* que a *${petName}* le corresponde el refuerzo de la vacuna *${v.name}* el *${dateStr}*.\n\nProteja a su mascota agendando su consulta preventiva. ¡Estamos atentos para atenderlos!`;
+        const phoneWithCode = rawPhone.length === 10 && !rawPhone.startsWith('57') ? '57' + rawPhone : rawPhone;
+
+        return {
+          id: v.id,
+          type: 'vaccine',
+          dueDate: v.nextDueAt,
+          vaccineName: v.name,
+          patientName: petName,
+          tutorName,
+          phone: phoneWithCode,
+          message: text,
+          whatsappUrl: `https://wa.me/${phoneWithCode}?text=${encodeURIComponent(text)}`
+        };
+      });
+
+    return res.json({
+      summary: {
+        appointmentsTomorrowCount: appointmentReminders.length,
+        vaccinesUpcomingCount: vaccineReminders.length,
+        totalReminders: appointmentReminders.length + vaccineReminders.length
+      },
+      appointments: appointmentReminders,
+      vaccines: vaccineReminders
+    });
+  } catch (error: any) {
+    console.error('[CRM] Error al consultar recordatorios:', error);
+    return res.status(500).json({ error: 'Error al consultar recordatorios programados.' });
   }
 });

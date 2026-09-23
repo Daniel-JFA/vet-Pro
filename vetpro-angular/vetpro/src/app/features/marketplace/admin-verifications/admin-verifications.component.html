@@ -127,6 +127,15 @@
               </td>
               <td style="text-align: right;">
                 <div class="action-buttons">
+                  <button
+                    class="btn-featured"
+                    [class.is-featured]="p.isFeatured"
+                    [title]="p.isFeatured ? 'Remover insignia Pro Vet' : 'Destacar en el directorio web (Pro Vet)'"
+                    (click)="toggleFeatured(p)"
+                  >
+                    <span class="material-symbols-outlined" style="font-size: 14px">star</span>
+                    {{ p.isFeatured ? 'Pro Vet' : 'Destacar' }}
+                  </button>
                   @if (p.verificationStatus !== 'verified') {
                     <button
                       class="btn-approve"

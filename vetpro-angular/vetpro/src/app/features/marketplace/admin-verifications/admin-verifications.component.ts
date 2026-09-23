@@ -92,4 +92,19 @@ export class AdminVerificationsComponent implements OnInit {
         }
       });
   }
+
+  toggleFeatured(profile: any): void {
+    const newFeatured = !profile.isFeatured;
+    this.marketplaceService.verifyVet(profile.id, { isFeatured: newFeatured }).subscribe({
+      next: () => {
+        this.toast.success(
+          newFeatured
+            ? 'Veterinario destacado como Vet Pro ⭐ en el directorio'
+            : 'Veterinario configurado con visibilidad estándar'
+        );
+        profile.isFeatured = newFeatured;
+      },
+      error: () => this.toast.error('Error al cambiar estado destacado')
+    });
+  }
 }

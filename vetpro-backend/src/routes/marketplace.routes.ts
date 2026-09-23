@@ -714,8 +714,9 @@ router.get(
  * Aprobar o rechazar la verificación de un veterinario
  */
 const VerifySchema = z.object({
-  status: z.nativeEnum(VerificationStatus),
-  notes: z.string().optional()
+  status: z.nativeEnum(VerificationStatus).optional(),
+  notes: z.string().optional(),
+  isFeatured: z.boolean().optional()
 });
 
 router.put(
@@ -725,22 +726,29 @@ router.put(
   async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       const { id } = req.params;
-      const { status, notes } = VerifySchema.parse(req.body);
+      const { status, notes, isFeatured } = VerifySchema.parse(req.body);
+
+      const dataToUpdate: any = {};
+      if (status !== undefined) {
+        dataToUpdate.verificationStatus = status;
+        dataToUpdate.verificationNotes = notes || null;
+        dataToUpdate.verifiedAt = status === VerificationStatus.verified ? new Date() : null;
+        dataToUpdate.verifiedBy = req.user!.id;
+        if (status === VerificationStatus.verified) {
+          dataToUpdate.isPublic = true;
+        }
+      }
+      if (isFeatured !== undefined) {
+        dataToUpdate.isFeatured = isFeatured;
+      }
 
       const profile = await prisma.vetProfile.update({
         where: { id },
-        data: {
-          verificationStatus: status,
-          verificationNotes: notes || null,
-          verifiedAt: status === VerificationStatus.verified ? new Date() : null,
-          verifiedBy: req.user!.id,
-          // Si se verifica y tiene tarjeta, permitir que sea público por defecto
-          ...(status === VerificationStatus.verified ? { isPublic: true } : {})
-        }
+        data: dataToUpdate
       });
 
       res.json({
-        message: `Estado de verificación actualizado a: ${status}`,
+        message: 'Solicitud actualizada con éxito',
         profile
       });
     } catch (err: any) {

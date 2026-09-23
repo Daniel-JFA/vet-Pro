@@ -239,6 +239,31 @@
       }
     }
 
+    .btn-featured {
+      background: #f8fafc;
+      color: #64748b;
+      border: 1px solid #cbd5e1;
+
+      &:hover {
+        background: #fef3c7;
+        color: #d97706;
+        border-color: #fde68a;
+      }
+
+      &.is-featured {
+        background: #fef3c7;
+        color: #b45309;
+        border: 1px solid #fcd34d;
+        font-weight: 700;
+
+        &:hover {
+          background: #fee2e2;
+          color: #b91c1c;
+          border-color: #fca5a5;
+        }
+      }
+    }
+
     .btn-approve {
       background: #ecfdf5;
       color: #059669;

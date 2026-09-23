@@ -198,9 +198,9 @@ export class MarketplaceService {
   }
 
   /**
-   * Panel Admin: Aprobar o rechazar verificación
+   * Panel Admin: Aprobar o rechazar verificación, o destacar perfil
    */
-  verifyVet(id: string, body: { status: 'verified' | 'rejected'; notes?: string }): Observable<any> {
+  verifyVet(id: string, body: { status?: 'verified' | 'rejected' | 'pending'; notes?: string; isFeatured?: boolean }): Observable<any> {
     return this.api.put<any>(`/marketplace/admin/verifications/${id}`, body);
   }
 
