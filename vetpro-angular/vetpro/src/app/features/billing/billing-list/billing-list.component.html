@@ -10,13 +10,25 @@
       <!-- Cabecera de Página -->
       <header class="page-header">
         <div>
-          <h1 class="page-title">Módulo de Facturación</h1>
-          <p class="page-subtitle">Gestiona cobros, abonos y estados de cuentas de los tutores.</p>
+          <h1 class="page-title">Módulo de Facturación & POS</h1>
+          <p class="page-subtitle">Gestiona cobros, caja registradora, facturación electrónica DIAN y estados de cuenta.</p>
         </div>
-        <a [routerLink]="['/billing/new']" class="btn btn-primary no-print">
-          <span class="material-symbols-outlined">add_card</span>
-          Nueva Factura
-        </a>
+        <div class="header-actions no-print" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <button type="button" class="btn btn-secondary" (click)="openShiftModal()" [title]="currentShift() ? 'Caja activa' : 'Caja cerrada'">
+            <span class="material-symbols-outlined" [style.color]="currentShift() ? '#10b981' : '#64748b'">
+              {{ currentShift() ? 'point_of_sale' : 'lock_clock' }}
+            </span>
+            <span>{{ currentShift() ? 'Caja Abierta' : 'Abrir Caja (POS)' }}</span>
+          </button>
+          <button type="button" class="btn btn-secondary" (click)="openResolutionModal()">
+            <span class="material-symbols-outlined">verified_user</span>
+            <span>Resolución DIAN</span>
+          </button>
+          <a [routerLink]="['/billing/new']" class="btn btn-primary">
+            <span class="material-symbols-outlined">add_card</span>
+            <span>Nueva Factura</span>
+          </a>
+        </div>
       </header>
       <!-- KPI / Tarjetas de Estadísticas -->
       <section class="stats-grid">
@@ -276,6 +288,192 @@
         <footer class="modal-footer">
           <button class="btn btn-ghost" (click)="closeVoidModal()">Cancelar</button>
           <button class="btn btn-danger" (click)="submitVoid()">Confirmar Anulación</button>
+        </footer>
+      </div>
+    </div>
+  }
+  <!-- MODAL DE CAJA POS (APERTURA Y ARQUEO) -->
+  @if (showShiftModal()) {
+    <div class="modal-overlay no-print">
+      <div class="modal-card">
+        <header class="modal-header">
+          <h2>{{ currentShift() ? 'Arqueo & Cierre de Caja (POS)' : 'Apertura de Caja Registradora' }}</h2>
+          <button class="close-btn" (click)="closeShiftModal()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </header>
+
+        <main class="modal-body">
+          @if (!currentShift()) {
+            <!-- Formulario de Apertura -->
+            <p style="color: #64748b; font-size: 0.95rem; margin-bottom: 1.25rem;">
+              Inicia un nuevo turno registrando el fondo base de efectivo con el que arranca la caja.
+            </p>
+            <div class="form-group">
+              <label for="opening-balance">Base Inicial de Efectivo (COP)</label>
+              <input
+                id="opening-balance"
+                type="number"
+                min="0"
+                step="10000"
+                [ngModel]="openingBalance()"
+                (ngModelChange)="openingBalance.set($event)"
+                placeholder="50000"
+              />
+            </div>
+            <div class="form-group">
+              <label for="opening-notes">Notas / Observaciones de Apertura</label>
+              <input
+                id="opening-notes"
+                type="text"
+                [ngModel]="shiftNotes()"
+                (ngModelChange)="shiftNotes.set($event)"
+                placeholder="Ej: Turno mañana recepción"
+              />
+            </div>
+          } @else {
+            <!-- Formulario de Cierre y Arqueo -->
+            <div style="background: #f1f5f9; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="color: #64748b;">Apertura:</span>
+                <strong>{{ currentShift()!.openedAt | date:'medium' }}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="color: #64748b;">Base Inicial:</span>
+                <strong>{{ currentShift()!.openingBalance | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="color: #64748b;">Saldo en Efectivo Esperado:</span>
+                <strong style="color: #10b981; font-size: 1.1rem;">{{ currentShift()!.expectedBalance | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="actual-balance">Efectivo Físico Contado en Caja (COP)</label>
+              <input
+                id="actual-balance"
+                type="number"
+                min="0"
+                step="1000"
+                [ngModel]="actualBalance()"
+                (ngModelChange)="actualBalance.set($event)"
+              />
+              <small style="color: #64748b; display: block; margin-top: 4px;">
+                Diferencia: 
+                <strong [style.color]="(actualBalance() - currentShift()!.expectedBalance) === 0 ? '#10b981' : (actualBalance() - currentShift()!.expectedBalance) > 0 ? '#3b82f6' : '#ef4444'">
+                  {{ (actualBalance() - currentShift()!.expectedBalance) | currency:'COP':'symbol-narrow':'1.0-0' }}
+                  ({{ (actualBalance() - currentShift()!.expectedBalance) === 0 ? 'Exacto' : (actualBalance() - currentShift()!.expectedBalance) > 0 ? 'Sobrante' : 'Faltante' }})
+                </strong>
+              </small>
+            </div>
+
+            <div class="form-group">
+              <label for="closing-notes">Observaciones del Cierre</label>
+              <textarea
+                id="closing-notes"
+                [ngModel]="shiftNotes()"
+                (ngModelChange)="shiftNotes.set($event)"
+                placeholder="Notas de arqueo o novedades del turno..."
+                rows="2"
+              ></textarea>
+            </div>
+          }
+        </main>
+
+        <footer class="modal-footer">
+          <button class="btn btn-ghost" (click)="closeShiftModal()">Cancelar</button>
+          @if (!currentShift()) {
+            <button class="btn btn-primary" [disabled]="shiftLoading()" (click)="submitOpenShift()">
+              {{ shiftLoading() ? 'Abriendo...' : 'Confirmar Apertura' }}
+            </button>
+          } @else {
+            <button class="btn btn-danger" [disabled]="shiftLoading()" (click)="submitCloseShift()">
+              {{ shiftLoading() ? 'Cerrando...' : 'Cerrar Turno & Guardar Arqueo' }}
+            </button>
+          }
+        </footer>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL DE RESOLUCIÓN DIAN -->
+  @if (showResolutionModal()) {
+    <div class="modal-overlay no-print">
+      <div class="modal-card" style="max-width: 650px;">
+        <header class="modal-header">
+          <h2>Resolución de Facturación DIAN</h2>
+          <button class="close-btn" (click)="closeResolutionModal()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </header>
+
+        <main class="modal-body">
+          <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1rem;">
+            Configura la numeración y clave técnica autorizada por la DIAN para facturación electrónica (FEV).
+          </p>
+
+          <!-- Listado de resoluciones actuales -->
+          @if (resolutions().length > 0) {
+            <div style="margin-bottom: 20px;">
+              <h4 style="font-size: 0.95rem; margin-bottom: 8px;">Resoluciones Registradas</h4>
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                @for (res of resolutions(); track res.id) {
+                  <div style="border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                      <strong>{{ res.prefix }} {{ res.fromNumber }} al {{ res.toNumber }}</strong>
+                      <span style="font-size: 0.8rem; color: #64748b; display: block;">Res: {{ res.resolutionNumber }} · Amb: {{ res.environment }}</span>
+                    </div>
+                    <span style="padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 700;"
+                      [style.background]="res.active ? '#dcfce7' : '#f1f5f9'"
+                      [style.color]="res.active ? '#166534' : '#64748b'">
+                      {{ res.active ? 'ACTIVA' : 'INACTIVA' }}
+                    </span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <h4 style="font-size: 0.95rem; margin-bottom: 8px;">Registrar / Actualizar Resolución</h4>
+          <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px;">
+            <div class="form-group">
+              <label for="res-prefix">Prefijo</label>
+              <input id="res-prefix" type="text" maxlength="6" [ngModel]="resPrefix()" (ngModelChange)="resPrefix.set($event)" placeholder="FEV" />
+            </div>
+            <div class="form-group">
+              <label for="res-number">Nº Resolución DIAN</label>
+              <input id="res-number" type="text" [ngModel]="resNumber()" (ngModelChange)="resNumber.set($event)" placeholder="18760000001" />
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label for="res-from">Rango Desde</label>
+              <input id="res-from" type="number" min="1" [ngModel]="resFrom()" (ngModelChange)="resFrom.set($event)" />
+            </div>
+            <div class="form-group">
+              <label for="res-to">Rango Hasta</label>
+              <input id="res-to" type="number" min="1" [ngModel]="resTo()" (ngModelChange)="resTo.set($event)" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="res-key">Clave Técnica DIAN</label>
+            <input id="res-key" type="password" [ngModel]="resKey()" (ngModelChange)="resKey.set($event)" placeholder="fc8eac422eba16e22ffd8c6f94b3f40a6e38162c" />
+          </div>
+
+          <div class="form-group">
+            <label for="res-env">Ambiente de Transmisión</label>
+            <select id="res-env" [ngModel]="resEnvironment()" (ngModelChange)="resEnvironment.set($event)">
+              <option value="test">Habilitación / Pruebas DIAN</option>
+              <option value="production">Producción DIAN</option>
+            </select>
+          </div>
+        </main>
+
+        <footer class="modal-footer">
+          <button class="btn btn-ghost" (click)="closeResolutionModal()">Cerrar</button>
+          <button class="btn btn-primary" (click)="submitCreateResolution()">Guardar Resolución</button>
         </footer>
       </div>
     </div>

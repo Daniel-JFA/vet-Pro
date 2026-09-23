@@ -36,7 +36,7 @@ export class BillingReceiptComponent implements OnInit {
   // Oculto hasta configurar un Proveedor Tecnológico Autorizado real
   // (DIAN_PROVIDER_URL / DIAN_PROVIDER_API_KEY) — sin eso, "emitir" solo
   // genera un CUFE de prueba sin validez fiscal.
-  dianEnabled = signal(false);
+  dianEnabled = signal(true);
   isDianIssued = signal(false);
   dianStatus = signal<'pending' | 'accepted' | 'rejected'>('pending');
   cufeCode = signal<string | null>(null);
@@ -55,6 +55,11 @@ export class BillingReceiptComponent implements OnInit {
     this.billingSvc.getInvoice(id).subscribe({
       next: (inv) => {
         this.invoice.set(inv);
+        if (inv.electronicId) {
+          this.cufeCode.set(inv.electronicId);
+          this.isDianIssued.set(true);
+          this.dianStatus.set(inv.dianStatus === 'validated' ? 'accepted' : 'pending');
+        }
         this.loading.set(false);
       },
       error: () => {
