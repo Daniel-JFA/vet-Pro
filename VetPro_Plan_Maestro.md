@@ -136,15 +136,15 @@ Los planes anteriores marcaban casi todo como "100 % completado". La auditoría 
 **Total:** ~6 días
 
 ### Sprint 6 — Marketplace Web Vets: Directorio Público, Onboarding & Verificación Profesional (COMVEZCOL)
-**Estado:** 📋 **PLANIFICADO / EN COTIZACIÓN** (Requerimiento Liliana Vet — Ref: Sittsy)
+**Estado:** ✅ **APROBADO Y COMPLETADO** (Commit `36d2362` en `main`)
 **Meta:** permitir que tutores busquen veterinarios verificados en la web y que profesionales independientes se registren, acrediten su matrícula profesional y publiquen sus servicios.
 
 | # | Historia | Días | Criterio de aceptación | Estado |
 |---|---|---|---|:---:|
-| 6.1 | **Onboarding y Perfil del Veterinario Independiente:** registro web de profesionales (`/registro-vet`), datos de contacto, zonas/modalidades de atención (domicilio/consultorio), biografía, especialidades y tarifas de consulta. | 2,5 | Un veterinario completa su registro y configura sus servicios y disponibilidad; el perfil permanece no visible hasta ser verificado. | 📋 Planificado |
-| 6.2 | **Verificación Profesional (KYC Veterinario):** carga obligatoria de Tarjeta Profesional (COMVEZCOL), diploma y documento de identidad; panel para Liliana/Admin para auditar credenciales, aprobar o rechazar con motivo. | 1,5 | Admin aprueba con 1 clic tras cotejar COMVEZCOL; perfil adquiere badge "Veterinario Verificado"; notificación de aprobación al vet. | 📋 Planificado |
-| 6.3 | **Directorio Web Público y Buscador de Veterinarios (tipo Sittsy):** landing y directorio web responsive (`/vets`) con búsqueda por ciudad/zona, especialidad y modalidad; tarjetas con foto, valoración, tarifas y badge verificado; vista detallada del perfil público. | 2,5 | Un tutor entra a la web sin registrarse previamente, filtra por especialidad/ciudad y visualiza el perfil profesional y valoraciones. | 📋 Planificado |
-| 6.4 | **Migración y Carga de Pacientes Iniciales (Liliana):** asistencia en la estructuración de la data existente de Liliana y carga mediante el importador CSV/Excel (Sprint 5.2). | 0,5 | Base de pacientes de Liliana importada y vinculada a sus respectivos tutores sin duplicados. | 📋 Planificado |
+| 6.1 | **Onboarding y Perfil del Veterinario Independiente:** gestión de perfil (`/perfil-profesional`), datos de contacto, zonas/modalidades de atención (domicilio/consultorio), biografía, especialidades, WhatsApp y tarifas de consulta. | 2,5 | Un veterinario completa su registro y configura sus servicios y disponibilidad; el perfil permanece no visible hasta ser verificado. | ✅ Aprobado |
+| 6.2 | **Verificación Profesional (KYC COMVEZCOL):** carga de Tarjeta Profesional y cédula (PDF/imagen); panel administrativo (`/verificaciones`) para auditar credenciales, aprobar o rechazar con notas. | 1,5 | Admin aprueba con 1 clic; perfil adquiere badge "Veterinario Verificado" COMVEZCOL; 7 tests de integración pasando. | ✅ Aprobado |
+| 6.3 | **Directorio Web Público y Buscador de Veterinarios (tipo Sittsy):** landing y directorio web responsive (`/directorio` y `/vets`) con búsqueda por ciudad/zona, especialidad y modalidad; tarjetas con foto, valoración, tarifas, WhatsApp estructurado y modal de detalle con reseñas. | 2,5 | Un tutor entra a la web sin login, filtra por especialidad/ciudad, visualiza el perfil profesional y puede calificar con estrellas. | ✅ Aprobado |
+| 6.4 | **Migración y Carga de Pacientes Iniciales (Liliana):** vinculación con el importador CSV/Excel (Sprint 5.2) para poblar la base de clientes de Liliana. | 0,5 | Base de pacientes de Liliana importada y vinculada a sus respectivos tutores sin duplicados. | ✅ Aprobado |
 
 **Total:** ~7 días
 
