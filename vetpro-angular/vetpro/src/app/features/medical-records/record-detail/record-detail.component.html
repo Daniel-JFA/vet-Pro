@@ -23,6 +23,10 @@
           Volver al Perfil de {{ record()?.patient?.name }}
         </a>
         <div class="actions">
+          <button class="btn btn-whatsapp" (click)="shareViaWhatsApp()" title="Compartir resumen y tratamiento al tutor por WhatsApp">
+            <span class="material-symbols-outlined">send</span>
+            Enviar por WhatsApp
+          </button>
           <button class="btn btn-ghost" (click)="printRecord()">
             <span class="material-symbols-outlined">print</span>
             Imprimir Registro

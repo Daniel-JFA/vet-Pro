@@ -87,4 +87,30 @@ export class RecordDetailComponent implements OnInit {
   printRecord() {
     window.print();
   }
+
+  shareViaWhatsApp() {
+    const rec = this.record() as any;
+    if (!rec) return;
+
+    const petName = rec.patient?.name || 'su mascota';
+    const tutorName = rec.patient?.tutor ? `${rec.patient.tutor.firstName} ${rec.patient.tutor.lastName}`.trim() : 'Tutor(a)';
+    let rawPhone = rec.patient?.tutor?.phone || '';
+    rawPhone = rawPhone.replace(/[^0-9]/g, '');
+    if (rawPhone.length === 10 && !rawPhone.startsWith('57')) {
+      rawPhone = '57' + rawPhone;
+    }
+
+    let text = `🐾 *¡Hola ${tutorName}!* Le compartimos el resumen médico de la consulta de *${petName}*:\n\n`;
+    text += `📋 *Atención:* ${rec.title || 'Consulta Médica General'}\n`;
+    if (rec.vetId) text += `👨‍⚕️ *Atendido por:* ${rec.vetId}\n`;
+    if (rec.diagnosis) text += `🩺 *Diagnóstico:* ${rec.diagnosis}\n`;
+    if (rec.treatment) text += `💊 *Tratamiento & Prescripción:* ${rec.treatment}\n`;
+    if (rec.observations) text += `📝 *Recomendaciones:* ${rec.observations}\n\n`;
+    text += `✨ *Portal del Tutor VetPro:* Ingrese para consultar su carnet de vacunas y citas en línea.\n`;
+    text += `¡Muchas gracias por confiar el cuidado de ${petName} en nuestras manos!`;
+
+    const encoded = encodeURIComponent(text);
+    const url = rawPhone ? `https://wa.me/${rawPhone}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
+    window.open(url, '_blank');
+  }
 }
