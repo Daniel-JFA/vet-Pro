@@ -17,6 +17,18 @@
           </p>
         </div>
         <div class="header-actions">
+          <button
+            type="button"
+            class="btn btn-ghost btn-reminders"
+            (click)="openRemindersModal()"
+            title="Recordatorios automáticos de WhatsApp para las citas de mañana"
+          >
+            <span class="material-symbols-outlined" style="color: #25D366">mark_chat_unread</span>
+            <span>Recordatorios Mañana</span>
+            @if (remindersCount() > 0) {
+              <span class="badge-reminder-count">{{ remindersCount() }}</span>
+            }
+          </button>
           <a routerLink="/appointments/calendar" class="btn btn-ghost">
             <span class="material-symbols-outlined">calendar_month</span>
             Ver Calendario Semanal
@@ -665,6 +677,85 @@
           </div>
         </section>
       }
+    </div>
+  }
+
+  <!-- Modal de Recordatorios de WhatsApp para Mañana -->
+  @if (showRemindersModal()) {
+    <div class="modal-backdrop" (click)="showRemindersModal.set(false)">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <header class="modal-header">
+          <div class="modal-header-title">
+            <span class="material-symbols-outlined modal-icon" style="color: #25D366">mark_chat_unread</span>
+            <div>
+              <h2>Recordatorios para Mañana</h2>
+              <p class="modal-subtitle">Confirma visitas programadas vía WhatsApp para evitar inasistencias</p>
+            </div>
+          </div>
+          <button type="button" class="close-btn" (click)="showRemindersModal.set(false)" aria-label="Cerrar">✕</button>
+        </header>
+
+        <div class="modal-body">
+          @if (loadingReminders()) {
+            <div class="reminders-loading">
+              <div class="spinner"></div>
+              <p>Consultando citas programadas para mañana...</p>
+            </div>
+          } @else if (!remindersData()?.appointments?.length) {
+            <div class="empty-reminders">
+              <span class="material-symbols-outlined empty-icon">event_available</span>
+              <h3>No hay visitas programadas para mañana</h3>
+              <p>Cuando los tutores o la clínica agenden citas para el día de mañana, aparecerán aquí con su mensaje de WhatsApp pre-redactado listo para enviar en 1 clic.</p>
+            </div>
+          } @else {
+            <div class="reminders-summary-bar">
+              <span>📋 <strong>{{ remindersData()?.appointments?.length }}</strong> cita(s) agendada(s) para mañana</span>
+              <span class="tip-text">💡 1 clic para abrir WhatsApp con el mensaje ya redactado</span>
+            </div>
+
+            <div class="reminders-list">
+              @for (item of remindersData()?.appointments; track item.id) {
+                <div class="reminder-item-card">
+                  <div class="reminder-card-header">
+                    <div class="reminder-patient-info">
+                      <span class="patient-name">🐾 {{ item.patientName }}</span>
+                      <span class="tutor-name">Tutor: {{ item.tutorName }} ({{ item.phone }})</span>
+                    </div>
+                    <div class="reminder-time-badge">
+                      <span class="material-symbols-outlined">schedule</span>
+                      {{ item.scheduledAt | date:'shortTime' }}
+                    </div>
+                  </div>
+
+                  <div class="reminder-message-preview">
+                    {{ item.message }}
+                  </div>
+
+                  <div class="reminder-card-actions">
+                    <button type="button" class="btn btn-ghost-sm" (click)="copyMessage(item.message)">
+                      <span class="material-symbols-outlined">content_copy</span>
+                      Copiar
+                    </button>
+                    <a
+                      [href]="item.whatsappUrl"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="btn btn-whatsapp-sm"
+                    >
+                      <span class="material-symbols-outlined">chat</span>
+                      Enviar WhatsApp
+                    </a>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <footer class="modal-footer">
+          <button type="button" class="btn btn-ghost" (click)="showRemindersModal.set(false)">Cerrar</button>
+        </footer>
+      </div>
     </div>
   }
 </div>

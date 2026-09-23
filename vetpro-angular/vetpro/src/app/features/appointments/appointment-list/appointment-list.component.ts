@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { AppointmentService } from '../../../core/services/appointment.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { CrmService, UpcomingRemindersResponse } from '../../../core/services/crm.service';
 import { Appointment } from '../../../core/models';
 
 @Component({
@@ -18,10 +19,20 @@ export class AppointmentListComponent implements OnInit {
   private svc = inject(AppointmentService);
   private router = inject(Router);
   private toast = inject(ToastService);
+  private crmService = inject(CrmService);
   public auth = inject(AuthService);
 
   appointments = signal<Appointment[]>([]);
   loading = signal(true);
+
+  // Recordatorios de citas de mañana (WhatsApp)
+  remindersData = signal<UpcomingRemindersResponse | null>(null);
+  showRemindersModal = signal(false);
+  loadingReminders = signal(false);
+
+  remindersCount = computed(() => 
+    this.remindersData()?.summary?.appointmentsTomorrowCount ?? 0
+  );
 
   // Columnas Kanban reactivas basadas en los estados de hoy
   scheduledAppointments = computed(() => 
@@ -64,6 +75,47 @@ export class AppointmentListComponent implements OnInit {
 
   ngOnInit() {
     this.load();
+    this.loadReminders();
+  }
+
+  loadReminders() {
+    this.crmService.getUpcomingReminders().subscribe({
+      next: (res) => {
+        this.remindersData.set(res);
+      },
+      error: () => {
+        // Silencioso en carga inicial de fondo
+      }
+    });
+  }
+
+  openRemindersModal() {
+    this.showRemindersModal.set(true);
+    if (!this.remindersData()) {
+      this.loadingReminders.set(true);
+      this.crmService.getUpcomingReminders().subscribe({
+        next: (res) => {
+          this.remindersData.set(res);
+          this.loadingReminders.set(false);
+        },
+        error: () => {
+          this.loadingReminders.set(false);
+          this.toast.error('No se pudieron obtener los recordatorios de mañana.');
+        }
+      });
+    }
+  }
+
+  copyMessage(text: string) {
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        this.toast.success('Mensaje copiado al portapapeles');
+      }).catch(() => {
+        this.toast.error('No se pudo copiar el texto');
+      });
+    } else {
+      this.toast.info('Copia manual requerida');
+    }
   }
 
   load() {

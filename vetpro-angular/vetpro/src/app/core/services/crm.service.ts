@@ -26,12 +26,45 @@ export interface CrmCohortsResponse {
   }[];
 }
 
+export interface UpcomingRemindersResponse {
+  summary: {
+    appointmentsTomorrowCount: number;
+    vaccinesUpcomingCount: number;
+    totalReminders: number;
+  };
+  appointments: {
+    id: string;
+    type: 'appointment';
+    scheduledAt: string;
+    patientName: string;
+    tutorName: string;
+    phone: string;
+    message: string;
+    whatsappUrl: string;
+  }[];
+  vaccines: {
+    id: string;
+    type: 'vaccine';
+    dueDate: string;
+    vaccineName: string;
+    patientName: string;
+    tutorName: string;
+    phone: string;
+    message: string;
+    whatsappUrl: string;
+  }[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class CrmService {
   private api = inject(ApiService);
 
   getCohorts(): Observable<CrmCohortsResponse> {
     return this.api.get<CrmCohortsResponse>('/crm/cohorts');
+  }
+
+  getUpcomingReminders(): Observable<UpcomingRemindersResponse> {
+    return this.api.get<UpcomingRemindersResponse>('/crm/reminders/upcoming');
   }
 
   sendBroadcast(data: {
