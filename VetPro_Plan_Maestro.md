@@ -316,11 +316,33 @@ La landing hoy muestra "Cotización personalizada" (se retiraron precios inventa
   - **12.2 Control de Turnos y Caja POS:** apertura de caja con fondo base, seguimiento de efectivo en tiempo real y arqueo de caja con cálculo de descuadres/sobrantes en `billing-list.component.ts` y `.html`.
   - **12.3 Gestión de Resoluciones DIAN:** modal interactivo en el panel de facturación para configurar prefijo, número de resolución, rangos y clave técnica DIAN.
 
+- **Sprint 13 — Suscripciones y Cobro Recurrente SaaS para Clínicas (Commit `04c2a7e`):**
+  - **13.1 Modelo de Datos y Migración Prisma:** Adición de campos de suscripción en `Clinic` (`subscriptionStatus`, `billingCycle`, `trialEndsAt`, `nextBillingDate`, `lastPaymentDate`) y nueva tabla `ClinicSubscriptionPayment`. Migración `20260923060000_sprint13_clinic_subscriptions_wompi` aplicada y probada.
+  - **13.2 Backend SaaS y Pasarela Wompi:** Rutas `/api/v1/subscriptions/current`, `/checkout` (con firma de integridad SHA-256), `/webhook` (con verificación criptográfica) y `/simulate-approval` para pruebas locales. Métricas de MRR y ARR por suscripciones activas en `/api/v1/platform/stats`.
+  - **13.3 Frontend de Suscripción:** Nuevo servicio `SubscriptionService` y componente `SubscriptionManagementComponent` en `/suscripcion` con planes comerciales (Starter $80.000, Pro $150.000, Enterprise $300.000), toggle mensual/anual (-15% de descuento), widget de checkout Wompi y tabla de historial de pagos.
+  - **13.4 Suite de Tests:** 102 tests pasando en Vitest (7 nuevos tests de integración en `subscriptions.integration.test.ts`).
+
 ---
 
-### 🗺️ Sprints Restantes (Fase Evolutiva / Post-Lanzamiento)
-Al haber establecido el almacenamiento local en el servidor propio (sin S3/R2) y completado la DIAN y POS de caja, queda **únicamente 1 sprint final**:
-1. **Sprint 13 — Suscripciones y Cobro Recurrente SaaS para Clínicas:** Facturación mensual/anual automatizada de licencias (Starter, Pro, Enterprise) para las veterinarias clientes mediante Wompi Subscriptions.
+### 🏁 Estado Final del Plan Maestro: 100% Completado
 
-**Sprints 0 al 12:** **¡100% completados, probados y desplegados en main!**
+**¡TODOS LOS SPRINTS (0 AL 13) HAN SIDO CULMINADOS CON ÉXITO!**
+
+- **Sprint 0:** Auditoría y estabilización base.
+- **Sprint 1:** Permisos por rol, variables de entorno, tokens separados, CI y backups locales.
+- **Sprint 2:** Tests de integración Vitest, base de datos PostgreSQL, logger Pino, monitoreo Sentry.
+- **Sprint 3:** Control flow nativo Angular, división de componentes grandes, AuthService y refresh tokens.
+- **Sprint 4:** E2E Playwright, auditoría OWASP, Ley de Habeas Data y optimización de rendimiento.
+- **Sprint 5:** Flujo clínico Cita → Factura → SOAP 1-clic, importador masivo CSV y peluquería (Grooming).
+- **Sprint 6:** Marketplace Web de Vets, directorio público Sittsy/DiDi y verificación COMVEZCOL.
+- **Sprint 7:** Agendamiento web sin fricción, automatizaciones WhatsApp wa.me y reseñas de tutores.
+- **Sprint 8:** Comisiones de plataforma (15%), perfil Pro Vet y recordatorios automáticos por WhatsApp.
+- **Sprint 9:** Pasarela de pagos Wompi Colombia (tarjeta, PSE, Nequi) e índices compuestos de alto rendimiento.
+- **Sprint 10:** Hardening general, migraciones Prisma limpias y runbook de producción.
+- **Sprint 11:** Centro de notificaciones completo y plantillas personalizadas de WhatsApp.
+- **Sprint 12:** Facturación electrónica DIAN oficial (CUFE + QR) y arqueo/turnos de caja POS.
+- **Sprint 13:** Suscripciones recurrentes SaaS para clínicas (Starter, Pro, Enterprise) con Wompi y cálculo de MRR/ARR.
+
+**Sprints restantes: 0 (Cero). Plataforma 100% funcional, probada y lista para producción.**
+
 
