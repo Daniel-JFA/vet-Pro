@@ -1,7 +1,7 @@
-import { Component, signal, computed } from '@angular/core';
-
+import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { NotificationTemplate } from '../../../core/models';
+import { NotificationsService, NotificationTemplate } from '../../../core/services/notifications.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-notification-templates',
@@ -10,60 +10,21 @@ import { NotificationTemplate } from '../../../core/models';
   templateUrl: './notification-templates.component.html',
   styleUrl: './notification-templates.component.scss',
 })
-export class NotificationTemplatesComponent {
+export class NotificationTemplatesComponent implements OnInit {
+  private notificationsService = inject(NotificationsService);
+  private toast = inject(ToastService);
+
   loading = signal(false);
   submitting = signal(false);
 
-  // Listado de plantillas configuradas (Mock para desarrollo)
-  templates = signal<NotificationTemplate[]>([
-    {
-      id: 'nt1',
-      clinicId: 'c1',
-      name: 'Recordatorio de Cita (24h antes)',
-      trigger: 'appointment-reminder-24h',
-      channel: 'whatsapp',
-      body: 'Hola {{nombre_tutor}}, te recordamos que mañana {{fecha_cita}} a las {{hora_cita}} tienes una cita programada para tu mascota {{nombre_mascota}} con el profesional {{veterinario}}. ¡Te esperamos!',
-      active: true,
-    },
-    {
-      id: 'nt2',
-      clinicId: 'c1',
-      name: 'Aviso de Llegada a Sala',
-      trigger: 'custom',
-      channel: 'whatsapp',
-      body: 'Estimado(a) {{nombre_tutor}}, te informamos que {{nombre_mascota}} ya ha ingresado a nuestra sala de espera. Estará ingresando a consultorio en unos minutos.',
-      active: true,
-    },
-    {
-      id: 'nt3',
-      clinicId: 'c1',
-      name: 'Alerta de Refuerzo de Vacuna',
-      trigger: 'vaccine-due',
-      channel: 'whatsapp',
-      body: '¡Hola {{nombre_tutor}}! Te recordamos que ya se acerca la fecha de refuerzo de la vacuna de {{nombre_mascota}}. Por favor ponte en contacto con nosotros para agendar su cita.',
-      active: false,
-    },
-  ]);
+  templates = signal<NotificationTemplate[]>([]);
+  selectedTemplateId = signal<string>('');
 
-  selectedTemplateId = signal<string>('nt1');
-
-  // Obtener la plantilla activa seleccionada
   selectedTemplate = computed(
     () => this.templates().find((t) => t.id === this.selectedTemplateId()) || this.templates()[0],
   );
 
-  // Cuerpo editable temporal para no mutar el estado global directamente antes de guardar
   editableBody = signal<string>('');
-
-  constructor() {
-    // Sincronizar el cuerpo editable cuando cambia la plantilla elegida
-    this.editableBody.set(this.selectedTemplate().body);
-  }
-
-  selectTemplate(id: string) {
-    this.selectedTemplateId.set(id);
-    this.editableBody.set(this.selectedTemplate().body);
-  }
 
   // Lista de placeholders que se pueden inyectar
   placeholders = [
@@ -83,7 +44,6 @@ export class NotificationTemplatesComponent {
     vet: 'Dr. Andrés Espinoza',
   };
 
-  // Reemplazar marcadores dinámicos por datos de prueba en la vista previa
   previewReplacedBody = computed(() => {
     let text = this.editableBody();
     text = text.replace(/\{\{nombre_tutor\}\}/g, this.demoData.tutor);
@@ -94,7 +54,37 @@ export class NotificationTemplatesComponent {
     return text;
   });
 
-  // Insertar un marcador de posición en la posición actual del cursor en el textarea
+  ngOnInit() {
+    this.loadTemplates();
+  }
+
+  loadTemplates() {
+    this.loading.set(true);
+    this.notificationsService.getTemplates().subscribe({
+      next: (res) => {
+        this.templates.set(res.data);
+        if (res.data.length > 0) {
+          const first = res.data[0];
+          this.selectedTemplateId.set(first.id);
+          this.editableBody.set(first.body);
+        }
+        this.loading.set(false);
+      },
+      error: () => {
+        this.toast.error('Error al cargar las plantillas de notificación.');
+        this.loading.set(false);
+      },
+    });
+  }
+
+  selectTemplate(id: string) {
+    this.selectedTemplateId.set(id);
+    const tpl = this.templates().find((t) => t.id === id);
+    if (tpl) {
+      this.editableBody.set(tpl.body);
+    }
+  }
+
   injectPlaceholder(token: string) {
     const textarea = document.getElementById('template-body-textarea') as HTMLTextAreaElement;
     if (!textarea) return;
@@ -106,7 +96,6 @@ export class NotificationTemplatesComponent {
     const newText = currentText.substring(0, start) + token + currentText.substring(end);
     this.editableBody.set(newText);
 
-    // Reposicionar el cursor después de insertar el token
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(start + token.length, start + token.length);
@@ -115,22 +104,42 @@ export class NotificationTemplatesComponent {
 
   toggleActive() {
     const current = this.selectedTemplate();
-    this.templates.update((list) =>
-      list.map((t) => (t.id === current.id ? { ...t, active: !t.active } : t)),
-    );
+    if (!current) return;
+
+    this.notificationsService.toggleTemplate(current.id).subscribe({
+      next: (res) => {
+        this.templates.update((list) =>
+          list.map((t) => (t.id === current.id ? { ...t, active: res.data.active } : t)),
+        );
+        this.toast.success(
+          res.data.active ? 'Plantilla activada para envíos automáticos.' : 'Plantilla desactivada.',
+        );
+      },
+      error: () => {
+        this.toast.error('No se pudo cambiar el estado de la plantilla.');
+      },
+    });
   }
 
   save() {
-    this.submitting.set(true);
     const activeTemplate = this.selectedTemplate();
+    if (!activeTemplate) return;
+
+    this.submitting.set(true);
     const updatedBody = this.editableBody();
 
-    // Simulación de guardado
-    setTimeout(() => {
-      this.templates.update((list) =>
-        list.map((t) => (t.id === activeTemplate.id ? { ...t, body: updatedBody } : t)),
-      );
-      this.submitting.set(false);
-    }, 600);
+    this.notificationsService.updateTemplate(activeTemplate.id, { body: updatedBody }).subscribe({
+      next: (res) => {
+        this.templates.update((list) =>
+          list.map((t) => (t.id === activeTemplate.id ? { ...t, body: res.data.body } : t)),
+        );
+        this.submitting.set(false);
+        this.toast.success('Plantilla guardada exitosamente.');
+      },
+      error: () => {
+        this.submitting.set(false);
+        this.toast.error('Error al guardar la plantilla.');
+      },
+    });
   }
 }

@@ -116,6 +116,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/notifications/crm-reactivation/crm-reactivation.component').then(m => m.CrmReactivationComponent)
       },
       {
+        path: 'notifications',
+        canActivate: [roleGuard(['admin', 'receptionist', 'vet'])],
+        loadChildren: () => import('./features/notifications/notifications.routes').then(m => m.NOTIFICATIONS_ROUTES)
+      },
+      {
         path: 'grooming',
         canActivate: [roleGuard(['admin', 'vet', 'assistant', 'receptionist', 'groomer'])],
         loadComponent: () => import('./features/grooming/grooming-kanban/grooming-kanban.component').then(m => m.GroomingKanbanComponent)

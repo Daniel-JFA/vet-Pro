@@ -1,7 +1,9 @@
-import { Component, signal, computed } from '@angular/core';
+import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { NotificationsService, NotificationLogItem } from '../../../core/services/notifications.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 export interface NotificationItem {
   id: string;
@@ -43,9 +45,9 @@ export interface NotificationItem {
             <span class="material-symbols-outlined">edit_note</span>
             Plantillas
           </a>
-          <button class="btn btn-primary" (click)="testSendNotification()">
+          <button class="btn btn-primary" (click)="dispatchReminders()" [disabled]="dispatching()">
             <span class="material-symbols-outlined">send</span>
-            Prueba
+            {{ dispatching() ? 'Despachando...' : 'Despachar Recordatorios' }}
           </button>
         </div>
       </div>
@@ -492,70 +494,16 @@ export interface NotificationItem {
     `,
   ],
 })
-export class NotificationCenterComponent {
+export class NotificationCenterComponent implements OnInit {
+  private notificationsService = inject(NotificationsService);
+  private toast = inject(ToastService);
+
   searchTerm = signal('');
   activeTab = signal<'all' | 'delivered' | 'pending' | 'failed'>('all');
+  loading = signal(false);
+  dispatching = signal(false);
 
-  notifications = signal<NotificationItem[]>([
-    {
-      id: 'notif-1',
-      recipientName: 'Carlos Gómez',
-      recipientPhone: '+57 312 456 7890',
-      channel: 'whatsapp',
-      trigger: 'appointment_reminder_24h',
-      status: 'delivered',
-      patientName: 'Toby',
-      sentAt: new Date(Date.now() - 2 * 3600000),
-      messageSnippet:
-        'Hola Carlos, te recordamos tu cita mañana a las 10:00 AM con Toby en VetPro.',
-    },
-    {
-      id: 'notif-2',
-      recipientName: 'María Rodríguez',
-      recipientPhone: '+57 315 789 1234',
-      channel: 'whatsapp',
-      trigger: 'vaccine_due',
-      status: 'delivered',
-      patientName: 'Luna',
-      sentAt: new Date(Date.now() - 5 * 3600000),
-      messageSnippet:
-        'Hola María, la vacuna antirrábica de Luna vence en 5 días. Agenda aquí: https://vetpro.co/b/luna',
-    },
-    {
-      id: 'notif-3',
-      recipientName: 'Andrés Morales',
-      recipientPhone: '+57 300 123 4567',
-      channel: 'whatsapp',
-      trigger: 'appointment_reminder_2h',
-      status: 'pending',
-      patientName: 'Simba',
-      sentAt: new Date(Date.now() + 1 * 3600000),
-      messageSnippet: 'Tu turno para Simba en VetPro es en 2 horas. Te esperamos.',
-    },
-    {
-      id: 'notif-4',
-      recipientName: 'Laura Ospina',
-      recipientPhone: '+57 310 987 6543',
-      channel: 'whatsapp',
-      trigger: 'marketing_reactivation',
-      status: 'delivered',
-      patientName: 'Kira',
-      sentAt: new Date(Date.now() - 24 * 3600000),
-      messageSnippet:
-        '¡Hola Laura! Hace 6 meses no vemos a Kira. Agenda su chequeo preventivo con 15% off.',
-    },
-    {
-      id: 'notif-5',
-      recipientName: 'David Henao',
-      recipientPhone: '+57 320 555 1212',
-      channel: 'whatsapp',
-      trigger: 'invoice_receipt',
-      status: 'failed',
-      patientName: 'Max',
-      sentAt: new Date(Date.now() - 12 * 3600000),
-      messageSnippet: 'Comprobante de factura FAC-000042 por $145.000 COP adjunto.',
-    },
-  ]);
+  notifications = signal<NotificationItem[]>([]);
 
   deliveredCount = computed(
     () => this.notifications().filter((n) => n.status === 'delivered').length,
@@ -579,6 +527,77 @@ export class NotificationCenterComponent {
       return matchSearch && matchTab;
     });
   });
+
+  ngOnInit() {
+    this.loadLogs();
+  }
+
+  loadLogs() {
+    this.loading.set(true);
+    this.notificationsService.getLogs().subscribe({
+      next: (res) => {
+        if (res.data && res.data.length > 0) {
+          const mapped: NotificationItem[] = res.data.map((l) => ({
+            id: l.id,
+            recipientName: l.recipientName || 'Tutor',
+            recipientPhone: l.recipientPhone || 'N/A',
+            channel: (l.channel as any) || 'whatsapp',
+            trigger: 'appointment_reminder_24h',
+            status: l.status,
+            patientName: l.patientName || 'Paciente',
+            sentAt: new Date(l.sentAt),
+            messageSnippet: l.error ? `Error: ${l.error}` : 'Recordatorio automatizado enviado por WhatsApp.',
+          }));
+          this.notifications.set(mapped);
+        } else {
+          // Si no hay logs aún en BD, cargar ejemplos iniciales
+          this.notifications.set([
+            {
+              id: 'notif-1',
+              recipientName: 'Carlos Gómez',
+              recipientPhone: '+57 312 456 7890',
+              channel: 'whatsapp',
+              trigger: 'appointment_reminder_24h',
+              status: 'delivered',
+              patientName: 'Toby',
+              sentAt: new Date(Date.now() - 2 * 3600000),
+              messageSnippet: 'Hola Carlos, te recordamos tu cita mañana a las 10:00 AM con Toby en VetPro.',
+            },
+            {
+              id: 'notif-2',
+              recipientName: 'María Rodríguez',
+              recipientPhone: '+57 315 789 1234',
+              channel: 'whatsapp',
+              trigger: 'vaccine_due',
+              status: 'delivered',
+              patientName: 'Luna',
+              sentAt: new Date(Date.now() - 5 * 3600000),
+              messageSnippet: 'Hola María, la vacuna de Luna está próxima a vencer. Agenda su refuerzo.',
+            },
+          ]);
+        }
+        this.loading.set(false);
+      },
+      error: () => {
+        this.loading.set(false);
+      },
+    });
+  }
+
+  dispatchReminders() {
+    this.dispatching.set(true);
+    this.notificationsService.dispatchReminders().subscribe({
+      next: (res) => {
+        this.dispatching.set(false);
+        this.toast.success(res.message || 'Recordatorios procesados correctamente.');
+        this.loadLogs();
+      },
+      error: () => {
+        this.dispatching.set(false);
+        this.toast.error('Error al despachar recordatorios.');
+      },
+    });
+  }
 
   formatTrigger(trigger: string): string {
     switch (trigger) {
@@ -610,22 +629,5 @@ export class NotificationCenterComponent {
       default:
         return status;
     }
-  }
-
-  testSendNotification() {
-    const newNotif: NotificationItem = {
-      id: `notif-${Date.now()}`,
-      recipientName: 'Daniel Flórez (Admin)',
-      recipientPhone: '+57 312 211 5299',
-      channel: 'whatsapp',
-      trigger: 'appointment_reminder_24h',
-      status: 'delivered',
-      patientName: 'Toby',
-      sentAt: new Date(),
-      messageSnippet:
-        'Mensaje de prueba exitoso enviado desde el panel de VetPro vía WhatsApp Cloud API.',
-    };
-
-    this.notifications.update((list) => [newNotif, ...list]);
   }
 }

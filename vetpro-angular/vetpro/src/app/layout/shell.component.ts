@@ -273,6 +273,8 @@ export class ShellComponent implements OnInit {
         { label: 'Inventario', icon: 'inventory_2', path: '/inventory' },
         { label: 'Facturación & POS', icon: 'receipt_long', path: '/billing' },
         { label: 'Consentimientos', icon: 'draw', path: '/consent' },
+        { label: 'Notificaciones WhatsApp', icon: 'chat', path: '/notifications' },
+        { label: 'Plantillas Mensajes', icon: 'edit_note', path: '/notifications/templates' },
         { label: 'CRM Reactivación', icon: 'contact_phone', path: '/crm' },
         { label: 'Reportes', icon: 'bar_chart', path: '/reports' },
       );
@@ -283,11 +285,14 @@ export class ShellComponent implements OnInit {
         { label: 'Inventario', icon: 'inventory_2', path: '/inventory' },
         { label: 'Facturación & POS', icon: 'receipt_long', path: '/billing' },
         { label: 'Consentimientos', icon: 'draw', path: '/consent' },
+        { label: 'Notificaciones WhatsApp', icon: 'chat', path: '/notifications' },
       );
     } else if (role === 'receptionist') {
       items.push(
         { label: 'Peluquería & Spa', icon: 'content_cut', path: '/grooming' },
         { label: 'Facturación & POS', icon: 'receipt_long', path: '/billing' },
+        { label: 'Notificaciones WhatsApp', icon: 'chat', path: '/notifications' },
+        { label: 'Plantillas Mensajes', icon: 'edit_note', path: '/notifications/templates' },
         { label: 'CRM Reactivación', icon: 'contact_phone', path: '/crm' },
       );
     } else if (role === 'assistant') {
