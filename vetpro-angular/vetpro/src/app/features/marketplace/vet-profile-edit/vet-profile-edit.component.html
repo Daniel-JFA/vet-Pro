@@ -130,6 +130,27 @@
           </div>
         </div>
 
+        <div class="form-row">
+          <div class="form-group">
+            <label>Entidad para Pago de Honorarios</label>
+            <input
+              type="text"
+              [(ngModel)]="payoutBank"
+              placeholder="Ej: Nequi, Daviplata, Bancolombia"
+              class="form-control"
+            />
+          </div>
+          <div class="form-group">
+            <label>Cuenta o Celular de Dispersión</label>
+            <input
+              type="text"
+              [(ngModel)]="payoutAccount"
+              placeholder="Ej: 3001234567 o Cta Ahorros #..."
+              class="form-control"
+            />
+          </div>
+        </div>
+
         <div class="form-group">
           <label>Barrios / Zonas de Cobertura (Separados por coma)</label>
           <input
@@ -242,6 +263,50 @@
             </div>
           </div>
         </div>
+
+        <!-- Balance de Ingresos & Honorarios del Marketplace -->
+        @if (earnings(); as earn) {
+          <div class="stats-card earnings-card">
+            <h3>Balance de Citas & Honorarios (Marketplace)</h3>
+            <div class="earnings-summary-grid">
+              <div class="earn-box">
+                <span class="earn-lbl">Citas Recibidas</span>
+                <span class="earn-val">{{ earn.totalAppointments }}</span>
+              </div>
+              <div class="earn-box">
+                <span class="earn-lbl">Facturación Bruta</span>
+                <span class="earn-val">{{ earn.grossRevenue | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+              </div>
+              <div class="earn-box fee">
+                <span class="earn-lbl">Comisión VetPro (15%)</span>
+                <span class="earn-val">- {{ earn.platformFee | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+              </div>
+              <div class="earn-box net">
+                <span class="earn-lbl">Tus Ingresos Netos</span>
+                <span class="earn-val highlight">{{ earn.netEarnings | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+              </div>
+            </div>
+
+            @if (earn.appointments && earn.appointments.length > 0) {
+              <div class="recent-bookings">
+                <h4>Citas Registradas por la Web</h4>
+                <div class="booking-list">
+                  @for (app of earn.appointments.slice(0, 5); track app.id) {
+                    <div class="booking-row">
+                      <div class="booking-main">
+                        <strong>{{ app.patientName }} ({{ app.tutorName }})</strong>
+                        <span>{{ app.scheduledAt | date:'mediumDate' }} · {{ app.modality === 'home_visit' ? 'A Domicilio 🚗' : 'En Consultorio 🏥' }}</span>
+                      </div>
+                      <div class="booking-amount">
+                        <span>{{ app.amount | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
       </div>
     </div>
   }

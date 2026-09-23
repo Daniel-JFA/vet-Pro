@@ -476,7 +476,72 @@ const UpdateProfileSchema = z.object({
   city: z.string().optional(),
   coverageZones: z.array(z.string()).optional(),
   whatsappNumber: z.string().optional(),
+  payoutBank: z.string().nullable().optional(),
+  payoutAccount: z.string().nullable().optional(),
   isPublic: z.boolean().optional()
+});
+
+/**
+ * GET /api/v1/marketplace/profile/earnings
+ * Consultar balance, comisiones e ingresos acumulados del veterinario en el marketplace
+ */
+router.get('/profile/earnings', authMiddleware as any, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user!.id;
+    const clinicId = req.user!.clinicId;
+
+    const profile = await prisma.vetProfile.findUnique({
+      where: { userId }
+    });
+
+    const appointments = await prisma.appointment.findMany({
+      where: {
+        clinicId,
+        vetId: userId
+      },
+      include: {
+        patient: {
+          select: {
+            name: true,
+            species: true,
+            tutor: { select: { firstName: true, lastName: true, phone: true } }
+          }
+        }
+      },
+      orderBy: { scheduledAt: 'desc' },
+      take: 20
+    });
+
+    const totalAppointments = appointments.length;
+    const completedAppointments = appointments.filter(a => a.status === 'completed' || a.status === 'confirmed').length;
+    const grossRevenue = appointments.reduce((sum, a) => sum + (a.amountCharged || 0), 0);
+    const platformFeeRate = 0.15; // 15% comisión de plataforma
+    const platformFee = Math.round(grossRevenue * platformFeeRate);
+    const netEarnings = grossRevenue - platformFee;
+
+    res.json({
+      totalAppointments,
+      completedAppointments,
+      grossRevenue,
+      platformFeeRate,
+      platformFee,
+      netEarnings,
+      payoutBank: profile?.payoutBank || null,
+      payoutAccount: profile?.payoutAccount || null,
+      appointments: appointments.map(a => ({
+        id: a.id,
+        scheduledAt: a.scheduledAt,
+        status: a.status,
+        modality: a.modality,
+        amount: a.amountCharged || 0,
+        patientName: a.patient?.name || a.prospectName || 'Mascota',
+        species: a.patient?.species || 'dog',
+        tutorName: a.patient?.tutor ? `${a.patient.tutor.firstName} ${a.patient.tutor.lastName}`.trim() : (a.prospectName || 'Tutor')
+      }))
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Error al consultar ingresos del veterinario' });
+  }
 });
 
 /**

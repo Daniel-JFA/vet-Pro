@@ -21,6 +21,7 @@ export class VetProfileEditComponent implements OnInit {
   uploadingDocs = signal<boolean>(false);
 
   profile = signal<MyVetProfile | null>(null);
+  earnings = signal<any>(null);
 
   // Campos de formulario
   professionalCard = '';
@@ -29,6 +30,8 @@ export class VetProfileEditComponent implements OnInit {
   homeVisitPrice: number | null = null;
   city = '';
   whatsappNumber = '';
+  payoutBank = '';
+  payoutAccount = '';
   isPublic = false;
 
   // Listas de selección
@@ -57,6 +60,7 @@ export class VetProfileEditComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadProfile();
+    this.loadEarnings();
   }
 
   loadProfile(): void {
@@ -70,6 +74,8 @@ export class VetProfileEditComponent implements OnInit {
         this.homeVisitPrice = p.homeVisitPrice || null;
         this.city = p.city || '';
         this.whatsappNumber = p.whatsappNumber || '';
+        this.payoutBank = p.payoutBank || '';
+        this.payoutAccount = p.payoutAccount || '';
         this.isPublic = p.isPublic;
         this.selectedSpecialties = p.specialties || [];
         this.attendsHome = (p.modalities || []).includes('domicilio');
@@ -81,6 +87,13 @@ export class VetProfileEditComponent implements OnInit {
         this.toast.error('Error al cargar la información del perfil');
         this.loading.set(false);
       }
+    });
+  }
+
+  loadEarnings(): void {
+    this.marketplaceService.getEarnings().subscribe({
+      next: (data) => this.earnings.set(data),
+      error: () => {}
     });
   }
 
@@ -156,6 +169,8 @@ export class VetProfileEditComponent implements OnInit {
         homeVisitPrice: this.homeVisitPrice ? Number(this.homeVisitPrice) : null,
         city: this.city,
         whatsappNumber: this.whatsappNumber,
+        payoutBank: this.payoutBank,
+        payoutAccount: this.payoutAccount,
         isPublic: this.isPublic,
         specialties: this.selectedSpecialties,
         modalities,
@@ -163,8 +178,9 @@ export class VetProfileEditComponent implements OnInit {
       })
       .subscribe({
         next: (updated) => {
-          this.toast.success('Perfil profesional actualizado con éxito');
+          this.toast.success('Perfil profesional y datos de dispersión actualizados');
           this.profile.set(updated);
+          this.loadEarnings();
           this.saving.set(false);
         },
         error: (err) => {

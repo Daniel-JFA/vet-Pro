@@ -975,6 +975,8 @@ model VetProfile {
   isPublic           Boolean            @default(false)
   isFeatured         Boolean            @default(false) // Destacado / Pro Vet
   whatsappNumber     String?            // WhatsApp para recibir citas
+  payoutBank         String?            // Entidad de dispersión (Nequi, Daviplata, Bancolombia, etc.)
+  payoutAccount      String?            // Número de cuenta o celular para pago de honorarios
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 

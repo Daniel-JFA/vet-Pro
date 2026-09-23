@@ -66,7 +66,30 @@ export interface MyVetProfile {
   isPublic: boolean;
   isFeatured: boolean;
   whatsappNumber?: string;
+  payoutBank?: string | null;
+  payoutAccount?: string | null;
   reviews?: VetReviewItem[];
+}
+
+export interface VetEarningsSummary {
+  totalAppointments: number;
+  completedAppointments: number;
+  grossRevenue: number;
+  platformFeeRate: number;
+  platformFee: number;
+  netEarnings: number;
+  payoutBank?: string | null;
+  payoutAccount?: string | null;
+  appointments: {
+    id: string;
+    scheduledAt: string;
+    status: string;
+    modality: string;
+    amount: number;
+    patientName: string;
+    species: string;
+    tutorName: string;
+  }[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -179,5 +202,12 @@ export class MarketplaceService {
    */
   verifyVet(id: string, body: { status: 'verified' | 'rejected'; notes?: string }): Observable<any> {
     return this.api.put<any>(`/marketplace/admin/verifications/${id}`, body);
+  }
+
+  /**
+   * Consultar balance de ingresos y comisiones del veterinario
+   */
+  getEarnings(): Observable<VetEarningsSummary> {
+    return this.api.get<VetEarningsSummary>('/marketplace/profile/earnings');
   }
 }

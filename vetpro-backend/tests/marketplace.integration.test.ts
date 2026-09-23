@@ -240,4 +240,33 @@ describe('Marketplace Web de Veterinarios (Integration Tests)', () => {
     expect(appointment.serviceType).toBe('Consulta a Domicilio');
     expect(appointment.patient.tutor.phone).toBe('3109876543');
   });
+
+  it('10. El veterinario puede consultar sus ingresos y desglose de comisiones (15%)', async () => {
+    const res = await request(app)
+      .get('/api/v1/marketplace/profile/earnings')
+      .set('Authorization', `Bearer ${vetUserToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('totalAppointments');
+    expect(res.body.totalAppointments).toBeGreaterThanOrEqual(1);
+    expect(res.body.grossRevenue).toBeGreaterThanOrEqual(90000);
+    expect(res.body.platformFeeRate).toBe(0.15);
+    expect(res.body.platformFee).toBe(Math.round(res.body.grossRevenue * 0.15));
+    expect(res.body.netEarnings).toBe(res.body.grossRevenue - res.body.platformFee);
+    expect(Array.isArray(res.body.appointments)).toBe(true);
+  });
+
+  it('11. El veterinario puede configurar su cuenta de dispersión (Nequi/Bancolombia)', async () => {
+    const res = await request(app)
+      .put('/api/v1/marketplace/profile/me')
+      .set('Authorization', `Bearer ${vetUserToken}`)
+      .send({
+        payoutBank: 'Nequi',
+        payoutAccount: '3001234567'
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.payoutBank).toBe('Nequi');
+    expect(res.body.payoutAccount).toBe('3001234567');
+  });
 });
