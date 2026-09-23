@@ -1,7 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { MarketplaceService, PublicVetItem, PublicVetDetail } from '../../../core/services/marketplace.service';
 import { ToastService } from '../../../core/services/toast.service';
 
@@ -15,6 +15,7 @@ import { ToastService } from '../../../core/services/toast.service';
 export class VetDirectoryComponent implements OnInit {
   private marketplaceService = inject(MarketplaceService);
   private toast = inject(ToastService);
+  private route = inject(ActivatedRoute);
 
   vets = signal<PublicVetItem[]>([]);
   loading = signal<boolean>(true);
@@ -30,6 +31,26 @@ export class VetDirectoryComponent implements OnInit {
   selectedVet = signal<PublicVetDetail | null>(null);
   loadingDetail = signal<boolean>(false);
   showDetailModal = signal<boolean>(false);
+
+  // Modal de Agendamiento Web Ágil
+  showBookingModal = signal<boolean>(false);
+  bookingVet = signal<PublicVetItem | null>(null);
+  bookingSubmitting = signal<boolean>(false);
+  bookingSuccess = signal<any | null>(null);
+
+  bookingForm = {
+    tutorName: '',
+    tutorPhone: '',
+    tutorEmail: '',
+    patientName: '',
+    patientSpecies: 'dog',
+    modality: 'home_visit' as 'home_visit' | 'clinic',
+    date: '',
+    time: '10:00',
+    address: '',
+    reason: '',
+    notes: ''
+  };
 
   // Formulario de Reseña
   newReview = {
@@ -54,7 +75,27 @@ export class VetDirectoryComponent implements OnInit {
   ];
 
   ngOnInit(): void {
+    // Fecha sugerida: Mañana
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    this.bookingForm.date = tomorrow.toISOString().split('T')[0];
+
     this.loadVets();
+    this.checkQueryParams();
+  }
+
+  checkQueryParams(): void {
+    this.route.queryParams.subscribe((params) => {
+      const reviewVetId = params['reviewVet'];
+      if (reviewVetId) {
+        this.marketplaceService.getPublicVetDetail(reviewVetId).subscribe({
+          next: (detail) => {
+            this.selectedVet.set(detail);
+            this.showDetailModal.set(true);
+          }
+        });
+      }
+    });
   }
 
   loadVets(): void {
@@ -111,6 +152,77 @@ export class VetDirectoryComponent implements OnInit {
   closeDetail(): void {
     this.showDetailModal.set(false);
     this.selectedVet.set(null);
+  }
+
+  // ─────────────────────────────────────────────
+  // Agendamiento Web Ágil (Sprint 7)
+  // ─────────────────────────────────────────────
+  openBooking(vet: PublicVetItem, defaultModality?: 'home_visit' | 'clinic'): void {
+    this.bookingVet.set(vet);
+    this.bookingSuccess.set(null);
+    if (defaultModality) {
+      this.bookingForm.modality = defaultModality;
+    } else {
+      this.bookingForm.modality = vet.modalities.includes('home_visit') || vet.modalities.includes('domicilio')
+        ? 'home_visit'
+        : 'clinic';
+    }
+    this.showBookingModal.set(true);
+  }
+
+  closeBooking(): void {
+    this.showBookingModal.set(false);
+    this.bookingVet.set(null);
+    this.bookingSuccess.set(null);
+  }
+
+  submitBooking(): void {
+    const vet = this.bookingVet();
+    if (!vet) return;
+
+    if (!this.bookingForm.tutorName.trim() || !this.bookingForm.tutorPhone.trim()) {
+      this.toast.error('Por favor ingresa tu nombre y teléfono de contacto');
+      return;
+    }
+
+    if (!this.bookingForm.patientName.trim()) {
+      this.toast.error('Por favor ingresa el nombre de tu mascota');
+      return;
+    }
+
+    if (!this.bookingForm.reason.trim()) {
+      this.toast.error('Por favor escribe el motivo de la consulta');
+      return;
+    }
+
+    const scheduledAt = `${this.bookingForm.date}T${this.bookingForm.time || '10:00'}:00.000Z`;
+
+    this.bookingSubmitting.set(true);
+    this.marketplaceService
+      .bookAppointment(vet.id, {
+        tutorName: this.bookingForm.tutorName,
+        tutorPhone: this.bookingForm.tutorPhone,
+        tutorEmail: this.bookingForm.tutorEmail || undefined,
+        patientName: this.bookingForm.patientName,
+        patientSpecies: this.bookingForm.patientSpecies,
+        modality: this.bookingForm.modality,
+        scheduledAt,
+        address: this.bookingForm.address || undefined,
+        city: vet.city || undefined,
+        reason: this.bookingForm.reason,
+        notes: this.bookingForm.notes || undefined
+      })
+      .subscribe({
+        next: (result) => {
+          this.toast.success('¡Cita solicitada con éxito!');
+          this.bookingSuccess.set(result);
+          this.bookingSubmitting.set(false);
+        },
+        error: (err) => {
+          this.toast.error(err.error?.error || 'Error al agendar la cita');
+          this.bookingSubmitting.set(false);
+        }
+      });
   }
 
   getWhatsAppLink(vet: PublicVetItem | PublicVetDetail): string {

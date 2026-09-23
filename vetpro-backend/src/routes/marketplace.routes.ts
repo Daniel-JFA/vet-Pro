@@ -7,7 +7,13 @@ import crypto from 'crypto';
 import { prisma } from '../config/database.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
 import { roleMiddleware } from '../middleware/role.js';
-import { VerificationStatus } from '@prisma/client';
+import {
+  VerificationStatus,
+  PatientSpecies,
+  PatientSex,
+  AppointmentStatus,
+  ServiceModality
+} from '@prisma/client';
 
 const router = Router();
 
@@ -263,6 +269,196 @@ router.post('/vets/:id/reviews', async (req: Request, res: Response): Promise<vo
       return;
     }
     res.status(500).json({ error: 'Error al registrar la reseña' });
+  }
+});
+
+/**
+ * POST /api/v1/marketplace/vets/:id/appointments
+ * Agendar cita desde el directorio web con canalización anti-saturación a WhatsApp
+ */
+const BookAppointmentSchema = z.object({
+  tutorName: z.string().min(2, 'El nombre del tutor es obligatorio'),
+  tutorPhone: z.string().min(7, 'El teléfono de contacto es obligatorio'),
+  tutorEmail: z.string().email('Correo inválido').optional().nullable().or(z.literal('')),
+  patientName: z.string().min(1, 'El nombre de la mascota es obligatorio'),
+  patientSpecies: z.string().default('dog'),
+  modality: z.enum(['home_visit', 'clinic']).default('clinic'),
+  scheduledAt: z.string().min(5, 'La fecha y hora son obligatorias'),
+  address: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
+  reason: z.string().min(3, 'El motivo de consulta es obligatorio'),
+  notes: z.string().optional().nullable()
+});
+
+router.post('/vets/:id/appointments', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const body = BookAppointmentSchema.parse(req.body);
+
+    const vet = await prisma.vetProfile.findUnique({
+      where: { id },
+      include: {
+        user: { select: { firstName: true, lastName: true, phone: true } },
+        clinic: { select: { id: true, name: true, phone: true, address: true } }
+      }
+    });
+
+    if (!vet) {
+      res.status(404).json({ error: 'Veterinario no encontrado' });
+      return;
+    }
+
+    const clinicId = vet.clinicId;
+    const vetUserId = vet.userId;
+
+    // 1. Obtener o crear sucursal por defecto
+    let branch = await prisma.branch.findFirst({
+      where: { clinicId, active: true }
+    });
+    if (!branch) {
+      branch = await prisma.branch.create({
+        data: {
+          clinicId,
+          name: 'Sede Principal',
+          address: vet.clinic.address || 'Principal',
+          phone: vet.clinic.phone || '3000000000'
+        }
+      });
+    }
+
+    // 2. Obtener o crear Tutor
+    let tutor = await prisma.tutor.findFirst({
+      where: { clinicId, phone: body.tutorPhone, deletedAt: null }
+    });
+    if (!tutor) {
+      const parts = body.tutorName.trim().split(' ');
+      const firstName = parts[0] || 'Tutor';
+      const lastName = parts.slice(1).join(' ') || 'Marketplace';
+
+      tutor = await prisma.tutor.create({
+        data: {
+          clinicId,
+          firstName,
+          lastName,
+          phone: body.tutorPhone,
+          email: body.tutorEmail || null,
+          address: body.address || null
+        }
+      });
+    }
+
+    // 3. Mapear especie de la mascota
+    let speciesEnum: PatientSpecies = PatientSpecies.dog;
+    const sLower = body.patientSpecies.toLowerCase();
+    if (sLower.includes('cat') || sLower.includes('gat') || sLower.includes('felin')) {
+      speciesEnum = PatientSpecies.cat;
+    } else if (sLower.includes('conej') || sLower.includes('rab')) {
+      speciesEnum = PatientSpecies.rabbit;
+    } else if (sLower.includes('ave') || sLower.includes('pajar')) {
+      speciesEnum = PatientSpecies.bird;
+    }
+
+    // 4. Obtener o crear Paciente
+    let patient = await prisma.patient.findFirst({
+      where: {
+        clinicId,
+        tutorId: tutor.id,
+        name: { equals: body.patientName.trim(), mode: 'insensitive' },
+        deletedAt: null
+      }
+    });
+    if (!patient) {
+      patient = await prisma.patient.create({
+        data: {
+          clinicId,
+          tutorId: tutor.id,
+          name: body.patientName.trim(),
+          species: speciesEnum,
+          sex: PatientSex.male
+        }
+      });
+    }
+
+    // 5. Determinar tarifa
+    const amount =
+      body.modality === 'home_visit'
+        ? vet.homeVisitPrice || vet.consultationPrice
+        : vet.consultationPrice;
+
+    const scheduledDate = new Date(body.scheduledAt);
+
+    // 6. Crear Cita en el sistema de la clínica
+    const appointment = await prisma.appointment.create({
+      data: {
+        clinicId,
+        branchId: branch.id,
+        vetId: vetUserId,
+        patientId: patient.id,
+        isNewPatient: false,
+        serviceType: body.modality === 'home_visit' ? 'Consulta a Domicilio' : 'Consulta General',
+        modality: body.modality === 'home_visit' ? ServiceModality.home_visit : ServiceModality.clinic,
+        scheduledAt: scheduledDate,
+        durationMinutes: 45,
+        status: AppointmentStatus.scheduled,
+        reason: body.reason,
+        notes: body.notes
+          ? `${body.notes} | Cita Web Marketplace`
+          : `Agendado vía Marketplace Web. Tutor: ${body.tutorName} (Tel: ${body.tutorPhone})`,
+        address: body.address || null,
+        city: body.city || vet.city || null,
+        amountCharged: amount
+      }
+    });
+
+    // 7. Generar enlace inteligente de WhatsApp estructurado (Anti-Burnout)
+    const rawNumber = vet.whatsappNumber || vet.user.phone || vet.clinic.phone || '';
+    const cleanPhone = rawNumber.replace(/[^0-9]/g, '');
+
+    const dateFormatted = scheduledDate.toLocaleString('es-CO', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const modalityText = body.modality === 'home_visit' ? 'A Domicilio 🚗' : 'En Consultorio 🏥';
+    const addressLine = body.address ? `\n📍 *Dirección:* ${body.address}` : '';
+
+    const text = `¡Hola Dr(a). ${vet.user.firstName}! He agendado una consulta médica en VetPro:
+
+🆔 *Reserva:* #${appointment.id.slice(0, 8).toUpperCase()}
+🐾 *Mascota:* ${patient.name} (${speciesEnum === PatientSpecies.cat ? 'Gato' : 'Perro'})
+👤 *Tutor:* ${body.tutorName} (Tel: ${body.tutorPhone})
+📅 *Fecha:* ${dateFormatted}
+🩺 *Modalidad:* ${modalityText}${addressLine}
+📝 *Motivo:* ${body.reason}
+💰 *Tarifa Estimada:* $${amount.toLocaleString('es-CO')} COP
+
+Quedo atento(a) a su confirmación. ¡Muchas gracias!`;
+
+    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+
+    res.status(201).json({
+      success: true,
+      appointmentId: appointment.id,
+      reservationCode: appointment.id.slice(0, 8).toUpperCase(),
+      patientId: patient.id,
+      patientName: patient.name,
+      tutorName: body.tutorName,
+      scheduledAt: appointment.scheduledAt,
+      amountCharged: amount,
+      modality: body.modality,
+      whatsappUrl,
+      vetName: `${vet.user.firstName} ${vet.user.lastName}`
+    });
+  } catch (err: any) {
+    if (err instanceof z.ZodError) {
+      res.status(400).json({ error: err.issues[0]?.message || 'Datos de cita inválidos' });
+      return;
+    }
+    res.status(500).json({ error: 'Error al agendar la cita médica' });
   }
 });
 

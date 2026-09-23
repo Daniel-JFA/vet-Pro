@@ -110,6 +110,40 @@ export class MarketplaceService {
   }
 
   /**
+   * Agendar cita web con un veterinario y generar enlace WhatsApp estructurado
+   */
+  bookAppointment(
+    vetProfileId: string,
+    bookingData: {
+      tutorName: string;
+      tutorPhone: string;
+      tutorEmail?: string;
+      patientName: string;
+      patientSpecies: string;
+      modality: 'home_visit' | 'clinic';
+      scheduledAt: string;
+      address?: string;
+      city?: string;
+      reason: string;
+      notes?: string;
+    }
+  ): Observable<{
+    success: boolean;
+    appointmentId: string;
+    reservationCode: string;
+    patientId: string;
+    patientName: string;
+    tutorName: string;
+    scheduledAt: string;
+    amountCharged: number;
+    modality: string;
+    whatsappUrl: string;
+    vetName: string;
+  }> {
+    return this.api.post(`/marketplace/vets/${vetProfileId}/appointments`, bookingData);
+  }
+
+  /**
    * Obtener mi propio perfil de veterinario (Autenticado)
    */
   getMyProfile(): Observable<MyVetProfile> {

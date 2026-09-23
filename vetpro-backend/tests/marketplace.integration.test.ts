@@ -68,16 +68,20 @@ describe('Marketplace Web de Veterinarios (Integration Tests)', () => {
   });
 
   afterAll(async () => {
-    // Limpieza
+    // Limpieza ordenada
     try {
       if (createdVetProfileId) {
         await prisma.vetReview.deleteMany({ where: { vetProfileId: createdVetProfileId } });
         await prisma.vetProfile.delete({ where: { id: createdVetProfileId } }).catch(() => {});
       }
+      await prisma.appointment.deleteMany({ where: { clinicId } });
+      await prisma.patient.deleteMany({ where: { clinicId } });
+      await prisma.tutor.deleteMany({ where: { clinicId } });
+      await prisma.branch.deleteMany({ where: { clinicId } });
       await prisma.user.deleteMany({ where: { clinicId } });
       await prisma.clinic.delete({ where: { id: clinicId } });
     } catch (e) {
-      // Ignorar errores de cascada en cleanup
+      // Ignorar errores en cascada de cleanup
     }
   });
 
@@ -193,5 +197,47 @@ describe('Marketplace Web de Veterinarios (Integration Tests)', () => {
     expect(updatedDetail.body.reviewCount).toBe(1);
     expect(updatedDetail.body.reviews.length).toBe(1);
     expect(updatedDetail.body.reviews[0].tutorName).toBe('Camilo Pérez');
+  });
+
+  it('8. Un tutor solicita cita desde la web y se genera el enlace de WhatsApp estructurado', async () => {
+    const res = await request(app)
+      .post(`/api/v1/marketplace/vets/${createdVetProfileId}/appointments`)
+      .send({
+        tutorName: 'Andrea Gómez',
+        tutorPhone: '3109876543',
+        tutorEmail: 'andrea.gomez@test.com',
+        patientName: 'Simba',
+        patientSpecies: 'cat',
+        modality: 'home_visit',
+        scheduledAt: '2026-09-25T15:00:00Z',
+        address: 'Carrera 15 # 85-30, Apto 402',
+        city: 'Bogotá',
+        reason: 'Vacunación Triple Felina y revisión preventiva',
+        notes: 'Gato asustadizo con ruidos fuertes'
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.success).toBe(true);
+    expect(res.body).toHaveProperty('appointmentId');
+    expect(res.body).toHaveProperty('reservationCode');
+    expect(res.body.patientName).toBe('Simba');
+    expect(res.body.amountCharged).toBe(90000); // Tarifa de domicilio
+    expect(res.body.whatsappUrl).toContain('wa.me');
+    expect(decodeURIComponent(res.body.whatsappUrl)).toContain('Simba');
+    expect(decodeURIComponent(res.body.whatsappUrl)).toContain('Andrea Gómez');
+  });
+
+  it('9. La cita aparece en la agenda médica de VetPro lista para atención clínica', async () => {
+    const res = await request(app)
+      .get('/api/v1/appointments')
+      .set('Authorization', `Bearer ${vetUserToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.length).toBeGreaterThanOrEqual(1);
+
+    const appointment = res.body.data.find((a: any) => a.patient?.name === 'Simba');
+    expect(appointment).toBeDefined();
+    expect(appointment.serviceType).toBe('Consulta a Domicilio');
+    expect(appointment.patient.tutor.phone).toBe('3109876543');
   });
 });

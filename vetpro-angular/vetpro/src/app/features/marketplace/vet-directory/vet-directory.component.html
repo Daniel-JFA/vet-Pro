@@ -143,13 +143,13 @@
                 <span class="material-symbols-outlined">medical_services</span>
                 <span>
                   @if (vet.modalities.includes('domicilio')) {
-                    <span>A Domicilio</span>
+                    <span>A Domicilio 🚗</span>
                   }
                   @if (vet.modalities.includes('domicilio') && vet.modalities.includes('consultorio')) {
                     <span> · </span>
                   }
                   @if (vet.modalities.includes('consultorio')) {
-                    <span>En Consultorio</span>
+                    <span>En Consultorio 🏥</span>
                   }
                 </span>
               </div>
@@ -162,18 +162,12 @@
 
             <div class="card-actions">
               <button class="btn-detail" (click)="openDetail(vet)">
-                Ver Perfil y Reseñas
+                Ver Perfil
               </button>
-              <a
-                [href]="getWhatsAppLink(vet)"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="btn-whatsapp"
-                title="Agendar consulta vía WhatsApp"
-              >
-                <span class="material-symbols-outlined">chat</span>
+              <button class="btn-book" (click)="openBooking(vet)">
+                <span class="material-symbols-outlined">calendar_today</span>
                 Agendar Cita
-              </a>
+              </button>
             </div>
           </article>
         }
@@ -331,15 +325,229 @@
           </div>
 
           <footer class="modal-footer">
-            <a
-              [href]="getWhatsAppLink(vet)"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="btn-cta-whatsapp"
+            <button
+              class="btn-cta-book"
+              (click)="closeDetail(); openBooking(vet)"
             >
-              <span class="material-symbols-outlined">chat</span>
-              Solicitar Cita con Dr(a). {{ vet.user.firstName }} por WhatsApp
-            </a>
+              <span class="material-symbols-outlined">calendar_month</span>
+              Agendar Cita con Dr(a). {{ vet.user.firstName }}
+            </button>
+          </footer>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Modal de Agendamiento Web Ágil (Sprint 7) -->
+  @if (showBookingModal()) {
+    <div class="modal-backdrop" (click)="closeBooking()">
+      <div class="modal-dialog booking-dialog" (click)="$event.stopPropagation()">
+        @if (bookingSuccess(); as succ) {
+          <!-- Pantalla de Éxito con Enlace WhatsApp -->
+          <div class="booking-success-view">
+            <div class="success-icon">
+              <span class="material-symbols-outlined">check_circle</span>
+            </div>
+            <h2>¡Tu Cita ha sido Solicitada!</h2>
+            <p class="success-sub">Tu solicitud quedó registrada en la agenda del médico y se ha abierto tu expediente en VetPro.</p>
+
+            <div class="reservation-card">
+              <div class="res-row">
+                <span class="res-label">Código de Reserva:</span>
+                <strong class="res-code">#{{ succ.reservationCode }}</strong>
+              </div>
+              <div class="res-row">
+                <span class="res-label">Mascota:</span>
+                <span>{{ succ.patientName }}</span>
+              </div>
+              <div class="res-row">
+                <span class="res-label">Médico:</span>
+                <span>{{ succ.vetName }}</span>
+              </div>
+              <div class="res-row">
+                <span class="res-label">Modalidad:</span>
+                <span>{{ succ.modality === 'home_visit' ? 'A Domicilio 🚗' : 'En Consultorio 🏥' }}</span>
+              </div>
+              <div class="res-row">
+                <span class="res-label">Tarifa Estimada:</span>
+                <strong class="price-highlight">\${{ succ.amountCharged | number:'1.0-0' }} COP</strong>
+              </div>
+            </div>
+
+            <div class="whatsapp-cta-box">
+              <p>Envía la confirmación al WhatsApp del médico para coordinar el horario exacto sin tener que repetir datos:</p>
+              <a
+                [href]="succ.whatsappUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn-send-whatsapp"
+              >
+                <span class="material-symbols-outlined">chat</span>
+                Confirmar por WhatsApp con Dr(a). {{ succ.vetName }}
+              </a>
+            </div>
+
+            <button class="btn-close-success" (click)="closeBooking()">
+              Volver al Directorio
+            </button>
+          </div>
+        } @else if (bookingVet(); as vet) {
+          <!-- Formulario de Agendamiento -->
+          <header class="modal-header">
+            <div>
+              <h3>Agendar Cita Médica</h3>
+              <p class="sub-vet">Dr(a). {{ vet.user.firstName }} {{ vet.user.lastName }} · {{ vet.clinic.name }}</p>
+            </div>
+            <button class="btn-close" (click)="closeBooking()">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </header>
+
+          <div class="modal-body">
+            <div class="booking-form-sections">
+              <!-- Sección 1: Datos del Tutor y Mascota -->
+              <div class="form-sub-section">
+                <h4>1. Datos de Contacto y Mascota</h4>
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label>Tu Nombre Completo *</label>
+                    <input
+                      type="text"
+                      [(ngModel)]="bookingForm.tutorName"
+                      placeholder="Ej: Camilo Pérez"
+                      class="form-control"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Tu Teléfono / WhatsApp *</label>
+                    <input
+                      type="tel"
+                      [(ngModel)]="bookingForm.tutorPhone"
+                      placeholder="Ej: 3001234567"
+                      class="form-control"
+                    />
+                  </div>
+                </div>
+
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label>Nombre de la Mascota *</label>
+                    <input
+                      type="text"
+                      [(ngModel)]="bookingForm.patientName"
+                      placeholder="Ej: Max, Luna, Toby..."
+                      class="form-control"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Especie *</label>
+                    <select [(ngModel)]="bookingForm.patientSpecies" class="form-control">
+                      <option value="dog">Perro 🐶</option>
+                      <option value="cat">Gato 🐱</option>
+                      <option value="rabbit">Conejo 🐰</option>
+                      <option value="bird">Ave 🦜</option>
+                      <option value="other">Otro</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Sección 2: Modalidad, Fecha y Motivo -->
+              <div class="form-sub-section">
+                <h4>2. Detalles de la Consulta</h4>
+                <div class="form-group">
+                  <label>Modalidad de Atención *</label>
+                  <div class="modality-picker">
+                    <label class="modality-option" [class.active]="bookingForm.modality === 'clinic'">
+                      <input
+                        type="radio"
+                        name="modality"
+                        value="clinic"
+                        [(ngModel)]="bookingForm.modality"
+                      />
+                      <span class="material-symbols-outlined">local_hospital</span>
+                      <div>
+                        <strong>En Consultorio</strong>
+                        <small>\${{ vet.consultationPrice | number:'1.0-0' }} COP</small>
+                      </div>
+                    </label>
+
+                    @if (vet.modalities.includes('domicilio') || vet.homeVisitPrice) {
+                      <label class="modality-option" [class.active]="bookingForm.modality === 'home_visit'">
+                        <input
+                          type="radio"
+                          name="modality"
+                          value="home_visit"
+                          [(ngModel)]="bookingForm.modality"
+                        />
+                        <span class="material-symbols-outlined">two_wheeler</span>
+                        <div>
+                          <strong>A Domicilio</strong>
+                          <small>\${{ (vet.homeVisitPrice || vet.consultationPrice) | number:'1.0-0' }} COP</small>
+                        </div>
+                      </label>
+                    }
+                  </div>
+                </div>
+
+                @if (bookingForm.modality === 'home_visit') {
+                  <div class="form-group">
+                    <label>Dirección del Domicilio *</label>
+                    <input
+                      type="text"
+                      [(ngModel)]="bookingForm.address"
+                      placeholder="Ej: Carrera 15 # 85-30, Apto 402"
+                      class="form-control"
+                    />
+                  </div>
+                }
+
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label>Fecha Preferida *</label>
+                    <input
+                      type="date"
+                      [(ngModel)]="bookingForm.date"
+                      class="form-control"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Hora Sugerida *</label>
+                    <input
+                      type="time"
+                      [(ngModel)]="bookingForm.time"
+                      class="form-control"
+                    />
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label>Motivo de la Consulta *</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="bookingForm.reason"
+                    placeholder="Ej: Chequeo general, vacunas, vómito recurrente..."
+                    class="form-control"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <footer class="modal-footer">
+            <button class="btn-cancel" (click)="closeBooking()">Cancelar</button>
+            <button
+              class="btn-confirm-booking"
+              [disabled]="bookingSubmitting()"
+              (click)="submitBooking()"
+            >
+              @if (bookingSubmitting()) {
+                <span>Procesando...</span>
+              } @else {
+                <span class="material-symbols-outlined">send</span>
+                <span>Confirmar y Enviar Solicitud</span>
+              }
+            </button>
           </footer>
         }
       </div>

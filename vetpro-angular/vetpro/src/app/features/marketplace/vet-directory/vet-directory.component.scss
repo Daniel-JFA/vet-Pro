@@ -454,15 +454,16 @@
       }
     }
 
-    .btn-whatsapp {
+    .btn-book {
       flex: 1;
       padding: 9px;
-      background: #10b981;
+      background: #059669;
       color: white;
+      border: none;
       border-radius: 8px;
       font-size: 12px;
       font-weight: 600;
-      text-decoration: none;
+      cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -470,7 +471,7 @@
       transition: background 0.15s;
 
       &:hover {
-        background: #059669;
+        background: #047857;
       }
 
       span {
@@ -791,8 +792,275 @@
     border-top: 1px solid #e2e8f0;
     background: #f8fafc;
 
-    .btn-cta-whatsapp {
+    .btn-cta-book {
       display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: #059669;
+      color: white;
+      border: none;
+      width: 100%;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s;
+
+      &:hover {
+        background: #047857;
+      }
+
+      span {
+        font-size: 20px;
+      }
+    }
+  }
+}
+
+/* Modal de Agendamiento Web */
+.booking-dialog {
+  max-width: 580px;
+
+  .sub-vet {
+    font-size: 12px;
+    color: #64748b;
+    margin: 2px 0 0 0;
+  }
+
+  .booking-form-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+    .form-sub-section {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 16px;
+
+      h4 {
+        font-size: 13px;
+        font-weight: 700;
+        margin: 0 0 12px 0;
+        color: #0f172a;
+        border-bottom: 1px solid #e2e8f0;
+        padding-bottom: 6px;
+      }
+    }
+
+    .form-row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+
+      @media (max-width: 500px) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+
+      label {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+        color: #475569;
+        margin-bottom: 4px;
+      }
+
+      .form-control {
+        width: 100%;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        padding: 8px 10px;
+        font-size: 13px;
+        outline: none;
+        box-sizing: border-box;
+
+        &:focus {
+          border-color: #059669;
+        }
+      }
+    }
+
+    .modality-picker {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+
+      @media (max-width: 480px) {
+        grid-template-columns: 1fr;
+      }
+
+      .modality-option {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        background: white;
+        cursor: pointer;
+        transition: all 0.15s;
+
+        input[type="radio"] {
+          display: none;
+        }
+
+        span {
+          font-size: 24px;
+          color: #64748b;
+        }
+
+        strong {
+          display: block;
+          font-size: 12px;
+          color: #0f172a;
+        }
+
+        small {
+          display: block;
+          font-size: 11px;
+          color: #059669;
+          font-weight: 600;
+        }
+
+        &.active {
+          border-color: #059669;
+          background: #ecfdf5;
+
+          span {
+            color: #059669;
+          }
+        }
+      }
+    }
+  }
+
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+
+    .btn-cancel {
+      padding: 9px 16px;
+      background: white;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
+      cursor: pointer;
+    }
+
+    .btn-confirm-booking {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 20px;
+      background: #059669;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+
+      &:hover {
+        background: #047857;
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      span {
+        font-size: 16px;
+      }
+    }
+  }
+}
+
+/* Vista de Éxito de Cita */
+.booking-success-view {
+  padding: 32px 24px;
+  text-align: center;
+
+  .success-icon span {
+    font-size: 56px;
+    color: #059669;
+    margin-bottom: 8px;
+  }
+
+  h2 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    margin: 0 0 6px 0;
+    color: #0f172a;
+  }
+
+  .success-sub {
+    font-size: 13px;
+    color: #64748b;
+    margin: 0 0 20px 0;
+    line-height: 1.4;
+  }
+
+  .reservation-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin: 0 auto 24px;
+    max-width: 420px;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .res-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+
+      .res-label {
+        color: #64748b;
+      }
+
+      .res-code {
+        color: #059669;
+        font-family: monospace;
+        font-size: 14px;
+      }
+
+      .price-highlight {
+        color: #059669;
+        font-size: 14px;
+      }
+    }
+  }
+
+  .whatsapp-cta-box {
+    background: #ecfdf5;
+    border: 1px dashed #a7f3d0;
+    border-radius: 12px;
+    padding: 18px;
+    margin: 0 auto 20px;
+    max-width: 420px;
+
+    p {
+      font-size: 12px;
+      color: #065f46;
+      margin: 0 0 12px 0;
+      line-height: 1.4;
+    }
+
+    .btn-send-whatsapp {
+      display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
@@ -803,6 +1071,8 @@
       border-radius: 10px;
       font-weight: 700;
       font-size: 14px;
+      width: 100%;
+      box-sizing: border-box;
       transition: background 0.2s;
 
       &:hover {
@@ -812,6 +1082,21 @@
       span {
         font-size: 20px;
       }
+    }
+  }
+
+  .btn-close-success {
+    background: transparent;
+    border: 1px solid #cbd5e1;
+    color: #64748b;
+    padding: 8px 18px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+
+    &:hover {
+      background: #f1f5f9;
+      color: #0f172a;
     }
   }
 }
