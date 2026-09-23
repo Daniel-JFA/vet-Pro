@@ -228,6 +228,7 @@ La landing hoy muestra "Cotización personalizada" (se retiraron precios inventa
 3. **Proveedor DIAN:** ✅ **Sin proveedor por ahora.** El módulo permanece oculto (`dianEnabled = false`) y fuera del alcance del Go-Live piloto.
 4. **`User.email` único global** (Sprint 2.5): ✅ **NO.** Un usuario no comparte cuenta entre clínicas. Se mantiene la unicidad global en el esquema de Prisma (sin cambios).
 5. **Marketplace Web Vets (tipo Sittsy/DiDi):** ✅ **Priorizado para Sprints 6 y 7.** A petición de clínica piloto (Liliana Vet), se redefine de app móvil compleja a plataforma web/PWA ágil con directorio público, verificación COMVEZCOL, agendamiento anti-saturación de WhatsApp y conexión directa a la historia clínica de VetPro.
+6. **Almacenamiento de archivos y multimedia:** ✅ **Servidor propio.** Fotos de pacientes, historias clínicas, consentimientos y adjuntos se almacenan y sirven de forma local y persistente desde el mismo servidor en el volumen Docker `vetpro_uploads` (`/api/uploads`), con validación de firma de bytes y nombres UUID. Se descarta definitivamente el uso de proveedores externos en la nube (S3 / Cloudflare R2).
 
 ---
 
@@ -313,10 +314,9 @@ La landing hoy muestra "Cotización personalizada" (se retiraron precios inventa
 ---
 
 ### 🗺️ Sprints Restantes (Fase Evolutiva / Post-Lanzamiento)
-Quedan **3 sprints evolutivos** en el backlog de producto:
-1. **Sprint 12 — Almacenamiento Cloudflare R2 / AWS S3:** URLs prefirmadas para historias clínicas, fotos y consentimientos en la nube.
-2. **Sprint 13 — Conector Oficial Facturación Electrónica DIAN:** Integración con proveedor tecnológico (Factus / Alegra) para emisión real de XML firmado y CUFE en producción.
-3. **Sprint 14 — Suscripciones y Cobro Recurrente SaaS:** Facturación periódica mensual/anual de licencias (Starter, Pro, Enterprise) para las veterinarias clientes.
+Al haber establecido el almacenamiento local en el servidor propio (sin S3/R2), quedan únicamente **2 sprints evolutivos** en el backlog de producto:
+1. **Sprint 12 — Facturación Electrónica DIAN Oficial y Arqueo POS de Caja:** Conexión de resoluciones DIAN, cálculo de CUFE/QR oficial y control de turnos de caja en la UI.
+2. **Sprint 13 — Suscripciones y Cobro Recurrente SaaS para Clínicas:** Facturación mensual/anual automatizada de licencias (Starter, Pro, Enterprise) para las veterinarias clientes.
 
 **Sprints 0 al 11:** **¡100% completados, probados y desplegados en main!**
 
