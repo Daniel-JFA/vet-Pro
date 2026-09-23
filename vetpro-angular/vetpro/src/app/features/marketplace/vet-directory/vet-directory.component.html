@@ -1,0 +1,348 @@
+<div class="directory-container">
+  <!-- Hero Section -->
+  <header class="directory-hero">
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="material-symbols-outlined">verified</span>
+        <span>Red de Médicos Veterinarios Verificados</span>
+      </div>
+      <h1>Encuentra al veterinario ideal para tu mascota</h1>
+      <p>Médicos profesionales con matrícula COMVEZCOL certificada, disponibles a domicilio o en clínica con historias clínicas respaldadas por VetPro.</p>
+
+      <!-- Barra de Búsqueda Rápida -->
+      <div class="search-bar-box">
+        <div class="search-input-group">
+          <span class="material-symbols-outlined">search</span>
+          <input
+            type="text"
+            [(ngModel)]="searchTerm"
+            (keyup.enter)="onFilterChange()"
+            placeholder="Buscar por nombre, especialidad o clínica..."
+          />
+        </div>
+        <button class="btn-search" (click)="onFilterChange()">
+          Buscar
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Filtros -->
+  <section class="filters-bar">
+    <div class="filter-item">
+      <label>Ciudad:</label>
+      <select [(ngModel)]="selectedCity" (change)="onFilterChange()">
+        <option value="">Todas las ciudades</option>
+        @for (c of cities; track c) {
+          <option [value]="c">{{ c }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="filter-item">
+      <label>Especialidad:</label>
+      <select [(ngModel)]="selectedSpecialty" (change)="onFilterChange()">
+        <option value="">Todas las especialidades</option>
+        @for (s of specialties; track s) {
+          <option [value]="s">{{ s }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="filter-item">
+      <label>Modalidad:</label>
+      <select [(ngModel)]="selectedModality" (change)="onFilterChange()">
+        <option value="">Todas las modalidades</option>
+        <option value="domicilio">A Domicilio 🚗</option>
+        <option value="consultorio">En Clínica / Consultorio 🏥</option>
+      </select>
+    </div>
+
+    @if (searchTerm || selectedCity || selectedSpecialty || selectedModality) {
+      <button class="btn-clear-filters" (click)="clearFilters()">
+        <span class="material-symbols-outlined">close</span>
+        Limpiar Filtros
+      </button>
+    }
+  </section>
+
+  <!-- Contenido / Listado -->
+  <main class="directory-main">
+    <div class="results-header">
+      <h2>Profesionales Disponibles ({{ totalVets() }})</h2>
+      <span class="verification-note">
+        <span class="material-symbols-outlined">shield</span>
+        100% de profesionales auditados con matrícula profesional
+      </span>
+    </div>
+
+    @if (loading()) {
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Cargando directorio de veterinarios...</p>
+      </div>
+    } @else if (vets().length === 0) {
+      <div class="empty-state">
+        <span class="material-symbols-outlined icon-large">pets</span>
+        <h3>No encontramos veterinarios con estos filtros</h3>
+        <p>Intenta buscando en otra ciudad o borrando los filtros aplicados.</p>
+        <button class="btn-primary" (click)="clearFilters()">Ver todos los veterinarios</button>
+      </div>
+    } @else {
+      <div class="vets-grid">
+        @for (vet of vets(); track vet.id) {
+          <article class="vet-card" [class.featured]="vet.isFeatured">
+            @if (vet.isFeatured) {
+              <div class="featured-badge">
+                <span class="material-symbols-outlined">star</span>
+                Recomendado
+              </div>
+            }
+
+            <div class="card-header">
+              <div class="avatar-wrapper">
+                @if (vet.user.avatarUrl) {
+                  <img [src]="vet.user.avatarUrl" [alt]="vet.user.firstName" class="avatar-img" />
+                } @else {
+                  <div class="avatar-placeholder">
+                    {{ vet.user.firstName.charAt(0) }}{{ vet.user.lastName.charAt(0) }}
+                  </div>
+                }
+                <div class="verified-icon" title="Tarjeta Profesional COMVEZCOL Verificada">
+                  <span class="material-symbols-outlined">verified</span>
+                </div>
+              </div>
+
+              <div class="vet-title-info">
+                <h3>Dr(a). {{ vet.user.firstName }} {{ vet.user.lastName }}</h3>
+                <p class="clinic-name">{{ vet.clinic.name }}</p>
+                <div class="rating-badge">
+                  <span class="star-icon">⭐</span>
+                  <strong>{{ vet.rating }}</strong>
+                  <span class="reviews-count">({{ vet.reviewCount }} opiniones)</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="specialties-chips">
+              @for (spec of vet.specialties; track spec) {
+                <span class="chip">{{ spec }}</span>
+              }
+            </div>
+
+            @if (vet.bio) {
+              <p class="vet-bio">{{ vet.bio }}</p>
+            }
+
+            <div class="card-details">
+              <div class="detail-row">
+                <span class="material-symbols-outlined">location_on</span>
+                <span>{{ vet.city || vet.clinic.city || 'Bogotá' }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="material-symbols-outlined">medical_services</span>
+                <span>
+                  @if (vet.modalities.includes('domicilio')) {
+                    <span>A Domicilio</span>
+                  }
+                  @if (vet.modalities.includes('domicilio') && vet.modalities.includes('consultorio')) {
+                    <span> · </span>
+                  }
+                  @if (vet.modalities.includes('consultorio')) {
+                    <span>En Consultorio</span>
+                  }
+                </span>
+              </div>
+            </div>
+
+            <div class="price-box">
+              <span class="price-label">Consulta desde</span>
+              <span class="price-val">\${{ vet.consultationPrice | number:'1.0-0' }} COP</span>
+            </div>
+
+            <div class="card-actions">
+              <button class="btn-detail" (click)="openDetail(vet)">
+                Ver Perfil y Reseñas
+              </button>
+              <a
+                [href]="getWhatsAppLink(vet)"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn-whatsapp"
+                title="Agendar consulta vía WhatsApp"
+              >
+                <span class="material-symbols-outlined">chat</span>
+                Agendar Cita
+              </a>
+            </div>
+          </article>
+        }
+      </div>
+    }
+  </main>
+
+  <!-- Modal Detalle del Veterinario -->
+  @if (showDetailModal()) {
+    <div class="modal-backdrop" (click)="closeDetail()">
+      <div class="modal-dialog" (click)="$event.stopPropagation()">
+        @if (loadingDetail()) {
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Cargando información profesional...</p>
+          </div>
+        } @else if (selectedVet(); as vet) {
+          <header class="modal-header">
+            <div class="vet-header-profile">
+              <div class="avatar-wrapper large">
+                @if (vet.user.avatarUrl) {
+                  <img [src]="vet.user.avatarUrl" [alt]="vet.user.firstName" class="avatar-img" />
+                } @else {
+                  <div class="avatar-placeholder large">
+                    {{ vet.user.firstName.charAt(0) }}{{ vet.user.lastName.charAt(0) }}
+                  </div>
+                }
+              </div>
+              <div>
+                <div class="header-name-row">
+                  <h2>Dr(a). {{ vet.user.firstName }} {{ vet.user.lastName }}</h2>
+                  <span class="badge-verified">
+                    <span class="material-symbols-outlined">verified</span>
+                    Verificado COMVEZCOL
+                  </span>
+                </div>
+                <p class="modal-clinic">{{ vet.clinic.name }} · {{ vet.city || 'Colombia' }}</p>
+                @if (vet.professionalCard) {
+                  <span class="comvezcol-tag">Matrícula: {{ vet.professionalCard }}</span>
+                }
+              </div>
+            </div>
+            <button class="btn-close" (click)="closeDetail()">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </header>
+
+          <div class="modal-body">
+            <!-- Biografía -->
+            <section class="modal-section">
+              <h3>Acerca del Profesional</h3>
+              <p class="bio-text">{{ vet.bio || 'Médico veterinario dedicado a brindar el mejor cuidado integral para caninos y felinos.' }}</p>
+            </section>
+
+            <!-- Tarifas y Modalidades -->
+            <section class="modal-section grid-2">
+              <div class="info-card">
+                <h4>Tarifas de Consulta</h4>
+                <div class="price-row">
+                  <span>Consulta en Consultorio:</span>
+                  <strong>\${{ vet.consultationPrice | number:'1.0-0' }} COP</strong>
+                </div>
+                @if (vet.homeVisitPrice) {
+                  <div class="price-row">
+                    <span>Consulta a Domicilio:</span>
+                    <strong>\${{ vet.homeVisitPrice | number:'1.0-0' }} COP</strong>
+                  </div>
+                }
+              </div>
+
+              <div class="info-card">
+                <h4>Zonas de Cobertura</h4>
+                @if (vet.coverageZones && vet.coverageZones.length > 0) {
+                  <div class="zones-chips">
+                    @for (z of vet.coverageZones; track z) {
+                      <span class="zone-chip">{{ z }}</span>
+                    }
+                  </div>
+                } @else {
+                  <p class="text-muted">Toda la ciudad ({{ vet.city || 'Sede central' }})</p>
+                }
+              </div>
+            </section>
+
+            <!-- Sección de Reseñas y Calificaciones -->
+            <section class="modal-section reviews-section">
+              <div class="reviews-header">
+                <h3>Opiniones y Calificaciones ({{ vet.reviewCount }})</h3>
+                <div class="overall-rating">
+                  <span class="rating-number">{{ vet.rating }}</span>
+                  <div class="stars">⭐⭐⭐⭐⭐</div>
+                </div>
+              </div>
+
+              <!-- Formulario de Calificación -->
+              <div class="add-review-box">
+                <h4>Deja tu reseña sobre este profesional</h4>
+                <div class="review-form-row">
+                  <input
+                    type="text"
+                    [(ngModel)]="newReview.tutorName"
+                    placeholder="Tu nombre (tutor)..."
+                    class="form-input"
+                  />
+                  <select [(ngModel)]="newReview.rating" class="form-select">
+                    <option [value]="5">⭐⭐⭐⭐⭐ 5 Estrellas - Excelente</option>
+                    <option [value]="4">⭐⭐⭐⭐ 4 Estrellas - Muy Bueno</option>
+                    <option [value]="3">⭐⭐⭐ 3 Estrellas - Bueno</option>
+                    <option [value]="2">⭐⭐ 2 Estrellas - Regular</option>
+                    <option [value]="1">⭐ 1 Estrella - Malo</option>
+                  </select>
+                </div>
+                <textarea
+                  [(ngModel)]="newReview.comment"
+                  placeholder="Cuéntanos tu experiencia con el médico y tu mascota..."
+                  rows="2"
+                  class="form-textarea"
+                ></textarea>
+                <div class="form-actions">
+                  <button
+                    class="btn-secondary"
+                    [disabled]="submittingReview()"
+                    (click)="submitReview()"
+                  >
+                    @if (submittingReview()) {
+                      <span>Enviando reseña...</span>
+                    } @else {
+                      <span>Publicar Calificación</span>
+                    }
+                  </button>
+                </div>
+              </div>
+
+              <!-- Lista de Reseñas -->
+              <div class="reviews-list">
+                @for (rev of vet.reviews; track rev.id) {
+                  <div class="review-item">
+                    <div class="review-item-header">
+                      <strong>{{ rev.tutorName }}</strong>
+                      <span class="review-stars">
+                        @for (i of [1,2,3,4,5]; track i) {
+                          <span [style.opacity]="i <= rev.rating ? '1' : '0.2'">⭐</span>
+                        }
+                      </span>
+                    </div>
+                    <p class="review-comment">{{ rev.comment }}</p>
+                    <span class="review-date">{{ rev.createdAt | date:'mediumDate' }}</span>
+                  </div>
+                }
+                @if (!vet.reviews || vet.reviews.length === 0) {
+                  <p class="no-reviews">Aún no hay opiniones para este profesional. ¡Sé el primero en calificarlo!</p>
+                }
+              </div>
+            </section>
+          </div>
+
+          <footer class="modal-footer">
+            <a
+              [href]="getWhatsAppLink(vet)"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn-cta-whatsapp"
+            >
+              <span class="material-symbols-outlined">chat</span>
+              Solicitar Cita con Dr(a). {{ vet.user.firstName }} por WhatsApp
+            </a>
+          </footer>
+        }
+      </div>
+    </div>
+  }
+</div>

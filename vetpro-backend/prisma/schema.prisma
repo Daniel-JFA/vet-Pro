@@ -126,6 +126,7 @@ model Clinic {
   labTestCatalogs       LabTestCatalog[]
   groomingServices      GroomingService[]
   crmCampaigns          CrmCampaign[]
+  vetProfiles           VetProfile[]
 
   @@map("clinics")
 }
@@ -207,6 +208,7 @@ model User {
   prescriptions      Prescription[]
   mobileInventories  MobileInventory[]
   walkerProfile      Walker?
+  vetProfile         VetProfile?
   hospitalEvolutions HospitalEvolution[]
   labOrders          LabOrder[]
   groomingServices   GroomingService[]
@@ -240,6 +242,7 @@ model Tutor {
   patients     Patient[]
   invoices     Invoice[]
   walkBookings WalkBooking[]
+  vetReviews   VetReview[]
 
   @@index([clinicId])
   @@index([phone])
@@ -935,6 +938,68 @@ model WalkBooking {
   @@index([tutorId])
   @@index([scheduledAt])
   @@map("walk_bookings")
+}
+
+// ─────────────────────────────────────────────
+// 🩺 MARKETPLACE WEB: PERFILES DE VETERINARIOS Y RESEÑAS (SITTSTY/DIDI STYLE)
+// ─────────────────────────────────────────────
+
+enum VerificationStatus {
+  pending
+  verified
+  rejected
+}
+
+model VetProfile {
+  id                 String             @id @default(uuid())
+  userId             String             @unique
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clinicId           String
+  clinic             Clinic             @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  professionalCard   String?            // Número de Tarjeta Profesional COMVEZCOL
+  cardDocumentUrl    String?            // URL del archivo de la tarjeta profesional
+  idDocumentUrl      String?            // URL del archivo del documento de identidad
+  verificationStatus VerificationStatus @default(pending)
+  verificationNotes  String?            // Notas de revisión administrativa
+  verifiedAt         DateTime?
+  verifiedBy         String?            // ID de administrador que verificó
+  specialties        String[]           @default([])
+  bio                String?
+  modalities         String[]           @default(["consultorio"]) // "domicilio", "consultorio"
+  consultationPrice  Float              @default(50000)
+  homeVisitPrice     Float?
+  city               String?
+  coverageZones      String[]           @default([])
+  rating             Float              @default(5.0)
+  reviewCount        Int                @default(0)
+  isPublic           Boolean            @default(false)
+  isFeatured         Boolean            @default(false) // Destacado / Pro Vet
+  whatsappNumber     String?            // WhatsApp para recibir citas
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  reviews            VetReview[]
+
+  @@index([clinicId])
+  @@index([verificationStatus])
+  @@index([city])
+  @@map("vet_profiles")
+}
+
+model VetReview {
+  id           String     @id @default(uuid())
+  vetProfileId String
+  vetProfile   VetProfile @relation(fields: [vetProfileId], references: [id], onDelete: Cascade)
+  tutorId      String?
+  tutor        Tutor?     @relation(fields: [tutorId], references: [id], onDelete: SetNull)
+  tutorName    String     // Nombre del tutor para mostrar públicamente
+  rating       Int        @default(5) // 1 a 5 estrellas
+  comment      String
+  serviceType  String?    // "domicilio", "consulta general", etc.
+  createdAt    DateTime   @default(now())
+
+  @@index([vetProfileId])
+  @@map("vet_reviews")
 }
 
 // ─────────────────────────────────────────────

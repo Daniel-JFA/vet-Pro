@@ -1,0 +1,207 @@
+<div class="verifications-page">
+  <header class="page-header">
+    <div>
+      <h1>Verificación de Veterinarios (COMVEZCOL)</h1>
+      <p>Audita las credenciales, matrícula profesional y documentos de los médicos antes de publicarlos en la red.</p>
+    </div>
+    <div class="filter-tabs">
+      <button
+        class="tab-btn"
+        [class.active]="filterStatus() === 'all'"
+        (click)="filterStatus.set('all')"
+      >
+        Todos ({{ profiles().length }})
+      </button>
+      <button
+        class="tab-btn pending"
+        [class.active]="filterStatus() === 'pending'"
+        (click)="filterStatus.set('pending')"
+      >
+        Pendientes
+      </button>
+      <button
+        class="tab-btn verified"
+        [class.active]="filterStatus() === 'verified'"
+        (click)="filterStatus.set('verified')"
+      >
+        Verificados
+      </button>
+      <button
+        class="tab-btn rejected"
+        [class.active]="filterStatus() === 'rejected'"
+        (click)="filterStatus.set('rejected')"
+      >
+        Rechazados
+      </button>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Cargando solicitudes de verificación...</p>
+    </div>
+  } @else if (filteredProfiles.length === 0) {
+    <div class="empty-state">
+      <span class="material-symbols-outlined icon-large">task_alt</span>
+      <h3>No hay solicitudes en este estado</h3>
+      <p>No se encontraron registros con el filtro seleccionado.</p>
+    </div>
+  } @else {
+    <div class="table-card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Médico Veterinario</th>
+            <th>Clínica / Sede</th>
+            <th>Tarjeta COMVEZCOL</th>
+            <th>Documentos Adjuntos</th>
+            <th>Especialidades</th>
+            <th>Estado</th>
+            <th style="text-align: right;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of filteredProfiles; track p.id) {
+            <tr>
+              <td>
+                <div class="vet-name-cell">
+                  <strong>Dr(a). {{ p.user.firstName }} {{ p.user.lastName }}</strong>
+                  <span class="vet-email">{{ p.user.email }}</span>
+                  <span class="vet-phone">{{ p.user.phone || 'Sin teléfono' }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="clinic-name">{{ p.clinic.name }}</span>
+                <span class="clinic-city">{{ p.city || p.clinic.city || 'Bogotá' }}</span>
+              </td>
+              <td>
+                @if (p.professionalCard) {
+                  <span class="card-badge">{{ p.professionalCard }}</span>
+                } @else {
+                  <span class="text-muted">No especificada</span>
+                }
+              </td>
+              <td>
+                <div class="docs-links">
+                  @if (p.cardDocumentUrl) {
+                    <a [href]="p.cardDocumentUrl" target="_blank" class="doc-badge">
+                      <span class="material-symbols-outlined">badge</span>
+                      Tarjeta Profesional
+                    </a>
+                  }
+                  @if (p.idDocumentUrl) {
+                    <a [href]="p.idDocumentUrl" target="_blank" class="doc-badge">
+                      <span class="material-symbols-outlined">id_card</span>
+                      Cédula
+                    </a>
+                  }
+                  @if (!p.cardDocumentUrl && !p.idDocumentUrl) {
+                    <span class="text-muted">Sin documentos</span>
+                  }
+                </div>
+              </td>
+              <td>
+                <div class="chips-mini">
+                  @for (s of p.specialties; track s) {
+                    <span class="chip-mini">{{ s }}</span>
+                  }
+                  @if (!p.specialties || p.specialties.length === 0) {
+                    <span class="text-muted">General</span>
+                  }
+                </div>
+              </td>
+              <td>
+                <span class="status-pill" [class]="'pill-' + p.verificationStatus">
+                  @if (p.verificationStatus === 'verified') {
+                    <span class="material-symbols-outlined">check_circle</span>
+                    Verificado
+                  } @else if (p.verificationStatus === 'pending') {
+                    <span class="material-symbols-outlined">hourglass_top</span>
+                    Pendiente
+                  } @else {
+                    <span class="material-symbols-outlined">cancel</span>
+                    Rechazado
+                  }
+                </span>
+              </td>
+              <td style="text-align: right;">
+                <div class="action-buttons">
+                  @if (p.verificationStatus !== 'verified') {
+                    <button
+                      class="btn-approve"
+                      title="Aprobar Verificación"
+                      (click)="openActionModal(p, 'verify')"
+                    >
+                      <span class="material-symbols-outlined">check</span>
+                      Aprobar
+                    </button>
+                  }
+                  @if (p.verificationStatus !== 'rejected') {
+                    <button
+                      class="btn-reject"
+                      title="Rechazar Verificación"
+                      (click)="openActionModal(p, 'reject')"
+                    >
+                      <span class="material-symbols-outlined">close</span>
+                      Rechazar
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- Modal de Aprobación / Rechazo -->
+  @if (selectedProfile(); as p) {
+    <div class="modal-backdrop" (click)="closeActionModal()">
+      <div class="modal-dialog" (click)="$event.stopPropagation()">
+        <header class="modal-header">
+          <h3>
+            @if (actionType() === 'verify') {
+              Aprobar y Verificar Veterinario
+            } @else {
+              Rechazar Solicitud de Verificación
+            }
+          </h3>
+          <button class="btn-close" (click)="closeActionModal()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </header>
+
+        <div class="modal-body">
+          <p>
+            Profesional: <strong>Dr(a). {{ p.user.firstName }} {{ p.user.lastName }}</strong>
+            ({{ p.clinic.name }})
+          </p>
+          <p>Tarjeta Declarada: <strong>{{ p.professionalCard || 'Sin especificar' }}</strong></p>
+
+          <div class="form-group">
+            <label>Notas de auditoría / Retroalimentación:</label>
+            <textarea
+              [(ngModel)]="notes"
+              rows="3"
+              class="form-control"
+              placeholder="Explica el motivo de la aprobación o los requisitos faltantes..."
+            ></textarea>
+          </div>
+        </div>
+
+        <footer class="modal-footer">
+          <button class="btn-cancel" (click)="closeActionModal()">Cancelar</button>
+          <button
+            [class]="actionType() === 'verify' ? 'btn-confirm-verify' : 'btn-confirm-reject'"
+            [disabled]="submitting()"
+            (click)="submitAction()"
+          >
+            {{ submitting() ? 'Guardando...' : (actionType() === 'verify' ? 'Confirmar Aprobación' : 'Confirmar Rechazo') }}
+          </button>
+        </footer>
+      </div>
+    </div>
+  }
+</div>

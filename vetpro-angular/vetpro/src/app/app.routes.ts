@@ -40,6 +40,15 @@ export const routes: Routes = [
     loadComponent: () => import('./features/landing/landing.component').then(m => m.LandingComponent)
   },
   {
+    path: 'directorio',
+    loadComponent: () => import('./features/marketplace/vet-directory/vet-directory.component').then(m => m.VetDirectoryComponent)
+  },
+  {
+    path: 'vets',
+    redirectTo: 'directorio',
+    pathMatch: 'full'
+  },
+  {
     path: '',
     canActivate: [authGuard, profileCompleteGuard],
     loadComponent: () => import('./layout/shell.component').then(m => m.ShellComponent),
@@ -115,6 +124,16 @@ export const routes: Routes = [
         path: 'users',
         canActivate: [roleGuard(['admin'])],
         loadComponent: () => import('./features/users/user-list/user-list.component').then(m => m.UserListComponent)
+      },
+      {
+        path: 'perfil-profesional',
+        canActivate: [roleGuard(['admin', 'vet'])],
+        loadComponent: () => import('./features/marketplace/vet-profile-edit/vet-profile-edit.component').then(m => m.VetProfileEditComponent)
+      },
+      {
+        path: 'verificaciones',
+        canActivate: [roleGuard(['admin'])],
+        loadComponent: () => import('./features/marketplace/admin-verifications/admin-verifications.component').then(m => m.AdminVerificationsComponent)
       }
     ]
   },

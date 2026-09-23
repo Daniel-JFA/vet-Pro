@@ -1,0 +1,248 @@
+<div class="profile-page-container">
+  <header class="page-header">
+    <div>
+      <h1>Perfil Profesional & Directorio Web</h1>
+      <p>Configura tu presencia en el buscador de veterinarios de VetPro y gestiona tu verificación COMVEZCOL.</p>
+    </div>
+    <div class="header-actions">
+      <a routerLink="/directorio" class="btn-preview" target="_blank">
+        <span class="material-symbols-outlined">visibility</span>
+        Ver Directorio Público
+      </a>
+      <button class="btn-save" [disabled]="saving()" (click)="saveProfile()">
+        <span class="material-symbols-outlined">save</span>
+        {{ saving() ? 'Guardando...' : 'Guardar Cambios' }}
+      </button>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Cargando información del perfil...</p>
+    </div>
+  } @else if (profile(); as p) {
+    <!-- Banner de Estado de Verificación -->
+    <div class="status-banner" [class]="'status-' + p.verificationStatus">
+      <div class="status-icon">
+        @if (p.verificationStatus === 'verified') {
+          <span class="material-symbols-outlined">verified</span>
+        } @else if (p.verificationStatus === 'pending') {
+          <span class="material-symbols-outlined">hourglass_top</span>
+        } @else {
+          <span class="material-symbols-outlined">cancel</span>
+        }
+      </div>
+      <div class="status-text">
+        @if (p.verificationStatus === 'verified') {
+          <h3>¡Perfil Verificado COMVEZCOL!</h3>
+          <p>Tu credencial profesional ha sido validada. Tu perfil cuenta con insignia de confianza y aparece en las búsquedas públicas.</p>
+        } @else if (p.verificationStatus === 'pending') {
+          <h3>Verificación en Proceso</h3>
+          <p>Tus documentos han sido recibidos y están siendo revisados ante el registro nacional COMVEZCOL. Te notificaremos una vez sea aprobado.</p>
+        } @else {
+          <h3>Verificación Rechazada o Pendiente de Corrección</h3>
+          <p>{{ p.verificationNotes || 'Por favor vuelve a subir una foto clara de tu tarjeta profesional y cédula de ciudadanía.' }}</p>
+        }
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <!-- Columna Izquierda: Información Profesional y Tarifas -->
+      <div class="form-card">
+        <h2>Datos Profesionales y Tarifas</h2>
+
+        <div class="form-group">
+          <label>Número de Tarjeta Profesional (COMVEZCOL)</label>
+          <input
+            type="text"
+            [(ngModel)]="professionalCard"
+            placeholder="Ej: COMVEZCOL-34567 o TP-12345"
+            class="form-control"
+          />
+          <small class="text-muted">Este número será contrastado por el equipo administrativo antes de activar tu perfil.</small>
+        </div>
+
+        <div class="form-group">
+          <label>Biografía / Presentación Profesional</label>
+          <textarea
+            [(ngModel)]="bio"
+            rows="3"
+            placeholder="Cuéntale a los tutores sobre tu experiencia, enfoque de bienestar y trayectoria..."
+            class="form-control"
+          ></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Tarifa Consulta en Consultorio (COP)</label>
+            <input
+              type="number"
+              [(ngModel)]="consultationPrice"
+              step="5000"
+              class="form-control"
+            />
+          </div>
+          <div class="form-group">
+            <label>Tarifa Consulta a Domicilio (COP)</label>
+            <input
+              type="number"
+              [(ngModel)]="homeVisitPrice"
+              step="5000"
+              placeholder="Opcional si vas a domicilio"
+              class="form-control"
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Modalidades de Atención</label>
+          <div class="checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="attendsHome" />
+              <span>Atención a Domicilio 🚗</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="attendsClinic" />
+              <span>En Consultorio / Clínica 🏥</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Ciudad de Cobertura</label>
+            <input
+              type="text"
+              [(ngModel)]="city"
+              placeholder="Ej: Bogotá, Medellín, Cali..."
+              class="form-control"
+            />
+          </div>
+          <div class="form-group">
+            <label>WhatsApp para Recibir Citas</label>
+            <input
+              type="text"
+              [(ngModel)]="whatsappNumber"
+              placeholder="Ej: 573001234567"
+              class="form-control"
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Barrios / Zonas de Cobertura (Separados por coma)</label>
+          <input
+            type="text"
+            [(ngModel)]="zonesInput"
+            placeholder="Ej: Chapinero, Usaquén, Suba, Teusaquillo"
+            class="form-control"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Especialidades y Áreas de Enfoque</label>
+          <div class="chips-selector">
+            @for (spec of availableSpecialties; track spec) {
+              <button
+                type="button"
+                class="chip-toggle"
+                [class.selected]="selectedSpecialties.includes(spec)"
+                (click)="toggleSpecialty(spec)"
+              >
+                {{ spec }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="form-group visibility-switch">
+          <label class="switch-label">
+            <input type="checkbox" [(ngModel)]="isPublic" />
+            <div>
+              <strong>Publicar mi perfil en el Directorio Web de VetPro</strong>
+              <p>Permite que dueños de mascotas te encuentren y agenden consultas contigo.</p>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Columna Derecha: Documentos de Verificación KYC -->
+      <div class="form-card">
+        <h2>Documentos de Acreditación (COMVEZCOL)</h2>
+        <p class="section-desc">Para garantizar la seguridad de los tutores y pacientes, requerimos validar que posees titulación legal y tarjeta profesional vigente en Colombia.</p>
+
+        <div class="doc-upload-box">
+          <div class="doc-item">
+            <div class="doc-item-info">
+              <span class="material-symbols-outlined">badge</span>
+              <div>
+                <strong>Tarjeta Profesional COMVEZCOL</strong>
+                <p>Foto legible de ambos lados o PDF oficial del certificado.</p>
+              </div>
+            </div>
+            @if (p.cardDocumentUrl) {
+              <div class="doc-status-ok">
+                <span class="material-symbols-outlined">check_circle</span>
+                <a [href]="p.cardDocumentUrl" target="_blank" class="doc-link">Ver Documento Actual</a>
+              </div>
+            }
+            <input
+              type="file"
+              accept=".pdf,image/png,image/jpeg,image/webp"
+              (change)="onCardFileSelected($event)"
+              class="file-input"
+            />
+          </div>
+
+          <div class="doc-item">
+            <div class="doc-item-info">
+              <span class="material-symbols-outlined">id_card</span>
+              <div>
+                <strong>Cédula de Ciudadanía</strong>
+                <p>Documento de identidad del profesional titular.</p>
+              </div>
+            </div>
+            @if (p.idDocumentUrl) {
+              <div class="doc-status-ok">
+                <span class="material-symbols-outlined">check_circle</span>
+                <a [href]="p.idDocumentUrl" target="_blank" class="doc-link">Ver Documento Actual</a>
+              </div>
+            }
+            <input
+              type="file"
+              accept=".pdf,image/png,image/jpeg,image/webp"
+              (change)="onIdFileSelected($event)"
+              class="file-input"
+            />
+          </div>
+
+          <button
+            type="button"
+            class="btn-upload-docs"
+            [disabled]="uploadingDocs() || (!selectedCardFile && !selectedIdFile)"
+            (click)="uploadDocuments()"
+          >
+            <span class="material-symbols-outlined">cloud_upload</span>
+            {{ uploadingDocs() ? 'Subiendo documentos...' : 'Subir Documentos Seleccionados' }}
+          </button>
+        </div>
+
+        <!-- Resumen de Reputación y Reseñas -->
+        <div class="stats-card">
+          <h3>Tu Reputación en la Red</h3>
+          <div class="stats-row">
+            <div class="stat-box">
+              <span class="stat-val">⭐ {{ p.rating }}</span>
+              <span class="stat-lbl">Calificación Promedio</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-val">{{ p.reviewCount }}</span>
+              <span class="stat-lbl">Opiniones Recibidas</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

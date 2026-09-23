@@ -267,6 +267,8 @@ export class ShellComponent implements OnInit {
     if (role === 'admin') {
       items.push(
         { label: 'Equipo & Usuarios', icon: 'manage_accounts', path: '/users' },
+        { label: 'Verificaciones COMVEZCOL', icon: 'verified', path: '/verificaciones' },
+        { label: 'Mi Perfil Web', icon: 'badge', path: '/perfil-profesional' },
         { label: 'Peluquería & Spa', icon: 'content_cut', path: '/grooming' },
         { label: 'Inventario', icon: 'inventory_2', path: '/inventory' },
         { label: 'Facturación & POS', icon: 'receipt_long', path: '/billing' },
@@ -276,6 +278,7 @@ export class ShellComponent implements OnInit {
       );
     } else if (role === 'vet') {
       items.push(
+        { label: 'Mi Perfil Web (COMVEZCOL)', icon: 'badge', path: '/perfil-profesional' },
         { label: 'Peluquería & Spa', icon: 'content_cut', path: '/grooming' },
         { label: 'Inventario', icon: 'inventory_2', path: '/inventory' },
         { label: 'Facturación & POS', icon: 'receipt_long', path: '/billing' },
