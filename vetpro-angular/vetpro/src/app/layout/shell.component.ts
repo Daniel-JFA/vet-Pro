@@ -251,6 +251,11 @@ export class ShellComponent implements OnInit {
       baseNav.push({ label: 'Mis Paseos', icon: 'directions_walk', path: '/walkers/mis-paseos' });
     }
 
+    // Peluqueros / Groomers ven Peluquería & Spa como su sección principal
+    if (role === 'groomer') {
+      baseNav.push({ label: 'Peluquería & Spa', icon: 'content_cut', path: '/grooming' });
+    }
+
     return baseNav;
   });
 
@@ -262,6 +267,7 @@ export class ShellComponent implements OnInit {
     if (role === 'admin') {
       items.push(
         { label: 'Equipo & Usuarios', icon: 'manage_accounts', path: '/users' },
+        { label: 'Peluquería & Spa', icon: 'content_cut', path: '/grooming' },
         { label: 'Inventario', icon: 'inventory_2', path: '/inventory' },
         { label: 'Facturación & POS', icon: 'receipt_long', path: '/billing' },
         { label: 'Consentimientos', icon: 'draw', path: '/consent' },
@@ -270,14 +276,20 @@ export class ShellComponent implements OnInit {
       );
     } else if (role === 'vet') {
       items.push(
+        { label: 'Peluquería & Spa', icon: 'content_cut', path: '/grooming' },
         { label: 'Inventario', icon: 'inventory_2', path: '/inventory' },
         { label: 'Facturación & POS', icon: 'receipt_long', path: '/billing' },
         { label: 'Consentimientos', icon: 'draw', path: '/consent' },
       );
     } else if (role === 'receptionist') {
       items.push(
+        { label: 'Peluquería & Spa', icon: 'content_cut', path: '/grooming' },
         { label: 'Facturación & POS', icon: 'receipt_long', path: '/billing' },
         { label: 'CRM Reactivación', icon: 'contact_phone', path: '/crm' },
+      );
+    } else if (role === 'assistant') {
+      items.push(
+        { label: 'Peluquería & Spa', icon: 'content_cut', path: '/grooming' },
       );
     } else if (role === 'walker') {
       items.push({ label: 'Mi Perfil', icon: 'account_circle', path: '/walkers/perfil' });

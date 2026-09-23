@@ -123,29 +123,64 @@ Los planes anteriores marcaban casi todo como "100 % completado". La auditoría 
 
 **Puerta de salida (Go-Live Gate):** ✅ **CUMPLIDO AL 100%** (E2E verdes en CI · 0 vulnerabilidades críticas/altas en OWASP/ZAP · restore de backup probado · performance < 2 MB validado).
 
+### Sprint 5 — Flujo Clínico Ágil e Importación de Datos
+**Estado:** ✅ **APROBADO Y COMPLETADO**
+**Meta:** conectar los módulos clínicos con facturación en un solo clic, habilitar la migración masiva de clientes y reactivar el módulo de peluquería & spa.
+
+| # | Historia | Días | Criterio de aceptación | Estado |
+|---|---|---|---|:---:|
+| 5.1 | **Flujo Cita → Factura y Cita → Historia Clínica en 1 Clic:** botón de facturar en Kanban y calendario; botón "Guardar y Facturar" en Bitácora IA; `BillingFormComponent` pre-poblado con tutor, paciente y servicio. | 2 | Desde una cita completada o al guardar un SOAP, 1 clic abre la factura lista con los datos cargados. | ✅ Aprobado |
+| 5.2 | **Importador masivo de Pacientes y Tutores (Excel/CSV):** endpoint `POST /api/v1/patients/import` con validación Zod y deduplicación por documento/teléfono; modal en Angular con plantilla descargable y reporte de filas. | 2,5 | Se sube un CSV con pacientes/tutores y se importan sin duplicar tutores existentes, reportando filas con error. | ✅ Aprobado |
+| 5.3 | **Reactivación de Peluquería & Spa (Grooming):** reactivar `/grooming` en router con `roleGuard`; menú en `shell.component.ts`; vincular entrega a facturación. | 1,5 | El groomer y recepción gestionan el Kanban de spa y pueden facturar el servicio al entregarlo. | ✅ Aprobado |
+
+**Total:** ~6 días
+
+### Sprint 6 — Marketplace Web Vets: Directorio Público, Onboarding & Verificación Profesional (COMVEZCOL)
+**Estado:** 📋 **PLANIFICADO / EN COTIZACIÓN** (Requerimiento Liliana Vet — Ref: Sittsy)
+**Meta:** permitir que tutores busquen veterinarios verificados en la web y que profesionales independientes se registren, acrediten su matrícula profesional y publiquen sus servicios.
+
+| # | Historia | Días | Criterio de aceptación | Estado |
+|---|---|---|---|:---:|
+| 6.1 | **Onboarding y Perfil del Veterinario Independiente:** registro web de profesionales (`/registro-vet`), datos de contacto, zonas/modalidades de atención (domicilio/consultorio), biografía, especialidades y tarifas de consulta. | 2,5 | Un veterinario completa su registro y configura sus servicios y disponibilidad; el perfil permanece no visible hasta ser verificado. | 📋 Planificado |
+| 6.2 | **Verificación Profesional (KYC Veterinario):** carga obligatoria de Tarjeta Profesional (COMVEZCOL), diploma y documento de identidad; panel para Liliana/Admin para auditar credenciales, aprobar o rechazar con motivo. | 1,5 | Admin aprueba con 1 clic tras cotejar COMVEZCOL; perfil adquiere badge "Veterinario Verificado"; notificación de aprobación al vet. | 📋 Planificado |
+| 6.3 | **Directorio Web Público y Buscador de Veterinarios (tipo Sittsy):** landing y directorio web responsive (`/vets`) con búsqueda por ciudad/zona, especialidad y modalidad; tarjetas con foto, valoración, tarifas y badge verificado; vista detallada del perfil público. | 2,5 | Un tutor entra a la web sin registrarse previamente, filtra por especialidad/ciudad y visualiza el perfil profesional y valoraciones. | 📋 Planificado |
+| 6.4 | **Migración y Carga de Pacientes Iniciales (Liliana):** asistencia en la estructuración de la data existente de Liliana y carga mediante el importador CSV/Excel (Sprint 5.2). | 0,5 | Base de pacientes de Liliana importada y vinculada a sus respectivos tutores sin duplicados. | 📋 Planificado |
+
+**Total:** ~7 días
+
+### Sprint 7 — Marketplace Web: Agendamiento, Flujo WhatsApp Inteligente, Historia Clínica & Reseñas
+**Estado:** 📋 **PLANIFICADO / EN COTIZACIÓN** (Requerimiento Liliana Vet)
+**Meta:** canalizar solicitudes de citas reduciendo la fricción y saturación de WhatsApp, conectar la atención con la historia clínica VetPro y habilitar sistema de reputación por estrellas.
+
+| # | Historia | Días | Criterio de aceptación | Estado |
+|---|---|---|---|:---:|
+| 7.1 | **Solicitud de Cita Web por el Tutor:** formulario ágil desde el perfil del vet para solicitar consulta (selección de mascota, motivo, dirección/modalidad y fecha/hora sugerida) generando solicitud estructurada (`REQUESTED`). | 2 | El tutor solicita cita en menos de 2 minutos; el veterinario recibe notificación en su panel con todos los datos clave. | 📋 Planificado |
+| 7.2 | **Flujo Anti-Saturación de WhatsApp:** automatización de enlaces inteligentes `wa.me` con mensaje pre-estructurado (ID de reserva, datos del paciente, motivo y link a la orden) para cerrar detalles sin preguntas repetitivas por chat. | 1,5 | Clic en "Contactar por WhatsApp" abre mensaje estructurado sin que el vet tenga que pedir nombre, raza o dirección desde cero. | 📋 Planificado |
+| 7.3 | **Atención Integrada con Historia Clínica VetPro:** al atender una cita del marketplace, el vet accede a la ficha médica y Bitácora IA de VetPro; la historia queda guardada en el expediente central y el tutor puede consultarla en su portal (`/portal`). | 2 | Consulta finalizada genera SOAP oficial en VetPro; el tutor visualiza el diagnóstico y fórmula en su portal web. | 📋 Planificado |
+| 7.4 | **Sistema de Reputación (Estrellas y Reseñas Verificadas):** al completar la cita, el tutor recibe link para calificar de 1 a 5 estrellas y dejar un comentario; cálculo automático de rating ponderado en el perfil público. | 1,5 | Solo tutores con consulta efectivamente finalizada pueden calificar; el rating y comentarios se actualizan en el directorio público. | 📋 Planificado |
+
+**Total:** ~7 días
+
 ---
 
-## 4. Backlog por fases (después del Sprint 4)
+## 4. Backlog por fases (después de Sprints 6 y 7)
 
-Ordenado por valor para las clínicas. Sin fechas hasta terminar el Go-Live.
+Ordenado por valor para el negocio y escalabilidad.
 
-### Fase B — Diferenciadores
+### Fase B — Diferenciadores de Clínica
 1. **Recordatorios automáticos por WhatsApp** (vacunas y citas): cola de trabajos (BullMQ + Redis), plantillas aprobadas por Meta y registro de retorno por campaña.
-2. **Importador de pacientes y tutores desde Excel/CSV**, clave para migrar clínicas de otro sistema.
+2. ✅ **Importador de pacientes y tutores desde Excel/CSV** (Sprint 5.2).
 3. **DIAN:** configurar proveedor autorizado (decisión de negocio), reactivar el flujo y agregar notas crédito y documento soporte.
-4. **Cita → factura y cita → historia clínica en un clic.**
+4. ✅ **Cita → factura y cita → historia clínica en un clic** (Sprint 5.1).
 5. ✅ **PWA del personal y portal del tutor:** Service Worker configurado con `@angular/service-worker`, `manifest.webmanifest`, 8 iconos PWA, caché offline para app shell y catálogos, servicio reactivo `PwaService` con prompts de instalación y detección de estado de red / actualizaciones.
-6. **Reactivar Notificaciones y Grooming** solo con backend real.
+6. ✅ **Reactivar Notificaciones y Grooming** (Sprint 5.3).
 7. **Almacenamiento de archivos en Cloudflare R2** (fotos, firmas, adjuntos) con URL firmadas, en lugar del volumen local.
 
-### Fase D — Marketplace de veterinarios a domicilio ("tipo Rappi")
-Es el diferenciador estratégico frente a OkVet, pero **hoy no existe nada de código**. Solo conviene empezarlo con las clínicas piloto estables. Sprints previstos (~8 semanas):
-1. **Schema y backend:** `VetProvider`, zonas de cobertura, pedidos, pagos, reseñas, payouts; rutas `/marketplace/*`; motor de despacho (Haversine, 70 % distancia + 30 % rating, aviso al primer vet con ventana de 90 s y paso al siguiente).
-2. **App del tutor:** pedir servicio, mapa (Leaflet), seguimiento.
-3. **App del vet independiente:** onboarding con licencia, recibir/aceptar pedidos, GPS.
-4. **Tiempo real y pagos:** Socket.IO, Wompi (cobro al completar; 85 % vet / 15 % plataforma), efectivo como alternativa, reseñas, ganancias y payout semanal (manual al inicio).
-
-Decisiones de arquitectura ya tomadas: Leaflet (sin costo de API), Wompi (Colombia), Cloudflare R2, Socket.IO, pino.
+### Fase D — Monetización Avanzada del Marketplace (Sprint 8 / Backlog)
+Evolución comercial del marketplace web (Sprints 6 y 7) hacia transaccionalidad total:
+1. **Pasarela de pagos en línea (Wompi Colombia):** cobro con tarjeta, PSE, Nequi y Bancolombia en el agendamiento web; retención del valor hasta la confirmación de la consulta.
+2. **Liquidación automática y comisiones:** retención del % de comisión de plataforma (ej. 10% a 15%) y registro de saldo a favor del veterinario; dispersión periódica.
+3. **Suscripción destacada ("Vet Pro"):** membresía mensual opcional para veterinarios independientes con mayor visibilidad en el directorio y badge destacado.
 
 ### Deuda técnica continua
 - Reducir `any` por módulo junto con cada refactor.
@@ -192,7 +227,7 @@ La landing hoy muestra "Cotización personalizada" (se retiraron precios inventa
 2. **Destino de los backups** (Sprint 1.4): ✅ **Servidor propio.** Volcado seguro con `pg_dump`, compresión `gzip` y rotación de 30 días en el servidor propio vía cron (sin S3/R2 para el piloto).
 3. **Proveedor DIAN:** ✅ **Sin proveedor por ahora.** El módulo permanece oculto (`dianEnabled = false`) y fuera del alcance del Go-Live piloto.
 4. **`User.email` único global** (Sprint 2.5): ✅ **NO.** Un usuario no comparte cuenta entre clínicas. Se mantiene la unicidad global en el esquema de Prisma (sin cambios).
-5. **Marketplace On-Demand:** ✅ **Aún no.** Se mantiene en la Fase D (post Go-Live de clínicas piloto).
+5. **Marketplace Web Vets (tipo Sittsy/DiDi):** ✅ **Priorizado para Sprints 6 y 7.** A petición de clínica piloto (Liliana Vet), se redefine de app móvil compleja a plataforma web/PWA ágil con directorio público, verificación COMVEZCOL, agendamiento anti-saturación de WhatsApp y conexión directa a la historia clínica de VetPro.
 
 ---
 
@@ -230,6 +265,11 @@ La landing hoy muestra "Cotización personalizada" (se retiraron precios inventa
 
 - **Fase B.5 PWA y soporte Offline (Commit `2d2af4e`):** Service Worker oficial de Angular (`ngsw-config.json`) con caché prefetch de App Shell y caché diferido para catálogos y portal; `manifest.webmanifest` con shortcuts y orientación standalone; set de 8 iconos PWA (72px a 512px maskable); servicio `PwaService` con detección de pérdida/recuperación de red, prompt de instalación nativo desde la UI y aviso de actualizaciones en caliente en el portal del tutor (`portal-shell.component.ts`) y en la barra superior del personal (`shell.component.ts`).
 
-**Sprints 1, 2, 3 y 4:** **¡100% completados y aprobados!** La plataforma ha cumplido el **Go-Live Gate** para el inicio del piloto con clínicas reales.
+- **Sprint 5 — Flujo Clínico Ágil e Importación de Datos:**
+  - **5.1 Integración Cita → Factura y Cita → Historia Clínica en 1 Clic:** botones de cobro directo "Facturar" integrados en las tarjetas del Kanban (`appointment-list`), en la tabla de historial de visitas y en la agenda médica (`appointment-calendar`). Botón "Guardar y Facturar" en la Bitácora IA (`bitacora-ai`) para guardar el SOAP, finalizar la cita y redirigir inmediatamente a facturación. `BillingFormComponent` adaptado para pre-seleccionar tutor, agregar ítem de servicio y notas a partir de `queryParams`.
+  - **5.2 Importador masivo de Pacientes y Tutores desde Excel / CSV:** nuevo endpoint `POST /api/v1/patients/import` con validación Zod por fila, normalización inteligente de especie y sexo, deduplicación/vinculación de tutores existentes por documento o teléfono, y reporte detallado de filas importadas y errores. Modal interactivo en frontend (`patient-list` y enlace en `tutors-list`) con descarga de plantilla modelo (`plantilla_pacientes_vetpro.csv`), preview de datos leídos y resumen de resultados.
+  - **5.3 Reactivación de Peluquería & Spa (Grooming):** reactivación de la ruta `/grooming` en `app.routes.ts` con protección `roleGuard(['admin', 'vet', 'assistant', 'receptionist', 'groomer'])`. Integración en la barra de navegación lateral (`shell.component.ts`) como módulo principal para `groomer` y en gestión para `admin`, `vet`, `receptionist` y `assistant`. Botón "Facturar Servicio" integrado en el Kanban de grooming para generar el cobro al terminar el spa.
+
+**Sprints 0, 1, 2, 3, 4 y 5:** **¡100% completados y aprobados!** La plataforma cuenta con flujo clínico integrado de extremo a extremo, migración de datos para nuevas clínicas y módulo de estética/spa activo.
 
 **Antes del próximo despliegue:** verificar que el `.env` del servidor de producción tiene un `JWT_SECRET` real (≥ 32 caracteres). Si no, el backend ahora se niega a arrancar. Además, al desplegar se cerrarán todas las sesiones activas (los tokens anteriores no llevan `audience`).

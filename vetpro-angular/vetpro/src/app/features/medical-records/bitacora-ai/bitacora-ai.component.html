@@ -34,6 +34,19 @@
           <a [routerLink]="['/patients', p.id]" class="btn btn-ghost">Cancelar</a>
           <button
             type="button"
+            class="btn btn-ghost"
+            style="border: 1px solid var(--primary-color); color: var(--primary-color); background: rgba(16, 185, 129, 0.08); font-weight: 600;"
+            (click)="saveAndBill()"
+            [disabled]="submitting() || !resultReady()"
+            title="Guarda la historia clínica y abre de inmediato la factura pre-cargada"
+          >
+            @if (!submitting()) {
+              <span class="material-symbols-outlined">receipt_long</span>
+            }
+            {{ submitting() ? 'Guardando...' : 'Guardar y Facturar' }}
+          </button>
+          <button
+            type="button"
             class="btn btn-primary"
             (click)="saveRecord()"
             [disabled]="submitting() || !resultReady()"
@@ -511,6 +524,30 @@
                   (ngModelChange)="notes.set($event)"
                   placeholder="Notas internas o recomendaciones impresas para el tutor..."
                 ></textarea>
+              </div>
+
+              <!-- Acciones al pie del SOAP -->
+              <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--surface-border);">
+                <button
+                  type="button"
+                  class="btn btn-ghost"
+                  style="border: 1px solid var(--primary-color); color: var(--primary-color); background: rgba(16, 185, 129, 0.08); font-weight: 600;"
+                  (click)="saveAndBill()"
+                  [disabled]="submitting() || !resultReady()"
+                  title="Guarda la historia clínica y abre de inmediato la factura pre-cargada"
+                >
+                  <span class="material-symbols-outlined">receipt_long</span>
+                  {{ submitting() ? 'Guardando...' : 'Guardar y Facturar' }}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  (click)="saveRecord()"
+                  [disabled]="submitting() || !resultReady()"
+                >
+                  <span class="material-symbols-outlined">save</span>
+                  {{ submitting() ? 'Guardando...' : 'Guardar en Expediente' }}
+                </button>
               </div>
             </div>
           </div>

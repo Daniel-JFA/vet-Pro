@@ -539,26 +539,47 @@
                   <footer
                     class="card-actions"
                     style="
-                      justify-content: flex-end;
+                      display: flex;
+                      justify-content: space-between;
+                      align-items: center;
                       padding-top: 8px;
                       border-top: 1px solid rgba(255, 255, 255, 0.05);
                       margin-top: 8px;
                     "
                   >
-                    <span
-                      class="material-symbols-outlined"
-                      style="color: var(--primary-color); font-size: 20px"
-                      >check_circle</span
-                    >
-                    <span
-                      style="
-                        font-size: 11.5px;
-                        color: var(--primary-color);
-                        font-weight: 500;
-                        margin-left: 4px;
-                      "
-                      >Domicilio Finalizado</span
-                    >
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                      <span
+                        class="material-symbols-outlined"
+                        style="color: var(--primary-color); font-size: 18px"
+                        >check_circle</span
+                      >
+                      <span
+                        style="
+                          font-size: 11.5px;
+                          color: var(--primary-color);
+                          font-weight: 500;
+                        "
+                        >Finalizado</span
+                      >
+                    </div>
+                    @if (auth.currentUser?.role === 'admin' || auth.currentUser?.role === 'vet' || auth.currentUser?.role === 'receptionist') {
+                      <a
+                        [routerLink]="['/billing/new']"
+                        [queryParams]="{
+                          tutorId: app.patient?.tutor?.id,
+                          patientId: app.patientId,
+                          patientName: app.patient?.name,
+                          serviceName: app.serviceType,
+                          appointmentId: app.id
+                        }"
+                        class="btn-action btn-action-primary"
+                        style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; padding: 4px 10px;"
+                        title="Generar Factura / Cobro"
+                      >
+                        <span class="material-symbols-outlined" style="font-size: 15px">receipt_long</span>
+                        Facturar
+                      </a>
+                    }
                   </footer>
                 </div>
               }
@@ -580,6 +601,7 @@
                   <th>Profesional</th>
                   <th>Dirección de Visita</th>
                   <th>Estado</th>
+                  <th>Acción</th>
                 </tr>
               </thead>
               <tbody>
@@ -615,6 +637,26 @@
                       >
                         {{ app.status === 'done' ? 'Completada' : 'Cancelada' }}
                       </span>
+                    </td>
+                    <td>
+                      @if (app.status === 'done' && (auth.currentUser?.role === 'admin' || auth.currentUser?.role === 'vet' || auth.currentUser?.role === 'receptionist')) {
+                        <a
+                          [routerLink]="['/billing/new']"
+                          [queryParams]="{
+                            tutorId: app.patient?.tutor?.id,
+                            patientId: app.patientId,
+                            patientName: app.patient?.name,
+                            serviceName: app.serviceType,
+                            appointmentId: app.id
+                          }"
+                          class="btn-action btn-action-primary"
+                          style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 8px;"
+                          title="Facturar Cita"
+                        >
+                          <span class="material-symbols-outlined" style="font-size: 14px">receipt_long</span>
+                          Facturar
+                        </a>
+                      }
                     </td>
                   </tr>
                 }

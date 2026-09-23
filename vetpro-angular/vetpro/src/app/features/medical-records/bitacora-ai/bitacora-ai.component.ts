@@ -351,6 +351,47 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
     });
   }
 
+  // Guardar historia clínica y pasar inmediatamente a facturar
+  saveAndBill() {
+    this.submitting.set(true);
+
+    const recordData = {
+      patientId: this.patientId()!,
+      title: this.title() || 'Consulta Médica General',
+      anamnesis: this.anamnesis(),
+      physicalExam: this.physicalExam(),
+      diagnosis: this.diagnosis(),
+      treatment: this.treatment(),
+      observations: this.notes(),
+      type: 'consultation',
+      aiGenerated: true,
+      aiTranscriptionMinutes: parseFloat((this.recordingTime() / 60).toFixed(2)) || 0.75
+    };
+
+    this.patientSvc.createMedicalRecord(recordData).subscribe({
+      next: () => {
+        this.finalizeAppointmentIfAny();
+        this.submitting.set(false);
+        this.toast.success('Historia clínica guardada. Redirigiendo a facturación...');
+        const tutorId = this.patient()?.tutor?.id;
+        const patientName = this.patient()?.name;
+        this.router.navigate(['/billing/new'], {
+          queryParams: {
+            tutorId: tutorId || undefined,
+            patientId: this.patientId(),
+            patientName: patientName || undefined,
+            serviceName: this.title() || 'Consulta Médica General',
+            appointmentId: this.appointmentId() || undefined
+          }
+        });
+      },
+      error: () => {
+        this.submitting.set(false);
+        this.toast.error('No se pudo guardar la historia clínica. Verifica los datos e intenta de nuevo.');
+      }
+    });
+  }
+
   private finalizeAppointmentIfAny() {
     const appId = this.appointmentId();
     if (appId) {

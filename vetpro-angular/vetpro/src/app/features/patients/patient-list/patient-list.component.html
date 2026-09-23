@@ -7,7 +7,16 @@
         Gestiona el historial clínico y los datos de las mascotas de la clínica.
       </p>
     </div>
-    <div class="header-actions">
+    <div class="header-actions" style="display: flex; gap: 8px;">
+      <button
+        type="button"
+        class="btn btn-ghost"
+        style="border: 1px solid var(--surface-border); display: inline-flex; align-items: center; gap: 6px;"
+        (click)="openImportModal()"
+      >
+        <span class="material-symbols-outlined">upload_file</span>
+        Importar Excel / CSV
+      </button>
       <a routerLink="new" class="btn btn-primary">
         <span class="material-symbols-outlined">add</span>
         Agregar Paciente
@@ -240,3 +249,144 @@
     }
   </div>
 </div>
+
+<!-- Modal de Importación Masiva (Excel / CSV) -->
+@if (showImportModal()) {
+  <div class="modal-overlay" (click)="closeImportModal()" style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px;">
+    <div
+      class="modal-card card"
+      (click)="$event.stopPropagation()"
+      style="max-width: 680px; width: 100%; max-height: 90vh; overflow-y: auto; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 12px; padding: 24px; box-shadow: 0 12px 36px rgba(0,0,0,0.4);"
+    >
+      <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--surface-border); padding-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="material-symbols-outlined" style="color: var(--primary-color); font-size: 24px;">upload_file</span>
+          <h2 style="margin: 0; font-size: 18px; font-weight: 600;">Importar Pacientes y Tutores (Excel / CSV)</h2>
+        </div>
+        <button type="button" class="btn-close" (click)="closeImportModal()" style="background: none; border: none; color: var(--text-color-secondary); cursor: pointer;">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </header>
+
+      <!-- Paso 1: Descargar Plantilla -->
+      <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 8px; padding: 14px 16px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+        <div>
+          <strong style="font-size: 13px; color: var(--text-color); display: block; margin-bottom: 2px;">¿No tienes el formato adecuado?</strong>
+          <span style="font-size: 12px; color: var(--text-color-secondary);">Descarga nuestra plantilla modelo compatible con Excel y CSV.</span>
+        </div>
+        <button type="button" class="btn btn-ghost" (click)="downloadTemplate()" style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; white-space: nowrap; border: 1px solid var(--primary-color); color: var(--primary-color);">
+          <span class="material-symbols-outlined" style="font-size: 16px;">download</span>
+          Descargar Plantilla
+        </button>
+      </div>
+
+      <!-- Paso 2: Seleccionar archivo -->
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px;">Seleccionar archivo CSV</label>
+        <div style="border: 2px dashed var(--surface-border); border-radius: 8px; padding: 24px; text-align: center; background: var(--surface-ground);">
+          <input
+            #fileInput
+            type="file"
+            accept=".csv,text/csv"
+            (change)="onFileSelected($event)"
+            style="display: none;"
+          />
+          <span class="material-symbols-outlined" style="font-size: 36px; color: var(--text-color-secondary); margin-bottom: 8px; display: block;">file_open</span>
+          @if (!selectedFileName()) {
+            <p style="margin: 0 0 10px 0; font-size: 13px; color: var(--text-color);">Arrastra tu archivo CSV o selecciónalo desde tu computadora</p>
+            <button type="button" class="btn btn-ghost" (click)="fileInput.click()" style="border: 1px solid var(--surface-border); font-size: 12px;">
+              Examinar archivo
+            </button>
+          }
+          @if (selectedFileName()) {
+            <p style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: var(--primary-color);">📄 {{ selectedFileName() }}</p>
+            <button type="button" class="btn btn-ghost" (click)="fileInput.click()" style="font-size: 11px;">
+              Cambiar archivo
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Paso 3: Previsualización de datos leídos -->
+      @if (importPreview().length > 0) {
+        <div style="margin-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 13px; font-weight: 600;">Registros listos para importar ({{ importPreview().length }} pacientes)</span>
+            <span style="font-size: 11px; color: var(--text-color-secondary);">Mostrando primeros 5</span>
+          </div>
+          <div style="max-height: 180px; overflow-y: auto; border: 1px solid var(--surface-border); border-radius: 6px;">
+            <table class="data-table" style="font-size: 11px; width: 100%;">
+              <thead>
+                <tr>
+                  <th>Mascota</th>
+                  <th>Especie</th>
+                  <th>Raza</th>
+                  <th>Tutor</th>
+                  <th>Teléfono</th>
+                  <th>Documento</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of importPreview().slice(0, 5); track $index) {
+                  <tr>
+                    <td><strong>🐾 {{ item.name }}</strong></td>
+                    <td>{{ item.species }}</td>
+                    <td>{{ item.breed || '-' }}</td>
+                    <td>{{ item.tutorFirstName }} {{ item.tutorLastName }}</td>
+                    <td>{{ item.tutorPhone }}</td>
+                    <td>{{ item.tutorDocument || '-' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- Paso 4: Resultados de importación -->
+      @if (importResults(); as res) {
+        <div style="margin-bottom: 20px; padding: 14px; border-radius: 8px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2);">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+            <span class="material-symbols-outlined" style="color: var(--primary-color);">check_circle</span>
+            <strong style="color: var(--text-color); font-size: 13px;">Resultado del proceso:</strong>
+          </div>
+          <p style="margin: 0; font-size: 12px; color: var(--text-color);">
+            Se importaron <strong>{{ res.imported }}</strong> de <strong>{{ res.total }}</strong> pacientes exitosamente.
+          </p>
+          @if (res.errors.length > 0) {
+            <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--surface-border);">
+              <span style="font-size: 11.5px; color: #ef4444; font-weight: 600;">Filas con errores ({{ res.errors.length }}):</span>
+              <ul style="margin: 4px 0 0 16px; padding: 0; font-size: 11px; color: #ef4444;">
+                @for (err of res.errors.slice(0, 5); track err.row) {
+                  <li>Fila {{ err.row }} ({{ err.petName }}): {{ err.error }}</li>
+                }
+              </ul>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Botones de Acción -->
+      <footer style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--surface-border); padding-top: 16px;">
+        <button type="button" class="btn btn-ghost" (click)="closeImportModal()">
+          {{ importResults() ? 'Cerrar' : 'Cancelar' }}
+        </button>
+        @if (!importResults()) {
+          <button
+            type="button"
+            class="btn btn-primary"
+            (click)="executeImport()"
+            [disabled]="importing() || importPreview().length === 0"
+            style="display: inline-flex; align-items: center; gap: 6px;"
+          >
+            @if (!importing()) {
+              <span class="material-symbols-outlined">cloud_upload</span>
+            }
+            {{ importing() ? 'Importando registros...' : 'Iniciar Importación' }}
+          </button>
+        }
+      </footer>
+    </div>
+  </div>
+}
+

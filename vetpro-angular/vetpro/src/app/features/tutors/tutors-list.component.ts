@@ -1,7 +1,7 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { PatientService } from '../../core/services/patient.service';
 import { ToastService } from '../../core/services/toast.service';
 import { Tutor } from '../../core/models';
@@ -9,7 +9,7 @@ import { Tutor } from '../../core/models';
 @Component({
   selector: 'app-tutors-list',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, RouterLink],
   template: `
     <div class="tutors-page">
       <header class="page-header">
@@ -17,13 +17,24 @@ import { Tutor } from '../../core/models';
           <h1>Tutores</h1>
           <p>Dueños de mascotas registrados en tu clínica.</p>
         </div>
-        <div class="search-box">
-          <span class="material-symbols-outlined">search</span>
-          <input
-            type="text"
-            [(ngModel)]="search"
-            placeholder="Buscar por nombre, teléfono o documento..."
-          />
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <a
+            routerLink="/patients"
+            [queryParams]="{ openImport: true }"
+            class="btn-import-link"
+            style="border: 1px solid var(--surface-border); display: inline-flex; align-items: center; gap: 6px; text-decoration: none; font-size: 13px; padding: 8px 14px; border-radius: 6px; color: var(--text-color); background: var(--surface-card); cursor: pointer;"
+          >
+            <span class="material-symbols-outlined" style="font-size: 18px;">upload_file</span>
+            Importar Excel / CSV
+          </a>
+          <div class="search-box">
+            <span class="material-symbols-outlined">search</span>
+            <input
+              type="text"
+              [(ngModel)]="search"
+              placeholder="Buscar por nombre, teléfono o documento..."
+            />
+          </div>
         </div>
       </header>
 

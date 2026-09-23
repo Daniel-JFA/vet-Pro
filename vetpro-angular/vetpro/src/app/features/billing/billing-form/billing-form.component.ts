@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink, Router } from '@angular/router';
+import { RouterLink, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { BillingService } from '../../../core/services/billing.service';
 import { PatientService } from '../../../core/services/patient.service';
@@ -29,6 +29,7 @@ export class BillingFormComponent implements OnInit {
   private catalogSvc = inject(ServiceCatalogService);
   private toast = inject(ToastService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   loading = signal(true);
   submitting = signal(false);
@@ -84,12 +85,38 @@ export class BillingFormComponent implements OnInit {
   });
 
   ngOnInit() {
-    this.loadTutors();
-    this.loadCatalog();
     // Establecer fecha de vencimiento predeterminada en 7 días
     const date = new Date();
     date.setDate(date.getDate() + 7);
     this.dueAt.set(date.toISOString().split('T')[0]);
+
+    // Leer parámetros de URL (Cita → Factura / Historia → Factura)
+    const query = this.route.snapshot.queryParamMap;
+    const tutorId = query.get('tutorId');
+    if (tutorId) {
+      this.selectedTutorId.set(tutorId);
+    }
+    const serviceName = query.get('serviceName') || query.get('service');
+    const priceStr = query.get('price');
+    const price = priceStr ? parseFloat(priceStr) : null;
+    const appointmentId = query.get('appointmentId');
+    const patientName = query.get('patientName');
+
+    if (serviceName) {
+      this.items.set([{
+        description: patientName ? `${serviceName} (Paciente: ${patientName})` : serviceName,
+        quantity: 1,
+        unitPrice: price !== null && !isNaN(price) ? price : 50000,
+        taxRate: 0.19,
+        discount: 0
+      }]);
+    }
+    if (appointmentId) {
+      this.notes.set(`Facturación correspondiente a atención #${appointmentId.slice(0, 8)}`);
+    }
+
+    this.loadTutors();
+    this.loadCatalog();
   }
 
   private loadCatalog() {
@@ -141,7 +168,10 @@ export class BillingFormComponent implements OnInit {
     this.patientSvc.getTutors().subscribe({
       next: (res) => {
         this.tutors.set(res.data);
-        if (res.data.length > 0) {
+        const preselected = this.route.snapshot.queryParamMap.get('tutorId');
+        if (preselected && res.data.some(t => t.id === preselected)) {
+          this.selectedTutorId.set(preselected);
+        } else if (res.data.length > 0 && !this.selectedTutorId()) {
           this.selectedTutorId.set(res.data[0].id);
         }
         this.loading.set(false);

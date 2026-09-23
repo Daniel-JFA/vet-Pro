@@ -107,6 +107,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/notifications/crm-reactivation/crm-reactivation.component').then(m => m.CrmReactivationComponent)
       },
       {
+        path: 'grooming',
+        canActivate: [roleGuard(['admin', 'vet', 'assistant', 'receptionist', 'groomer'])],
+        loadComponent: () => import('./features/grooming/grooming-kanban/grooming-kanban.component').then(m => m.GroomingKanbanComponent)
+      },
+      {
         path: 'users',
         canActivate: [roleGuard(['admin'])],
         loadComponent: () => import('./features/users/user-list/user-list.component').then(m => m.UserListComponent)

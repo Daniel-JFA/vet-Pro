@@ -25,6 +25,10 @@ export class PatientService {
     return this.api.post<Patient>('/patients', data);
   }
 
+  importPatients(items: any[]): Observable<{ success: boolean; message: string; data: { total: number; imported: number; errors: any[] } }> {
+    return this.api.post<any>('/patients/import', { items });
+  }
+
   updatePatient(id: string, data: Partial<Patient>): Observable<Patient> {
     return this.api.put<Patient>(`/patients/${id}`, data);
   }

@@ -115,6 +115,40 @@
                       <div class="status-micro-badge" [attr.data-status]="app.status">
                         {{ statusLabel(app.status) }}
                       </div>
+
+                      <!-- Acciones 1-Clic: Atender y Facturar -->
+                      <div class="card-quick-actions" style="display: flex; gap: 8px; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08); flex-wrap: wrap;">
+                        @if (app.status !== 'cancelled' && app.status !== 'done') {
+                          <a
+                            [routerLink]="['/medical-records', 'new', app.patientId]"
+                            [queryParams]="{ appointmentId: app.id }"
+                            class="micro-action-link"
+                            style="text-decoration: none; font-size: 11px; font-weight: 600; color: var(--primary-color); display: inline-flex; align-items: center; gap: 2px;"
+                            title="Atender con Bitácora SOAP"
+                          >
+                            <span class="material-symbols-outlined" style="font-size: 14px">stethoscope</span>
+                            Atender
+                          </a>
+                        }
+                        @if (app.status === 'done' || app.status === 'in-progress') {
+                          <a
+                            [routerLink]="['/billing/new']"
+                            [queryParams]="{
+                              tutorId: app.patient?.tutor?.id,
+                              patientId: app.patientId,
+                              patientName: app.patient?.name,
+                              serviceName: app.serviceType,
+                              appointmentId: app.id
+                            }"
+                            class="micro-action-link"
+                            style="text-decoration: none; font-size: 11px; font-weight: 600; color: #10b981; display: inline-flex; align-items: center; gap: 2px;"
+                            title="Facturar Cita"
+                          >
+                            <span class="material-symbols-outlined" style="font-size: 14px">receipt_long</span>
+                            Facturar
+                          </a>
+                        }
+                      </div>
                     </div>
                   </div>
                 }

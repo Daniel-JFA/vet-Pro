@@ -56,6 +56,47 @@ const CreatePatientSchema = z.object({
 
 const UpdatePatientSchema = CreatePatientSchema.partial();
 
+const ImportPatientItemSchema = z.object({
+  name: z.string().min(1, 'El nombre de la mascota es obligatorio'),
+  species: z.string().default('dog'),
+  breed: z.string().optional().nullable(),
+  sex: z.string().default('male'),
+  sterilized: z.boolean().optional().default(false),
+  weight: z.number().positive().optional().nullable(),
+  chipId: z.string().optional().nullable(),
+  allergies: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  tutorFirstName: z.string().min(1, 'El nombre del tutor es obligatorio'),
+  tutorLastName: z.string().optional().default(''),
+  tutorPhone: z.string().min(5, 'El teléfono del tutor es obligatorio'),
+  tutorEmail: z.string().email().optional().nullable().or(z.literal('')),
+  tutorDocument: z.string().optional().nullable(),
+  tutorAddress: z.string().optional().nullable()
+});
+
+const ImportPatientsBatchSchema = z.object({
+  items: z.array(ImportPatientItemSchema).min(1, 'Se requiere al menos un paciente para importar')
+});
+
+function normalizeSpecies(val: string): PatientSpecies {
+  const s = (val || '').toLowerCase().trim();
+  if (['perro', 'canino', 'can', 'dog'].includes(s)) return PatientSpecies.dog;
+  if (['gato', 'felino', 'cat'].includes(s)) return PatientSpecies.cat;
+  if (['conejo', 'rabbit'].includes(s)) return PatientSpecies.rabbit;
+  if (['ave', 'pájaro', 'pajaro', 'bird'].includes(s)) return PatientSpecies.bird;
+  if (['reptil', 'reptile'].includes(s)) return PatientSpecies.reptile;
+  if (['caballo', 'equino', 'horse'].includes(s)) return PatientSpecies.horse;
+  if (['vaca', 'bovino', 'cow'].includes(s)) return PatientSpecies.cow;
+  if (['cerdo', 'porcino', 'pig'].includes(s)) return PatientSpecies.pig;
+  return PatientSpecies.other;
+}
+
+function normalizeSex(val: string): PatientSex {
+  const s = (val || '').toLowerCase().trim();
+  if (['hembra', 'female', 'f', 'h'].includes(s)) return PatientSex.female;
+  return PatientSex.male;
+}
+
 // ─────────────────────────────────────────────
 // ENDPOINTS DE PACIENTES
 // ─────────────────────────────────────────────
@@ -379,6 +420,103 @@ router.post('/:id/photo', roleMiddleware(P.FRONT_DESK as unknown as string[]) as
       return res.status(500).json({ error: 'Error al guardar la foto del paciente.' });
     }
   });
+});
+
+// POST /patients/import (Importación masiva de pacientes y tutores)
+router.post('/import', roleMiddleware(P.FRONT_DESK as unknown as string[]) as any, async (req: AuthRequest, res: Response) => {
+  const clinicId = req.user?.clinicId;
+  if (!clinicId) return res.status(401).json({ error: 'No autorizado.' });
+
+  try {
+    const { items } = ImportPatientsBatchSchema.parse(req.body);
+    const results = {
+      total: items.length,
+      imported: 0,
+      errors: [] as { row: number; petName: string; error: string }[]
+    };
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const rowNumber = i + 1;
+
+      try {
+        // 1. Buscar si el tutor ya existe en esta clínica por documento o teléfono
+        let tutor = null;
+        if (item.tutorDocument && item.tutorDocument.trim()) {
+          tutor = await prisma.tutor.findFirst({
+            where: {
+              clinicId,
+              documentId: item.tutorDocument.trim(),
+              deletedAt: null
+            }
+          });
+        }
+        if (!tutor && item.tutorPhone && item.tutorPhone.trim()) {
+          const cleanPhone = item.tutorPhone.replace(/[^0-9]/g, '');
+          tutor = await prisma.tutor.findFirst({
+            where: {
+              clinicId,
+              phone: { contains: cleanPhone },
+              deletedAt: null
+            }
+          });
+        }
+
+        // 2. Si el tutor no existe, crearlo
+        if (!tutor) {
+          tutor = await prisma.tutor.create({
+            data: {
+              clinicId,
+              firstName: item.tutorFirstName.trim(),
+              lastName: item.tutorLastName?.trim() || '',
+              phone: item.tutorPhone.trim(),
+              email: item.tutorEmail?.trim() || null,
+              documentId: item.tutorDocument?.trim() || null,
+              address: item.tutorAddress?.trim() || null
+            }
+          });
+        }
+
+        // 3. Crear el paciente asociado al tutor
+        await prisma.patient.create({
+          data: {
+            clinicId,
+            tutorId: tutor.id,
+            name: item.name.trim(),
+            species: normalizeSpecies(item.species),
+            breed: item.breed?.trim() || null,
+            sex: normalizeSex(item.sex),
+            sterilized: !!item.sterilized,
+            weight: item.weight ? Number(item.weight) : null,
+            chipId: item.chipId?.trim() || null,
+            allergies: item.allergies?.trim() || null,
+            notes: item.notes?.trim() || null,
+            status: PatientStatus.active
+          }
+        });
+
+        results.imported++;
+      } catch (err: any) {
+        results.errors.push({
+          row: rowNumber,
+          petName: item.name,
+          error: err.message || 'Error al procesar fila'
+        });
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Se importaron ${results.imported} de ${results.total} pacientes con éxito.`,
+      data: results
+    });
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Datos de importación inválidos', details: error.flatten().fieldErrors });
+    }
+    console.error('[PatientRoutes] Error en importación masiva:', error);
+    return res.status(500).json({ error: 'Error al procesar la importación masiva de pacientes.' });
+  }
 });
 
 export const PATIENT_ROUTES = router;

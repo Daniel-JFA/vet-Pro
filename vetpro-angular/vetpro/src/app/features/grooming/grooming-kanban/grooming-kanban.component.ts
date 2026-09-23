@@ -1,12 +1,13 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { GroomingService, GroomingItem } from '../../../core/services/grooming.service';
 
 @Component({
   selector: 'app-grooming-kanban',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div class="grooming-page">
       <!-- Header -->
@@ -159,9 +160,26 @@ import { GroomingService, GroomingItem } from '../../../core/services/grooming.s
                   <button class="btn-whatsapp" (click)="sendWhatsAppNotice(item)">
                     💬 Enviar WhatsApp al Tutor
                   </button>
-                  <button class="btn-step btn-delivered" (click)="advanceStatus(item, 'delivered')">
-                    Marcar Entregado ✓
-                  </button>
+                  <div style="display: flex; gap: 6px; width: 100%;">
+                    <a
+                      [routerLink]="['/billing/new']"
+                      [queryParams]="{
+                        tutorId: item.patient.tutor.id,
+                        patientId: item.patient.id,
+                        patientName: item.patient.name,
+                        serviceName: 'Peluquería & Spa: ' + item.serviceType,
+                        price: item.price
+                      }"
+                      class="btn-step"
+                      style="flex: 1; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; background: #10b981; color: white; border: none; font-size: 11px; padding: 6px 8px; border-radius: 6px;"
+                      title="Facturar servicio de spa"
+                    >
+                      🧾 Facturar
+                    </a>
+                    <button class="btn-step btn-delivered" style="flex: 1;" (click)="advanceStatus(item, 'delivered')">
+                      Entregado ✓
+                    </button>
+                  </div>
                 </div>
               </div>
             }
@@ -186,7 +204,23 @@ import { GroomingService, GroomingItem } from '../../../core/services/grooming.s
                     >
                   </div>
                 </div>
-                <p class="delivered-time">Entregado con éxito ✓</p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                  <p class="delivered-time" style="margin: 0;">Entregado con éxito ✓</p>
+                  <a
+                    [routerLink]="['/billing/new']"
+                    [queryParams]="{
+                      tutorId: item.patient.tutor.id,
+                      patientId: item.patient.id,
+                      patientName: item.patient.name,
+                      serviceName: 'Peluquería & Spa: ' + item.serviceType,
+                      price: item.price
+                    }"
+                    style="text-decoration: none; font-size: 11px; color: #10b981; font-weight: 600; display: inline-flex; align-items: center; gap: 2px;"
+                    title="Cobrar servicio"
+                  >
+                    🧾 Facturar
+                  </a>
+                </div>
               </div>
             }
           </div>
