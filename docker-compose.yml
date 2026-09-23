@@ -22,9 +22,25 @@ services:
       - db
     environment:
       PORT: ${PORT:-3000}
-      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@db:5432/vetpro?schema=public}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-vetpro}?schema=public}
       JWT_SECRET: ${JWT_SECRET:?Error: JWT_SECRET no está definido. Genera uno con: openssl rand -hex 64}
       NODE_ENV: production
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://vetpro.danielflorez.dev,http://localhost:4200,http://localhost:8080}
+      APP_URL: ${APP_URL:-https://vetpro.danielflorez.dev}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      WOMPI_PUBLIC_KEY: ${WOMPI_PUBLIC_KEY:-}
+      WOMPI_PRIVATE_KEY: ${WOMPI_PRIVATE_KEY:-}
+      WOMPI_INTEGRITY_SECRET: ${WOMPI_INTEGRITY_SECRET:-}
+      WOMPI_EVENTS_SECRET: ${WOMPI_EVENTS_SECRET:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    volumes:
+      - vetpro_uploads:/app/uploads
     ports:
       - "${VETPRO_BACKEND_PORT:-3000}:3000"
 
@@ -41,3 +57,5 @@ services:
 
 volumes:
   vetpro_pg_data:
+  vetpro_uploads:
+

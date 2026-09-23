@@ -597,7 +597,7 @@ router.get('/profile/earnings', authMiddleware as any, async (req: AuthRequest, 
     });
 
     const totalAppointments = appointments.length;
-    const completedAppointments = appointments.filter(a => a.status === 'completed' || a.status === 'confirmed').length;
+    const completedAppointments = appointments.filter(a => a.status === AppointmentStatus.done || a.status === AppointmentStatus.in_progress).length;
     const grossRevenue = appointments.reduce((sum, a) => sum + (a.amountCharged || 0), 0);
     const platformFeeRate = 0.15; // 15% comisión de plataforma
     const platformFee = Math.round(grossRevenue * platformFeeRate);
