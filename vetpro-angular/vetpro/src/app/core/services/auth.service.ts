@@ -168,6 +168,11 @@ export class AuthService {
     return this.api.get<{ firstName: string; lastName: string; email: string }>(`/auth/activation/${token}`);
   }
 
+  // Recuperación de contraseña: envía un enlace al correo si la cuenta existe
+  requestPasswordReset(email: string): Observable<{ message: string }> {
+    return this.api.post<{ message: string }>('/auth/forgot-password', { email });
+  }
+
   activateAccount(token: string, password: string): Observable<{ token: string; user: User; clinic: Clinic }> {
     return this.api.post<{ token: string; user: User; clinic: Clinic }>('/auth/activate', { token, password }).pipe(
       tap(res => {

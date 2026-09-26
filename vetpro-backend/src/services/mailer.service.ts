@@ -32,6 +32,13 @@ export interface PasswordResetEmailData {
   newPasswordPlain: string;
 }
 
+export interface PasswordRecoveryEmailData {
+  to: string;
+  firstName: string;
+  clinicName: string;
+  resetLink: string;
+}
+
 export interface MagicLinkEmailData {
   to: string;
   firstName: string;
@@ -388,6 +395,69 @@ Este enlace es personal y expira en 7 días.
       return true;
     } catch (error: any) {
       console.error(`❌ [Mailer] Error al enviar restablecimiento a ${data.to}:`, error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Enlace de recuperación cuando el usuario olvidó su contraseña.
+   * No incluye contraseñas: el usuario define la nueva desde el enlace.
+   */
+  public static async sendPasswordRecoveryLink(data: PasswordRecoveryEmailData): Promise<boolean> {
+    const transporter = this.getTransporter();
+    const from = process.env.SMTP_FROM || `VetPro SaaS <${process.env.SMTP_USER || 'no-reply@vetpro.co'}>`;
+
+    if (!transporter) {
+      console.warn('⚠️ [Mailer] No se envió correo de recuperación a', data.to, ': SMTP no configurado.');
+      return false;
+    }
+
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="utf-8">
+      <title>Restablece tu contraseña - VetPro</title>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; margin: 0; padding: 24px; color: #1e293b; }
+        .container { max-width: 540px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 32px 28px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+        .title { font-size: 20px; font-weight: 700; color: #0f172a; margin: 0 0 16px; }
+        .btn-container { text-align: center; margin: 28px 0; }
+        .btn { display: inline-block; background: #2563eb; color: #fff !important; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 700; }
+        .notice { font-size: 12px; color: #64748b; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 6px; padding: 10px 14px; line-height: 1.5; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h2 class="title">Restablece tu contraseña</h2>
+        <p>Hola, ${data.firstName}:</p>
+        <p>Recibimos una solicitud para restablecer tu contraseña de <strong>VetPro</strong> (${data.clinicName}). Haz clic en el botón para definir una nueva.</p>
+        <div class="btn-container">
+          <a href="${data.resetLink}" class="btn" target="_blank">Definir nueva contraseña</a>
+        </div>
+        <div class="notice">
+          🔒 Este enlace es personal, sirve una sola vez y expira en 1 hora. Si el botón no funciona, copia y pega esta dirección en tu navegador:<br>
+          <span style="word-break: break-all;">${data.resetLink}</span>
+        </div>
+        <p style="font-size: 12px; color: #94a3b8; margin-top: 24px;">Si no solicitaste este cambio, ignora este correo: tu contraseña actual sigue funcionando.</p>
+      </div>
+    </body>
+    </html>
+    `;
+
+    try {
+      await transporter.sendMail({
+        from,
+        to: data.to,
+        subject: 'Restablece tu contraseña de VetPro',
+        text: `Hola ${data.firstName}, define tu nueva contraseña de VetPro en: ${data.resetLink}\nEl enlace expira en 1 hora. Si no solicitaste este cambio, ignora este correo.`,
+        html: htmlContent
+      });
+
+      console.log(`✉️ [Mailer] Correo de recuperación de contraseña enviado a: ${data.to}`);
+      return true;
+    } catch (error: any) {
+      console.error(`❌ [Mailer] Error al enviar recuperación a ${data.to}:`, error.message);
       return false;
     }
   }
