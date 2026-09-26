@@ -179,6 +179,24 @@ router.post('/activate', async (req, res) => {
   }
 });
 
+// POST /auth/forgot-password (Envía un enlace para definir una nueva contraseña)
+router.post('/forgot-password', async (req, res) => {
+  const email: string | undefined = req.body?.email;
+  if (!email || typeof email !== 'string') {
+    return res.status(400).json({ error: 'El correo es obligatorio.' });
+  }
+
+  try {
+    await AuthService.requestPasswordReset(email);
+  } catch (error) {
+    console.error('Error en /auth/forgot-password:', error);
+  }
+  // Misma respuesta exista o no la cuenta, para no permitir enumerar correos
+  return res.json({
+    message: 'Si el correo está registrado, recibirás un enlace para restablecer tu contraseña en unos minutos.'
+  });
+});
+
 // GET /auth/me
 router.get('/me', authMiddleware as any, async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id;

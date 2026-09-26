@@ -5,6 +5,7 @@ import { MailerService } from './mailer.service.js';
 import { TokenService } from './token.service.js';
 
 export const ACTIVATION_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
+export const PASSWORD_RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hora
 
 export function generateActivationToken(): string {
   return crypto.randomBytes(32).toString('hex');
@@ -175,7 +176,7 @@ export class AuthService {
   static async getActivationInfo(token: string) {
     const user = await prisma.user.findUnique({ where: { activationToken: token } });
     if (!user || !user.activationTokenExpiresAt || user.activationTokenExpiresAt < new Date()) {
-      throw { status: 404, message: 'El enlace de activación no es válido o ya expiró.' };
+      throw { status: 404, message: 'El enlace no es válido o ya expiró.' };
     }
 
     return { firstName: user.firstName, lastName: user.lastName, email: user.email };
@@ -190,7 +191,7 @@ export class AuthService {
     if (!user || !user.activationTokenExpiresAt || user.activationTokenExpiresAt < new Date()) {
       throw {
         status: 404,
-        message: 'El enlace de activación no es válido o ya expiró. Pide a tu administrador que te reenvíe la invitación.'
+        message: 'El enlace no es válido o ya expiró. Solicita uno nuevo desde "¿Olvidaste tu contraseña?" en el inicio de sesión.'
       };
     }
 
@@ -210,6 +211,37 @@ export class AuthService {
       user: toUserResponse(activated),
       clinic: activated.clinic
     };
+  }
+
+  /**
+   * Recuperación de contraseña iniciada por el propio usuario. Reutiliza el
+   * token de activación (un enlace de un solo uso para definir contraseña).
+   * Nunca revela si el correo existe: el llamador responde lo mismo siempre.
+   */
+  static async requestPasswordReset(emailRaw: string) {
+    const email = emailRaw.trim().toLowerCase();
+    const user = await prisma.user.findUnique({ where: { email }, include: { clinic: true } });
+    if (!user || !user.active) return;
+
+    const resetToken = generateActivationToken();
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        activationToken: resetToken,
+        activationTokenExpiresAt: new Date(Date.now() + PASSWORD_RESET_TOKEN_TTL_MS)
+      }
+    });
+
+    const appUrl = process.env.APP_URL || 'http://localhost:4201';
+    // Sin await: el tiempo de respuesta no debe delatar si el correo existe
+    MailerService.sendPasswordRecoveryLink({
+      to: user.email,
+      firstName: user.firstName,
+      clinicName: user.clinic?.name || 'VetPro Cloud',
+      resetLink: `${appUrl}/auth/reset-password?token=${resetToken}`
+    }).catch((mailError) => {
+      console.error('Error al enviar correo de recuperación de contraseña:', mailError);
+    });
   }
 
   static async getUserProfile(userId: string) {

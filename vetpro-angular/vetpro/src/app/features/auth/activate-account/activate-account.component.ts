@@ -17,21 +17,26 @@ import { AuthService } from '../../../core/services/auth.service';
         </div>
 
         @if (checking()) {
-          <div class="state-msg">Verificando tu enlace de activación...</div>
+          <div class="state-msg">Verificando tu enlace...</div>
         }
 
         @if (!checking() && invalidLink()) {
           <div class="state-msg error">
             <p>{{ invalidLinkMsg() }}</p>
+            <a routerLink="/auth/forgot-password">Solicitar un enlace nuevo</a>
             <a routerLink="/auth/login">Volver al inicio de sesión</a>
           </div>
         }
 
         @if (!checking() && !invalidLink()) {
-          <h2>Activa tu Cuenta</h2>
+          <h2>{{ isReset ? 'Restablece tu Contraseña' : 'Activa tu Cuenta' }}</h2>
           <p class="subtitle">
-            Hola{{ firstName() ? ', ' + firstName() : '' }} — define tu contraseña para empezar a
-            usar VetPro.
+            Hola{{ firstName() ? ', ' + firstName() : '' }} —
+            {{
+              isReset
+                ? 'define tu nueva contraseña para volver a ingresar a VetPro.'
+                : 'define tu contraseña para empezar a usar VetPro.'
+            }}
           </p>
           <div class="field">
             <label>Correo</label>
@@ -60,7 +65,11 @@ import { AuthService } from '../../../core/services/auth.service';
             <p class="error">{{ error() }}</p>
           }
           <button class="btn-activate" (click)="submit()" [disabled]="loading()">
-            {{ loading() ? 'Activando...' : 'Activar Cuenta e Ingresar' }}
+            @if (isReset) {
+              {{ loading() ? 'Guardando...' : 'Guardar Contraseña e Ingresar' }}
+            } @else {
+              {{ loading() ? 'Activando...' : 'Activar Cuenta e Ingresar' }}
+            }
           </button>
         }
       </div>
@@ -224,13 +233,14 @@ export class ActivateAccountComponent implements OnInit {
   error = signal('');
 
   private token = '';
+  readonly isReset = this.route.snapshot.data['mode'] === 'reset';
 
   ngOnInit() {
     this.token = this.route.snapshot.queryParamMap.get('token') || '';
     if (!this.token) {
       this.checking.set(false);
       this.invalidLink.set(true);
-      this.invalidLinkMsg.set('Enlace de activación no válido: falta el token.');
+      this.invalidLinkMsg.set('Enlace no válido: falta el token.');
       return;
     }
 
@@ -244,7 +254,7 @@ export class ActivateAccountComponent implements OnInit {
         this.checking.set(false);
         this.invalidLink.set(true);
         this.invalidLinkMsg.set(
-          err?.error?.error || 'Este enlace de activación no es válido o ya expiró.',
+          err?.error?.error || 'Este enlace no es válido o ya expiró.',
         );
       },
     });
@@ -270,7 +280,7 @@ export class ActivateAccountComponent implements OnInit {
       },
       error: (err) => {
         this.loading.set(false);
-        this.error.set(err?.error?.error || 'No se pudo activar la cuenta. Intenta de nuevo.');
+        this.error.set(err?.error?.error || 'No se pudo guardar la contraseña. Intenta de nuevo.');
       },
     });
   }

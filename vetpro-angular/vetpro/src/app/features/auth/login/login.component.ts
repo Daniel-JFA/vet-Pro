@@ -30,7 +30,10 @@ import { PrivacyModalComponent } from '../../../shared/components/privacy-modal/
             />
           </div>
           <div class="field">
-            <label>Contraseña</label>
+            <div class="label-row">
+              <label>Contraseña</label>
+              <a routerLink="/auth/forgot-password" class="forgot-link">¿Olvidaste tu contraseña?</a>
+            </div>
             <input
               type="password"
               formControlName="password"
@@ -122,6 +125,19 @@ import { PrivacyModalComponent } from '../../../shared/components/privacy-modal/
       label {
         font-size: 13px;
         font-weight: 500;
+      }
+      .label-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      .forgot-link {
+        font-size: 12px;
+        color: var(--primary-color);
+        text-decoration: none;
+        &:hover {
+          text-decoration: underline;
+        }
       }
       input {
         padding: 9px 12px;
