@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 import cookieParser from 'cookie-parser';
@@ -6,6 +6,7 @@ import { prisma } from '../src/config/database.js';
 import { AUTH_ROUTES } from '../src/routes/auth.routes.js';
 import { MARKETPLACE_ROUTES } from '../src/routes/marketplace.routes.js';
 import { TokenService } from '../src/services/token.service.js';
+import { ComvezcolService } from '../src/services/comvezcol.service.js';
 
 const app = express();
 app.use(express.json());
@@ -234,6 +235,12 @@ describe('Antifraud Verification System (COMVEZCOL Registration & KYC)', () => {
   });
 
   it('7. Endpoint administrativo POST /admin/verifications/auto-verify-all certifica automáticamente a los veterinarios registrados con tarjeta válida', async () => {
+    const spy = vi.spyOn(ComvezcolService, 'verifyCard').mockResolvedValue({
+      status: 'match',
+      checkedAt: new Date().toISOString(),
+      message: 'Coincide con registro oficial COMVEZCOL.'
+    });
+
     const res = await request(app)
       .post('/api/v1/marketplace/admin/verifications/auto-verify-all')
       .set('Authorization', `Bearer ${adminToken}`);
@@ -249,6 +256,8 @@ describe('Antifraud Verification System (COMVEZCOL Registration & KYC)', () => {
     expect(updatedProfile).toBeDefined();
     expect(updatedProfile!.verificationStatus).toBe('verified');
     expect(updatedProfile!.isPublic).toBe(true);
-    expect(updatedProfile!.verifiedBy).toBe('system_antifraud');
+    expect(updatedProfile!.verifiedBy).toBe('system_comvezcol');
+
+    spy.mockRestore();
   });
 });
