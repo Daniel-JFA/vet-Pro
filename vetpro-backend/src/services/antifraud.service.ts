@@ -1,6 +1,7 @@
 import { prisma } from '../config/database.js';
 import { MailerService } from './mailer.service.js';
 import { VerificationStatus } from '@prisma/client';
+import { ComvezcolService, type ComvezcolStatus } from './comvezcol.service.js';
 
 export interface AutoVerificationResult {
   userId: string;
@@ -53,7 +54,7 @@ export class AntifraudService {
   public static async autoVerifyVetProfile(
     profileId: string,
     options: { sendEmail?: boolean } = { sendEmail: true }
-  ): Promise<{ success: boolean; error?: string; emailSent?: boolean; card?: string }> {
+  ): Promise<{ success: boolean; error?: string; emailSent?: boolean; card?: string; comvezcolStatus?: ComvezcolStatus }> {
     const profile = await prisma.vetProfile.findUnique({
       where: { id: profileId },
       include: {
@@ -86,15 +87,31 @@ export class AntifraudService {
       };
     }
 
-    // Actualizar a verificado y público
+    // Consulta real al registro público de COMVEZCOL: la matrícula debe existir
+    // y estar a nombre del usuario (apellidos). Si no, queda pendiente de revisión manual.
+    const lookup = await ComvezcolService.verifyCard(card, profile.user?.lastName || '');
+    if (lookup.status !== 'match') {
+      await prisma.vetProfile.update({
+        where: { id: profile.id },
+        data: {
+          verificationStatus: VerificationStatus.pending,
+          isPublic: false,
+          verificationNotes: `[${lookup.checkedAt}] ${lookup.message} Pendiente de revisión manual.`
+        }
+      });
+      return { success: false, error: lookup.message, comvezcolStatus: lookup.status, card };
+    }
+
     await prisma.vetProfile.update({
       where: { id: profile.id },
       data: {
         verificationStatus: VerificationStatus.verified,
         isPublic: true,
         verifiedAt: new Date(),
-        verifiedBy: 'system_antifraud',
-        verificationNotes: 'Matrícula profesional certificada automáticamente ante el registro oficial COMVEZCOL.'
+        verifiedBy: 'system_comvezcol',
+        verificationNotes:
+          `[${lookup.checkedAt}] ${lookup.message} Título: ${lookup.ficha?.titulo || '-'}, ` +
+          `${lookup.ficha?.universidad || '-'}. Ficha: ${lookup.ficha?.url}`
       }
     });
 
@@ -224,7 +241,7 @@ export class AntifraudService {
           professionalCard: card,
           status: 'verified',
           emailSent: verifyRes.emailSent || false,
-          message: 'Certificado automáticamente con éxito'
+          message: 'Matrícula confirmada en el registro de COMVEZCOL'
         });
       } else {
         results.push({

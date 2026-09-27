@@ -149,7 +149,13 @@ export class PatientFormComponent implements OnInit {
         this.tutors.set(res.data);
         // Viene de "Agregar mascota" en la página de Tutores
         const preselected = this.route.snapshot.queryParamMap.get('tutorId');
-        if (preselected && !this.isEditMode()) this.form.patchValue({ tutorId: preselected });
+        if (preselected && !this.isEditMode()) {
+          this.form.patchValue({ tutorId: preselected });
+        } else if (res.data.length === 0 && !this.isEditMode() && this.tutorMode() === 'select') {
+          // Clínica nueva sin tutores todavía: el modo "Buscar Existente" por
+          // defecto dejaba un select vacío obligatorio sin salida visible.
+          this.setTutorMode('new');
+        }
       },
       error: () => {
         this.toast.error('No se pudo cargar el listado de tutores. Intenta recargar la página.');

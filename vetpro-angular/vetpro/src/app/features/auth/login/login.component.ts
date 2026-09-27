@@ -256,6 +256,9 @@ export class LoginComponent {
           this.router.navigate(['/onboarding']);
         } else if (!res.user.profileCompleted) {
           this.router.navigate(['/complete-profile']);
+        } else if (res.user.requiresCardVerification) {
+          // Matrícula aún sin confirmar en COMVEZCOL: se le pide en cada inicio de sesión
+          this.router.navigate(['/verify-card']);
         } else {
           this.router.navigate(['/']);
         }

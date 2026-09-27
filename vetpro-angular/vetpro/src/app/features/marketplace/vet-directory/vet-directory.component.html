@@ -134,9 +134,11 @@
                     {{ vet.user.firstName.charAt(0) }}{{ vet.user.lastName.charAt(0) }}
                   </div>
                 }
-                <div class="verified-icon" title="Tarjeta Profesional COMVEZCOL Verificada">
-                  <span class="material-symbols-outlined">verified</span>
-                </div>
+                @if (vet.verificationStatus === 'verified') {
+                  <div class="verified-icon" title="Tarjeta Profesional COMVEZCOL Verificada">
+                    <span class="material-symbols-outlined">verified</span>
+                  </div>
+                }
               </div>
 
               <div class="vet-title-info">
@@ -147,10 +149,14 @@
                   <strong>{{ vet.rating }}</strong>
                   <span class="reviews-count">({{ vet.reviewCount }} opiniones)</span>
                 </div>
-                @if (vet.professionalCard) {
+                @if (vet.verificationStatus === 'verified' && vet.professionalCard) {
                   <div class="card-comvezcol-badge" title="Matrícula Profesional Verificada ante COMVEZCOL">
                     <span class="material-symbols-outlined">verified</span>
                     <span>Matrícula: {{ vet.professionalCard }}</span>
+                  </div>
+                } @else {
+                  <div class="card-comvezcol-badge unverified" title="Matrícula profesional sin verificar">
+                    <span>Matrícula profesional sin verificar · no disponible para reservas</span>
                   </div>
                 }
               </div>
@@ -231,14 +237,20 @@
               <div>
                 <div class="header-name-row">
                   <h2>Dr(a). {{ vet.user.firstName }} {{ vet.user.lastName }}</h2>
-                  <span class="badge-verified">
-                    <span class="material-symbols-outlined">verified</span>
-                    Verificado COMVEZCOL
-                  </span>
+                  @if (vet.verificationStatus === 'verified') {
+                    <span class="badge-verified">
+                      <span class="material-symbols-outlined">verified</span>
+                      Verificado COMVEZCOL
+                    </span>
+                  }
                 </div>
                 <p class="modal-clinic">{{ vet.clinic.name }} · {{ vet.city || 'Colombia' }}</p>
-                @if (vet.professionalCard) {
-                  <span class="comvezcol-tag">Matrícula: {{ vet.professionalCard }}</span>
+                @if (vet.verificationStatus === 'verified' && vet.professionalCard) {
+                  <span class="comvezcol-tag">Matrícula verificada: {{ vet.professionalCard }}</span>
+                } @else {
+                  <span class="comvezcol-tag unverified">
+                    Matrícula profesional sin verificar ante COMVEZCOL. Este profesional no está disponible para reservas.
+                  </span>
                 }
               </div>
             </div>

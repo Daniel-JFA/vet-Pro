@@ -258,6 +258,21 @@ router.patch('/complete-profile', authMiddleware as any, async (req: AuthRequest
   }
 });
 
+// POST /auth/me/professional-card (el veterinario registra su matrícula y se consulta en COMVEZCOL)
+router.post('/me/professional-card', authMiddleware as any, async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id;
+  if (!userId) return res.status(401).json({ error: 'No autorizado.' });
+
+  try {
+    const result = await AuthService.submitProfessionalCard(userId, String(req.body?.professionalCard ?? ''));
+    return res.json(result);
+  } catch (error: any) {
+    if (error.status) return res.status(error.status).json({ error: error.message });
+    console.error('Error en /auth/me/professional-card:', error);
+    return res.status(500).json({ error: 'No se pudo verificar la matrícula. Intenta de nuevo.' });
+  }
+});
+
 // GET /auth/clinic
 router.get('/clinic', authMiddleware as any, async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;

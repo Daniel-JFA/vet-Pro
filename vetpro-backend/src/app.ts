@@ -38,6 +38,11 @@ initSentry();
 
 const app = express();
 
+// Traefik es el único proxy inverso frente a este servicio (mismo host Docker) —
+// confiar en su X-Forwarded-For es necesario para que express-rate-limit y
+// req.ip identifiquen al cliente real en vez de a Traefik.
+app.set('trust proxy', 1);
+
 app.use(requestId);
 
 // ─────────────────────────────────────────────
@@ -117,6 +122,7 @@ app.use('/api/v1/auth/register', authLimiter);
 app.use('/api/v1/auth/refresh', authLimiter);
 app.use('/api/v1/auth/forgot-password', authLimiter);
 app.use('/api/v1/auth/activate', authLimiter);
+app.use('/api/v1/auth/me/professional-card', authLimiter);
 app.use('/api/v1/portal/auth/magic-link', authLimiter);
 app.use('/api/v1/platform/auth/login', authLimiter);
 

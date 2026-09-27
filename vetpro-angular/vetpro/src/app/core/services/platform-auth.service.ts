@@ -25,10 +25,49 @@ export interface PlatformClinic {
   email: string;
   city: string;
   createdAt: string;
+  subscriptionStatus: string;
+  billingCycle: string;
+  trialEndsAt: string | null;
+  nextBillingDate: string | null;
+  lastPaymentDate: string | null;
   usersCount: number;
   patientsCount: number;
   branchesCount: number;
   tutorsCount: number;
+}
+
+export interface PlatformAnalyticsOverview {
+  growth: { date: string; count: number }[];
+  revenue: {
+    mrr: number;
+    arr: number;
+    planBreakdown: { starter: number; pro: number; enterprise: number };
+    subscriptionBreakdown: { trial: number; active: number; past_due: number; suspended: number; cancelled: number };
+    monthlyRevenue: { month: string; amountInCents: number }[];
+    renewalsDue: { id: string; name: string; email: string; expiresAt: string; type: 'trial' | 'billing'; daysLeft: number }[];
+  };
+  engagement: {
+    activeLast24h: number;
+    activeLast7d: number;
+    activeLast30d: number;
+    dormantClinics: { id: string; name: string; email: string; createdAt: string }[];
+  };
+  usage: {
+    totals: { appointments: number; patients: number; invoices: number; notifications: number };
+    topClinics: { id: string; name: string; appointmentsCount: number; patientsCount: number; score: number }[];
+  };
+  geography: { label: string; count: number }[];
+}
+
+export interface PlatformClinicUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+  active: boolean;
+  lastLoginAt: string | null;
+  branchName: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -70,5 +109,13 @@ export class PlatformAuthService {
 
   getClinics(): Observable<PlatformClinic[]> {
     return this.api.get<PlatformClinic[]>('/platform/clinics');
+  }
+
+  getClinicUsers(clinicId: string): Observable<PlatformClinicUser[]> {
+    return this.api.get<PlatformClinicUser[]>(`/platform/clinics/${clinicId}/users`);
+  }
+
+  getAnalyticsOverview(): Observable<PlatformAnalyticsOverview> {
+    return this.api.get<PlatformAnalyticsOverview>('/platform/analytics/overview');
   }
 }

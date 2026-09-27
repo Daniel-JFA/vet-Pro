@@ -75,6 +75,11 @@ router.get('/clinics', platformAuthMiddleware as any, async (_req: PlatformAuthR
         email: true,
         city: true,
         createdAt: true,
+        subscriptionStatus: true,
+        billingCycle: true,
+        trialEndsAt: true,
+        nextBillingDate: true,
+        lastPaymentDate: true,
         _count: {
           select: { users: true, patients: true, branches: true, tutors: true }
         }
@@ -89,6 +94,11 @@ router.get('/clinics', platformAuthMiddleware as any, async (_req: PlatformAuthR
       email: c.email,
       city: c.city,
       createdAt: c.createdAt,
+      subscriptionStatus: c.subscriptionStatus,
+      billingCycle: c.billingCycle,
+      trialEndsAt: c.trialEndsAt,
+      nextBillingDate: c.nextBillingDate,
+      lastPaymentDate: c.lastPaymentDate,
       usersCount: c._count.users,
       patientsCount: c._count.patients,
       branchesCount: c._count.branches,
@@ -97,6 +107,40 @@ router.get('/clinics', platformAuthMiddleware as any, async (_req: PlatformAuthR
   } catch (error) {
     console.error('Error en /platform/clinics:', error);
     return res.status(500).json({ error: 'Error al consultar los tenants de la plataforma.' });
+  }
+});
+
+// GET /platform/clinics/:id/users (usuarios de un tenant, con su último acceso)
+router.get('/clinics/:id/users', platformAuthMiddleware as any, async (req: PlatformAuthRequest, res: Response) => {
+  try {
+    const users = await prisma.user.findMany({
+      where: { clinicId: req.params.id },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        role: true,
+        active: true,
+        lastLoginAt: true,
+        branch: { select: { name: true } }
+      }
+    });
+
+    return res.json(users.map(u => ({
+      id: u.id,
+      firstName: u.firstName,
+      lastName: u.lastName,
+      email: u.email,
+      role: u.role,
+      active: u.active,
+      lastLoginAt: u.lastLoginAt,
+      branchName: u.branch?.name || null
+    })));
+  } catch (error) {
+    console.error('Error en /platform/clinics/:id/users:', error);
+    return res.status(500).json({ error: 'Error al consultar los usuarios del tenant.' });
   }
 });
 
@@ -183,6 +227,158 @@ router.post('/subscriptions/clinics/:id/grant-extension', platformAuthMiddleware
   } catch (error) {
     console.error('Error en /platform/subscriptions/grant-extension:', error);
     return res.status(500).json({ error: 'Error al otorgar extensión de suscripción.' });
+  }
+});
+
+// GET /platform/analytics/overview (métricas agregadas para el panel de gráficas de super-admin)
+router.get('/analytics/overview', platformAuthMiddleware as any, async (_req: PlatformAuthRequest, res: Response) => {
+  try {
+    const now = new Date();
+    const dayMs = 24 * 60 * 60 * 1000;
+
+    // ── Crecimiento: registros por día (últimos 30 días) ──
+    const growthWindowStart = new Date(now.getTime() - 29 * dayMs);
+    const recentClinics = await prisma.clinic.findMany({
+      where: { createdAt: { gte: growthWindowStart } },
+      select: { createdAt: true }
+    });
+    const growthBuckets = new Map<string, number>();
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(growthWindowStart.getTime() + i * dayMs);
+      growthBuckets.set(d.toISOString().slice(0, 10), 0);
+    }
+    for (const c of recentClinics) {
+      const key = c.createdAt.toISOString().slice(0, 10);
+      if (growthBuckets.has(key)) growthBuckets.set(key, (growthBuckets.get(key) || 0) + 1);
+    }
+    const growth = Array.from(growthBuckets.entries()).map(([date, count]) => ({ date, count }));
+
+    // ── Ingresos: MRR/ARR actuales, breakdown de plan/estado, histórico de pagos aprobados (6 meses) ──
+    const allClinics = await prisma.clinic.findMany({
+      select: { id: true, plan: true, subscriptionStatus: true, trialEndsAt: true, nextBillingDate: true, name: true, email: true, createdAt: true }
+    });
+    const priceMap: Record<string, number> = { starter: 80000, pro: 150000, enterprise: 300000 };
+    const mrr = allClinics.filter(c => c.subscriptionStatus === 'active').reduce((sum, c) => sum + (priceMap[c.plan] || 0), 0);
+
+    const subscriptionBreakdown = {
+      trial: allClinics.filter(c => c.subscriptionStatus === 'trial').length,
+      active: allClinics.filter(c => c.subscriptionStatus === 'active').length,
+      past_due: allClinics.filter(c => c.subscriptionStatus === 'past_due').length,
+      suspended: allClinics.filter(c => c.subscriptionStatus === 'suspended').length,
+      cancelled: allClinics.filter(c => c.subscriptionStatus === 'cancelled').length
+    };
+    const planBreakdown = {
+      starter: allClinics.filter(c => c.plan === 'starter').length,
+      pro: allClinics.filter(c => c.plan === 'pro').length,
+      enterprise: allClinics.filter(c => c.plan === 'enterprise').length
+    };
+
+    const revenueWindowStart = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    const payments = await prisma.clinicSubscriptionPayment.findMany({
+      where: { status: 'APPROVED', paidAt: { gte: revenueWindowStart } },
+      select: { paidAt: true, amountInCents: true }
+    });
+    const revenueBuckets = new Map<string, number>();
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
+      revenueBuckets.set(d.toISOString().slice(0, 7), 0);
+    }
+    for (const p of payments) {
+      if (!p.paidAt) continue;
+      const key = p.paidAt.toISOString().slice(0, 7);
+      if (revenueBuckets.has(key)) revenueBuckets.set(key, (revenueBuckets.get(key) || 0) + p.amountInCents);
+    }
+    const monthlyRevenue = Array.from(revenueBuckets.entries()).map(([month, amountInCents]) => ({ month, amountInCents }));
+
+    const renewalWindowEnd = new Date(now.getTime() + 7 * dayMs);
+    const renewalsDue = allClinics
+      .map(c => {
+        const trialDate = c.trialEndsAt && c.subscriptionStatus === 'trial' ? c.trialEndsAt : null;
+        const billingDate = c.nextBillingDate && c.subscriptionStatus === 'active' ? c.nextBillingDate : null;
+        const expiresAt = trialDate || billingDate;
+        if (!expiresAt || expiresAt < now || expiresAt > renewalWindowEnd) return null;
+        return {
+          id: c.id,
+          name: c.name,
+          email: c.email,
+          expiresAt,
+          type: trialDate ? 'trial' : 'billing',
+          daysLeft: Math.ceil((expiresAt.getTime() - now.getTime()) / dayMs)
+        };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null)
+      .sort((a, b) => a.daysLeft - b.daysLeft);
+
+    // ── Engagement: activos recientes y tenants "dormidos" (sin ningún login) ──
+    const [activeLast24h, activeLast7d, activeLast30d] = await Promise.all([
+      prisma.user.count({ where: { lastLoginAt: { gte: new Date(now.getTime() - dayMs) } } }),
+      prisma.user.count({ where: { lastLoginAt: { gte: new Date(now.getTime() - 7 * dayMs) } } }),
+      prisma.user.count({ where: { lastLoginAt: { gte: new Date(now.getTime() - 30 * dayMs) } } })
+    ]);
+
+    const dormantCutoff = new Date(now.getTime() - 3 * dayMs);
+    const dormantClinics = await prisma.clinic.findMany({
+      where: {
+        createdAt: { lte: dormantCutoff },
+        users: { none: { lastLoginAt: { not: null } } }
+      },
+      select: { id: true, name: true, email: true, createdAt: true },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    // ── Uso del producto: totales y ranking de clínicas más activas ──
+    const clinicsWithUsage = await prisma.clinic.findMany({
+      select: {
+        id: true,
+        name: true,
+        _count: { select: { patients: true, Appointment: true, invoices: true, notificationLogs: true } }
+      }
+    });
+    const usageTotals = clinicsWithUsage.reduce(
+      (acc, c) => ({
+        appointments: acc.appointments + c._count.Appointment,
+        patients: acc.patients + c._count.patients,
+        invoices: acc.invoices + c._count.invoices,
+        notifications: acc.notifications + c._count.notificationLogs
+      }),
+      { appointments: 0, patients: 0, invoices: 0, notifications: 0 }
+    );
+    const topClinics = clinicsWithUsage
+      .map(c => ({
+        id: c.id,
+        name: c.name,
+        appointmentsCount: c._count.Appointment,
+        patientsCount: c._count.patients,
+        score: c._count.Appointment + c._count.patients
+      }))
+      .filter(c => c.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
+
+    // ── Geografía: clínicas por departamento ──
+    const geoGroups = await prisma.clinic.groupBy({
+      by: ['departamentoCode'],
+      _count: { _all: true }
+    });
+    const departamentos = await prisma.departamento.findMany({ select: { code: true, nombre: true } });
+    const deptoNameByCode = new Map(departamentos.map(d => [d.code, d.nombre]));
+    const geography = geoGroups
+      .map(g => ({
+        label: g.departamentoCode ? (deptoNameByCode.get(g.departamentoCode) || g.departamentoCode) : 'Sin especificar',
+        count: g._count._all
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    return res.json({
+      growth,
+      revenue: { mrr, arr: mrr * 12, planBreakdown, subscriptionBreakdown, monthlyRevenue, renewalsDue },
+      engagement: { activeLast24h, activeLast7d, activeLast30d, dormantClinics },
+      usage: { totals: usageTotals, topClinics },
+      geography
+    });
+  } catch (error) {
+    console.error('Error en /platform/analytics/overview:', error);
+    return res.status(500).json({ error: 'Error al calcular las analíticas de la plataforma.' });
   }
 });
 

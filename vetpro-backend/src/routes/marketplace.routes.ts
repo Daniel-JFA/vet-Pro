@@ -311,6 +311,14 @@ router.post('/vets/:id/appointments', async (req: Request, res: Response): Promi
       return;
     }
 
+    // Solo se puede reservar con médicos cuya matrícula esté confirmada en COMVEZCOL
+    if (vet.verificationStatus !== VerificationStatus.verified || !vet.isPublic) {
+      res.status(403).json({
+        error: 'Este profesional aún no tiene su matrícula profesional verificada ante COMVEZCOL, por lo que no está disponible para reservas.'
+      });
+      return;
+    }
+
     const clinicId = vet.clinicId;
     const vetUserId = vet.userId;
 
