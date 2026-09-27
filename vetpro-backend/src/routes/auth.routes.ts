@@ -20,7 +20,7 @@ function setRefreshTokenCookie(res: Response, refreshToken: string) {
 
 // POST /auth/register (Registro de nueva clínica o veterinario independiente)
 router.post('/register', async (req, res) => {
-  const { clinicName, businessType, firstName, lastName, password, phone, municipioId, nit, documentType, documentNumber } = req.body;
+  const { clinicName, businessType, firstName, lastName, password, phone, municipioId, nit, documentType, documentNumber, professionalCard } = req.body;
   const email: string | undefined = req.body.email?.trim().toLowerCase();
 
   if (!clinicName || !firstName || !lastName || !email || !password || !municipioId) {
@@ -33,8 +33,15 @@ router.post('/register', async (req, res) => {
   }
 
   const validDocTypes = ['CC', 'CE', 'PA', 'TI'];
-  if (bType === 'independent_vet' && (!documentNumber || !validDocTypes.includes(documentType))) {
-    return res.status(400).json({ error: 'El documento de identidad es obligatorio para un veterinario independiente.' });
+  if (bType === 'independent_vet') {
+    if (!documentNumber || !validDocTypes.includes(documentType)) {
+      return res.status(400).json({ error: 'El documento de identidad es obligatorio para un veterinario independiente.' });
+    }
+    if (!professionalCard || typeof professionalCard !== 'string' || professionalCard.trim().length < 3) {
+      return res.status(400).json({
+        error: 'El número de tarjeta profesional (COMVEZCOL) es obligatorio para la inscripción y verificación antifraude del veterinario.'
+      });
+    }
   }
 
   try {
@@ -49,14 +56,17 @@ router.post('/register', async (req, res) => {
       municipioId,
       nit,
       documentType,
-      documentNumber
+      documentNumber,
+      professionalCard: professionalCard ? String(professionalCard).trim() : undefined
     });
 
     const refreshToken = TokenService.signRefreshToken({ id: result.user.id, clinicId: result.user.clinicId });
     setRefreshTokenCookie(res, refreshToken);
 
     return res.status(201).json({
-      message: 'Cuenta creada exitosamente.',
+      message: bType === 'independent_vet'
+        ? 'Cuenta creada exitosamente. Tu tarjeta profesional COMVEZCOL ha entrado en proceso de verificación antifraude.'
+        : 'Cuenta creada exitosamente.',
       token: result.token,
       user: result.user,
       clinic: result.clinic
@@ -217,7 +227,7 @@ router.patch('/complete-profile', authMiddleware as any, async (req: AuthRequest
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ error: 'No autorizado.' });
 
-  const { documentType, documentNumber, phone, address, municipioId, birthDate } = req.body;
+  const { documentType, documentNumber, phone, address, municipioId, birthDate, professionalCard } = req.body;
   const validDocTypes = ['CC', 'CE', 'PA', 'TI'];
   if (!documentType || !validDocTypes.includes(documentType)) {
     return res.status(400).json({ error: `Tipo de documento inválido. Valores permitidos: ${validDocTypes.join(', ')}` });
@@ -233,7 +243,8 @@ router.patch('/complete-profile', authMiddleware as any, async (req: AuthRequest
       phone,
       address,
       municipioId,
-      birthDate
+      birthDate,
+      professionalCard: professionalCard ? String(professionalCard).trim() : undefined
     });
 
     return res.json({
@@ -299,7 +310,7 @@ router.post('/users', authMiddleware as any, roleMiddleware(['admin']) as any, a
   const clinicId = req.user?.clinicId;
   if (!clinicId) return res.status(401).json({ error: 'No autorizado.' });
 
-  const { firstName, lastName, email, role, branchId } = req.body;
+  const { firstName, lastName, email, role, branchId, professionalCard } = req.body;
   if (!firstName || !lastName || !email || !role) {
     return res.status(400).json({ error: 'Nombre, apellido, correo y rol son obligatorios.' });
   }
@@ -316,7 +327,8 @@ router.post('/users', authMiddleware as any, roleMiddleware(['admin']) as any, a
       lastName,
       email,
       role,
-      branchId
+      branchId,
+      professionalCard: professionalCard ? String(professionalCard).trim() : undefined
     }, appUrl);
 
     return res.status(201).json({

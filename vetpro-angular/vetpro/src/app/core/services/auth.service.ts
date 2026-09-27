@@ -77,6 +77,7 @@ export class AuthService {
     nit?: string;
     documentType?: 'CC' | 'CE' | 'TI' | 'PA';
     documentNumber?: string;
+    professionalCard?: string;
   }): Observable<{ token: string; user: User; clinic: Clinic }> {
     return this.api.post<{ token: string; user: User; clinic: Clinic }>(
       '/auth/register', data
@@ -159,6 +160,7 @@ export class AuthService {
     email: string;
     role: string;
     branchId?: string | null;
+    professionalCard?: string;
   }): Observable<{ message: string; emailSent: boolean; activationLink?: string; user: any }> {
     return this.api.post<{ message: string; emailSent: boolean; activationLink?: string; user: any }>('/auth/users', data);
   }
@@ -204,6 +206,7 @@ export class AuthService {
     address: string;
     municipioId: string;
     birthDate?: string | null;
+    professionalCard?: string | null;
   }): Observable<{ message: string; user: User }> {
     return this.api.patch<{ message: string; user: User }>('/auth/complete-profile', data).pipe(
       tap(res => {

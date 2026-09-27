@@ -1005,6 +1005,7 @@ model VetProfile {
   @@index([clinicId])
   @@index([verificationStatus])
   @@index([city])
+  @@index([professionalCard])
   @@map("vet_profiles")
 }
 

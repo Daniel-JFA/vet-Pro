@@ -343,6 +343,20 @@
                   <option value="admin">🛡️ Administrador (Acceso Total & Finanzas)</option>
                 </select>
               </div>
+              @if (newForm.role === 'vet') {
+                <div class="form-group">
+                  <label>Tarjeta Profesional (COMVEZCOL)</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="newForm.professionalCard"
+                    placeholder="Ej: COMVEZCOL-34567 o 34567"
+                    class="form-input"
+                  />
+                  <small class="field-hint"
+                    >🛡️ Matrícula oficial ante COMVEZCOL para validación antifraude y recetas.</small
+                  >
+                </div>
+              }
               @if (!isIndependentVet()) {
                 <div class="form-group">
                   <label>Sede Física Asignada</label>

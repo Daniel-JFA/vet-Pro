@@ -678,17 +678,48 @@ router.put('/profile/me', authMiddleware as any, async (req: AuthRequest, res: R
     const clinicId = req.user!.clinicId;
     const body = UpdateProfileSchema.parse(req.body);
 
+    if (body.professionalCard) {
+      const cardNorm = body.professionalCard.trim();
+      const existing = await prisma.vetProfile.findFirst({
+        where: {
+          professionalCard: { equals: cardNorm, mode: 'insensitive' },
+          userId: { not: userId }
+        }
+      });
+      if (existing) {
+        res.status(409).json({
+          error: `Alerta antifraude: La tarjeta profesional COMVEZCOL "${cardNorm}" ya se encuentra registrada por otro usuario en la plataforma.`
+        });
+        return;
+      }
+    }
+
+    const currentProfile = await prisma.vetProfile.findUnique({ where: { userId } });
+    const cardChanged =
+      body.professionalCard &&
+      currentProfile?.professionalCard &&
+      body.professionalCard.trim().toLowerCase() !== currentProfile.professionalCard.trim().toLowerCase();
+
+    const updateData: any = {
+      ...body,
+      updatedAt: new Date()
+    };
+
+    if (cardChanged) {
+      updateData.verificationStatus = VerificationStatus.pending;
+      updateData.isPublic = false;
+      updateData.verificationNotes = 'Tarjeta profesional modificada. Requiere nueva verificación antifraude ante COMVEZCOL.';
+    }
+
     const profile = await prisma.vetProfile.upsert({
       where: { userId },
-      update: {
-        ...body,
-        updatedAt: new Date()
-      },
+      update: updateData,
       create: {
         userId,
         clinicId,
         ...body,
-        verificationStatus: VerificationStatus.pending
+        verificationStatus: VerificationStatus.pending,
+        verificationNotes: 'Inscripción en espera de auditoría antifraude COMVEZCOL.'
       }
     });
 
@@ -847,7 +878,9 @@ router.get(
               lastName: true,
               email: true,
               phone: true,
-              avatarUrl: true
+              avatarUrl: true,
+              documentType: true,
+              documentNumber: true
             }
           },
           clinic: {
@@ -859,7 +892,45 @@ router.get(
         }
       });
 
-      res.json(profiles);
+      const enriched = await Promise.all(
+        profiles.map(async (p) => {
+          let hasDuplicate = false;
+          if (p.professionalCard) {
+            const dups = await prisma.vetProfile.count({
+              where: {
+                professionalCard: { equals: p.professionalCard.trim(), mode: 'insensitive' },
+                id: { not: p.id }
+              }
+            });
+            hasDuplicate = dups > 0;
+          }
+
+          const hasValidCard = Boolean(p.professionalCard && p.professionalCard.trim().length >= 3);
+          const hasDocument = Boolean(p.cardDocumentUrl || p.idDocumentUrl);
+          const hasIdNumber = Boolean(p.user.documentNumber);
+
+          let riskLevel: 'low' | 'medium' | 'high' = 'low';
+          if (hasDuplicate || !hasValidCard || !hasIdNumber) {
+            riskLevel = 'high';
+          } else if (!hasDocument) {
+            riskLevel = 'medium';
+          }
+
+          return {
+            ...p,
+            antifraud: {
+              hasDuplicate,
+              hasValidCard,
+              hasDocument,
+              hasIdNumber,
+              riskLevel,
+              comvezcolQueryUrl: 'https://www.comvezcol.org/'
+            }
+          };
+        })
+      );
+
+      res.json(enriched);
     } catch (err: any) {
       res.status(500).json({ error: 'Error al consultar solicitudes de verificación' });
     }
@@ -893,6 +964,8 @@ router.put(
         dataToUpdate.verifiedBy = req.user!.id;
         if (status === VerificationStatus.verified) {
           dataToUpdate.isPublic = true;
+        } else if (status === VerificationStatus.rejected) {
+          dataToUpdate.isPublic = false;
         }
       }
       if (isFeatured !== undefined) {

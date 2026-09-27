@@ -1,5 +1,6 @@
 import { PrismaClient, PatientSpecies, PatientSex, PatientStatus, AppointmentStatus, RecordType, ProductCategory, MovementType, InvoiceStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { seedMarketplace } from './seed_marketplace.js';
 
 const prisma = new PrismaClient();
 
@@ -7,6 +8,9 @@ async function main() {
   console.log('🌱 Iniciando la siembra masiva e histórica (3 meses) de VetPro...');
 
   // 1. Limpieza de tablas existentes (en orden inverso de dependencia)
+  await prisma.vetReview.deleteMany();
+  await prisma.marketplacePayment.deleteMany();
+  await prisma.vetProfile.deleteMany();
   await prisma.hospitalDoseRecord.deleteMany();
   await prisma.hospitalMedication.deleteMany();
   await prisma.hospitalEvolution.deleteMany();
@@ -709,6 +713,10 @@ async function main() {
   });
 
   console.log('✅ Citas interactivas de hoy creadas con facturación e historial persistentes.');
+
+  // Siembra del Directorio Marketplace y Vets Verificados
+  await seedMarketplace(prisma);
+
   console.log('🎉 Siembra masiva e histórica completada exitosamente.');
 }
 

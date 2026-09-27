@@ -170,6 +170,30 @@ describe('Marketplace Web de Veterinarios (Integration Tests)', () => {
     expect(vet.consultationPrice).toBe(60000);
   });
 
+  it('6b. El directorio público permite filtrar por diferentes ciudades colombianas y modalidades', async () => {
+    // Filtrar por modalidad domicilio
+    const resDom = await request(app)
+      .get('/api/v1/marketplace/vets')
+      .query({ modality: 'domicilio' });
+
+    expect(resDom.status).toBe(200);
+    expect(resDom.body.data.length).toBeGreaterThanOrEqual(1);
+    for (const v of resDom.body.data) {
+      expect(v.modalities).toContain('domicilio');
+    }
+
+    // Filtrar por ciudad Bogotá
+    const resBog = await request(app)
+      .get('/api/v1/marketplace/vets')
+      .query({ city: 'Bogotá' });
+
+    expect(resBog.status).toBe(200);
+    expect(resBog.body.data.length).toBeGreaterThanOrEqual(1);
+    for (const v of resBog.body.data) {
+      expect(v.city.toLowerCase()).toContain('bogotá'.toLowerCase());
+    }
+  });
+
   it('7. Un tutor puede ver el detalle público y calificar con estrellas y reseña', async () => {
     // 7.1 Detalle público
     const detailRes = await request(app).get(`/api/v1/marketplace/vets/${createdVetProfileId}`);

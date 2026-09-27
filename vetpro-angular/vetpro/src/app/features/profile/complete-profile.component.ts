@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, computed } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -79,6 +79,20 @@ import { GeoService, Departamento, Municipio } from '../../core/services/geo.ser
           <label>Fecha de Nacimiento (Opcional)</label>
           <input type="date" [(ngModel)]="birthDate" />
         </div>
+
+        @if (isVet()) {
+          <div class="form-group">
+            <label>Número de Tarjeta Profesional (COMVEZCOL) *</label>
+            <input
+              type="text"
+              [(ngModel)]="professionalCard"
+              placeholder="Ej: COMVEZCOL-34567 o 34567"
+            />
+            <small style="color: #64748b; font-size: 11px; margin-top: 2px;">
+              🛡️ Obligatorio para revisión antifraude ante el registro nacional COMVEZCOL.
+            </small>
+          </div>
+        }
 
         @if (errorMsg()) {
           <p class="error-msg">{{ errorMsg() }}</p>
@@ -259,6 +273,11 @@ export class CompleteProfileComponent implements OnInit {
   phone = signal('');
   address = signal('');
   birthDate = signal('');
+  professionalCard = signal('');
+  isVet = computed(() => {
+    const role = this.auth.currentUser?.role;
+    return role === 'vet' || role === 'admin';
+  });
   loading = signal(false);
   errorMsg = signal('');
 
@@ -297,6 +316,12 @@ export class CompleteProfileComponent implements OnInit {
 
   submit() {
     this.errorMsg.set('');
+
+    if (this.isVet() && (!this.professionalCard() || this.professionalCard().trim().length < 3)) {
+      this.errorMsg.set('El número de tarjeta profesional (COMVEZCOL) es obligatorio para la verificación médica.');
+      return;
+    }
+
     this.loading.set(true);
 
     this.auth
@@ -307,6 +332,7 @@ export class CompleteProfileComponent implements OnInit {
         address: this.address(),
         municipioId: this.municipioId(),
         birthDate: this.birthDate() || null,
+        professionalCard: this.professionalCard()?.trim() || null,
       })
       .subscribe({
         next: () => {

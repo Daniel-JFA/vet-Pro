@@ -34,6 +34,9 @@ export interface User {
   phone?: string | null;
   address?: string | null;
   birthDate?: string | null;
+  professionalCard?: string | null;
+  verificationStatus?: 'pending' | 'verified' | 'rejected' | null;
+  verificationNotes?: string | null;
 }
 
 // ── WALKERS (PASEADORES) ───────────────────────
