@@ -129,14 +129,12 @@ export class AuthService {
         { code: 'BIO-ALT', name: 'ALT / GPT Hepática', category: 'biochemistry', unit: 'U/L', canineRefMin: 10.0, canineRefMax: 100.0, felineRefMin: 12.0, felineRefMax: 130.0, salePrice: 25000 }
       ];
 
-      for (const t of defaultTests) {
-        await tx.labTestCatalog.create({
-          data: { ...t, category: t.category as any, clinicId: clinic.id }
-        });
-      }
+      await tx.labTestCatalog.createMany({
+        data: defaultTests.map(t => ({ ...t, category: t.category as any, clinicId: clinic.id }))
+      });
 
       return { clinic, user };
-    });
+    }, { timeout: 15000 });
 
     const token = signToken(result.user);
     return {
@@ -164,6 +162,8 @@ export class AuthService {
     if (!passwordMatch) {
       throw { status: 401, message: 'Credenciales inválidas.' };
     }
+
+    await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
 
     return {
       token: signToken(user),

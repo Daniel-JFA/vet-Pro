@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, tap, switchMap, of } from 'rxjs';
+import { Observable, tap, switchMap, of, map, finalize, shareReplay } from 'rxjs';
 import { ApiService } from './api.service';
 import { User, Clinic } from '../models';
 
@@ -97,6 +97,25 @@ export class AuthService {
         );
       })
     );
+  }
+
+  // El access token dura solo 15 minutos — esto renueva la sesión en silencio
+  // usando la cookie httpOnly de refresh, en vez de forzar un re-login.
+  private refreshing$: Observable<string> | null = null;
+
+  getFreshToken(): Observable<string> {
+    if (!this.refreshing$) {
+      this.refreshing$ = this.api.post<{ token: string; user: User; clinic: Clinic }>('/auth/refresh', {}).pipe(
+        tap(res => {
+          localStorage.setItem('vetpro_token', res.token);
+          this.state.set({ token: res.token, user: res.user, clinic: res.clinic });
+        }),
+        map(res => res.token),
+        finalize(() => { this.refreshing$ = null; }),
+        shareReplay(1)
+      );
+    }
+    return this.refreshing$;
   }
 
   logout(): void {
