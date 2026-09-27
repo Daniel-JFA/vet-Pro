@@ -121,6 +121,12 @@
                   <strong>{{ vet.rating }}</strong>
                   <span class="reviews-count">({{ vet.reviewCount }} opiniones)</span>
                 </div>
+                @if (vet.professionalCard) {
+                  <div class="card-comvezcol-badge" title="Matrícula Profesional Verificada ante COMVEZCOL">
+                    <span class="material-symbols-outlined">verified</span>
+                    <span>Matrícula: {{ vet.professionalCard }}</span>
+                  </div>
+                }
               </div>
             </div>
 

@@ -46,6 +46,15 @@ export interface MagicLinkEmailData {
   magicLink: string;
 }
 
+export interface ProfessionalCardVerifiedEmailData {
+  to: string;
+  firstName: string;
+  lastName: string;
+  professionalCard: string;
+  clinicName?: string;
+  city?: string;
+}
+
 function getRoleLabel(role: string): string {
   const roles: Record<string, string> = {
     admin: '🛡️ Administrador (Gestión Total & Finanzas)',
@@ -614,6 +623,132 @@ Cualquier cosa que veas que se podría mejorar, cuéntanosla en el grupo de What
       return true;
     } catch (error: any) {
       console.error(`❌ [Mailer] Error al enviar invitación beta a ${data.to}:`, error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Enviar correo de confirmación de certificación de Matrícula Profesional COMVEZCOL
+   */
+  public static async sendProfessionalCardVerifiedEmail(data: ProfessionalCardVerifiedEmailData): Promise<boolean> {
+    const transporter = this.getTransporter();
+    const appUrl = process.env.APP_URL || 'http://localhost:4201';
+    const from = process.env.SMTP_FROM || `VetPro SaaS <${process.env.SMTP_USER || 'no-reply@vetpro.co'}>`;
+
+    if (!transporter) {
+      console.warn('⚠️ [Mailer] No se envió confirmación de matrícula a', data.to, ': SMTP no configurado.');
+      return false;
+    }
+
+    const clinicText = data.clinicName || 'VetPro Red Médica';
+    const cityText = data.city ? ` (${data.city})` : '';
+
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Matrícula Profesional Certificada</title>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px; color: #1e293b; }
+        .container { max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 14px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); }
+        .header { background: linear-gradient(135deg, #065f46, #059669); padding: 36px 24px; text-align: center; color: #ffffff; }
+        .header h1 { margin: 10px 0 0; font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+        .logo-badge { display: inline-block; background: rgba(255, 255, 255, 0.25); padding: 4px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+        .content { padding: 32px 28px; }
+        .greeting { font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #0f172a; }
+        .text { font-size: 14px; line-height: 1.6; color: #475569; margin: 0 0 20px; }
+        .verified-card { background: #f0fdf4; border-radius: 10px; border: 1px solid #bbf7d0; border-left: 5px solid #059669; padding: 20px 22px; margin: 24px 0; }
+        .row { margin-bottom: 10px; font-size: 13.5px; }
+        .row:last-child { margin-bottom: 0; }
+        .label { color: #166534; font-weight: 600; }
+        .badge-val { color: #065f46; font-weight: 700; font-family: monospace; background: #ffffff; padding: 4px 10px; border-radius: 6px; border: 1px solid #86efac; display: inline-block; margin-left: 6px; font-size: 14px; }
+        .status-pill { display: inline-flex; align-items: center; gap: 4px; background: #dcfce7; color: #15803d; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 999px; margin-left: 6px; }
+        .btn-container { text-align: center; margin: 28px 0; }
+        .btn { display: inline-block; background: #059669; color: #ffffff !important; text-decoration: none; padding: 13px 32px; border-radius: 8px; font-size: 14px; font-weight: 600; letter-spacing: 0.2px; }
+        .features-list { background: #f8fafc; border-radius: 8px; padding: 16px 20px; margin: 20px 0; font-size: 13px; color: #475569; border: 1px solid #e2e8f0; }
+        .features-list li { margin-bottom: 8px; list-style-type: '✓ '; color: #0f172a; }
+        .features-list li:last-child { margin-bottom: 0; }
+        .notice { font-size: 12px; color: #64748b; background: #f0f9ff; border: 1px solid #e0f2fe; border-radius: 6px; padding: 12px 14px; line-height: 1.5; }
+        .footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 24px; text-align: center; font-size: 11.5px; color: #94a3b8; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <span class="logo-badge">Certificación Antifraude COMVEZCOL</span>
+          <h1>¡Matrícula Profesional Certificada!</h1>
+        </div>
+        <div class="content">
+          <p class="greeting">Estimado(a) Dr(a). ${data.firstName} ${data.lastName}:</p>
+          <p class="text">
+            Te confirmamos que tu <strong>Tarjeta / Matrícula Profesional de Medicina Veterinaria y Zootecnia</strong> ha sido verificada y certificada exitosamente en el sistema de <strong>VetPro Cloud</strong>.
+          </p>
+
+          <div class="verified-card">
+            <div class="row"><span class="label">Profesional:</span> <strong>Dr(a). ${data.firstName} ${data.lastName}</strong></div>
+            <div class="row"><span class="label">Matrícula COMVEZCOL:</span> <span class="badge-val">${data.professionalCard}</span></div>
+            <div class="row"><span class="label">Estado en Plataforma:</span> <span class="status-pill">✓ CERTIFICADO Y ACTIVO</span></div>
+            <div class="row"><span class="label">Centro / Clínica:</span> <strong>${clinicText}${cityText}</strong></div>
+          </div>
+
+          <div class="features-list">
+            <strong>Beneficios activos de tu certificación oficial:</strong>
+            <ul>
+              <li>Insignia de <strong>Médico Veterinario Verificado</strong> en tu perfil público del directorio web.</li>
+              <li>Validación normativa y antifraude en recetas médicas, consentimientos informados e historias clínicas.</li>
+              <li>Habilitación para agendamiento directo de consultas a domicilio y consultorio por parte de tutores.</li>
+            </ul>
+          </div>
+
+          <div class="btn-container">
+            <a href="${appUrl}/directorio" class="btn" target="_blank">Ver Directorio de Veterinarios</a>
+          </div>
+
+          <div class="notice">
+            🛡️ <strong>Aviso Legal y de Seguridad:</strong> Esta certificación avala que el número de matrícula ha sido auditado y no presenta duplicidades ni irregularidades en la plataforma nacional.
+          </div>
+        </div>
+        <div class="footer">
+          Mensaje generado automáticamente por el Servicio Antifraude de VetPro Cloud para ${data.to}.<br>
+          © ${new Date().getFullYear()} VetPro SaaS. Todos los derechos reservados.
+        </div>
+      </div>
+    </body>
+    </html>
+    `;
+
+    const textContent = `
+¡Matrícula Profesional Certificada en VetPro!
+
+Estimado(a) Dr(a). ${data.firstName} ${data.lastName}:
+Te confirmamos que tu Tarjeta / Matrícula Profesional de Medicina Veterinaria (${data.professionalCard}) ha sido certificada y validada exitosamente en VetPro Cloud.
+
+Detalles de la certificación:
+- Profesional: Dr(a). ${data.firstName} ${data.lastName}
+- Matrícula COMVEZCOL: ${data.professionalCard}
+- Estado: CERTIFICADO Y ACTIVO
+- Clínica / Operación: ${clinicText}${cityText}
+
+Tu perfil ya cuenta con la insignia oficial de verificación y está habilitado en el Directorio Web de Veterinarios:
+${appUrl}/directorio
+    `.trim();
+
+    try {
+      await transporter.sendMail({
+        from,
+        to: data.to,
+        ...(this.getBcc() ? { bcc: this.getBcc() } : {}),
+        subject: `🎓 Matrícula Profesional Certificada con Éxito — VetPro (${data.professionalCard})`,
+        text: textContent,
+        html: htmlContent
+      });
+
+      console.log(`✉️ [Mailer] Confirmación de matrícula COMVEZCOL enviada a: ${data.to}`);
+      return true;
+    } catch (error: any) {
+      console.error(`❌ [Mailer] Error al enviar confirmación de matrícula a ${data.to}:`, error.message);
       return false;
     }
   }

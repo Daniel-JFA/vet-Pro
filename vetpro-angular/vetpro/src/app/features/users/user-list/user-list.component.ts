@@ -51,6 +51,7 @@ export class UserListComponent implements OnInit {
     email: '',
     role: 'vet',
     branchId: null as string | null,
+    professionalCard: '',
   };
 
   vetCount = computed(() => this.users().filter((u) => u.role === 'vet').length);
@@ -161,6 +162,7 @@ export class UserListComponent implements OnInit {
       email: '',
       role: 'vet',
       branchId: this.auth.activeBranchId() || null,
+      professionalCard: '',
     };
     this.showCreateModal.set(true);
   }
@@ -171,7 +173,18 @@ export class UserListComponent implements OnInit {
       return;
     }
 
-    this.auth.createUser(this.newForm).subscribe({
+    const payload: any = {
+      firstName: this.newForm.firstName,
+      lastName: this.newForm.lastName,
+      email: this.newForm.email,
+      role: this.newForm.role,
+      branchId: this.newForm.branchId,
+    };
+    if (this.newForm.role === 'vet' && this.newForm.professionalCard?.trim()) {
+      payload.professionalCard = this.newForm.professionalCard.trim();
+    }
+
+    this.auth.createUser(payload).subscribe({
       next: (res) => {
         // El correo falló al enviarse: es la única vez que el enlace se expone,
         // para que el admin pueda entregarlo manualmente al empleado.

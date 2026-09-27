@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '../config/database.js';
 import { MailerService } from './mailer.service.js';
 import { TokenService } from './token.service.js';
+import { AntifraudService } from './antifraud.service.js';
 
 export const ACTIVATION_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
 export const PASSWORD_RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hora
@@ -29,7 +30,10 @@ export function toUserResponse(user: any) {
     address: user.address ?? null,
     departamentoCode: user.departamentoCode ?? null,
     municipioId: user.municipioId ?? null,
-    birthDate: user.birthDate ?? null
+    birthDate: user.birthDate ?? null,
+    professionalCard: user.vetProfile?.professionalCard ?? null,
+    verificationStatus: user.vetProfile?.verificationStatus ?? null,
+    verificationNotes: user.vetProfile?.verificationNotes ?? null
   };
 }
 
@@ -62,11 +66,30 @@ export class AuthService {
     nit?: string;
     documentType?: string;
     documentNumber?: string;
+    professionalCard?: string;
   }) {
     const email = data.email.trim().toLowerCase();
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
       throw { status: 409, message: 'El correo electrónico ya está registrado.' };
+    }
+
+    if (data.professionalCard) {
+      const cardNorm = data.professionalCard.trim();
+      const existingCard = await prisma.vetProfile.findFirst({
+        where: {
+          professionalCard: {
+            equals: cardNorm,
+            mode: 'insensitive'
+          }
+        }
+      });
+      if (existingCard) {
+        throw {
+          status: 409,
+          message: `Alerta antifraude: La tarjeta profesional COMVEZCOL "${cardNorm}" ya se encuentra registrada en el sistema. Si sospechas una suplantación de identidad, contacta de inmediato al soporte técnico.`
+        };
+      }
     }
 
     const municipio = await prisma.municipio.findUnique({ where: { id: data.municipioId } });
@@ -134,7 +157,24 @@ export class AuthService {
         data: defaultTests.map(t => ({ ...t, category: t.category as any, clinicId: clinic.id }))
       });
 
-      return { clinic, user };
+      let vetProfile = null;
+      const cardTrim = data.professionalCard ? data.professionalCard.trim() : null;
+
+      if (bType === 'independent_vet' || cardTrim) {
+        vetProfile = await tx.vetProfile.create({
+          data: {
+            userId: user.id,
+            clinicId: clinic.id,
+            professionalCard: cardTrim,
+            verificationStatus: 'pending',
+            verificationNotes: 'Inscripción en espera de certificación de matrícula profesional COMVEZCOL.',
+            city: municipio.nombre,
+            isPublic: false
+          }
+        });
+      }
+
+      return { clinic, user: { ...user, vetProfile } };
     }, { timeout: 15000 });
 
     const token = signToken(result.user);
@@ -148,7 +188,7 @@ export class AuthService {
   static async login(email: string, passwordPlain: string) {
     const user = await prisma.user.findUnique({
       where: { email: email.trim().toLowerCase() },
-      include: { clinic: true }
+      include: { clinic: true, vetProfile: true }
     });
 
     if (!user) {
@@ -185,7 +225,7 @@ export class AuthService {
   static async activateAccount(token: string, newPasswordPlain: string) {
     const user = await prisma.user.findUnique({
       where: { activationToken: token },
-      include: { clinic: true }
+      include: { clinic: true, vetProfile: true }
     });
 
     if (!user || !user.activationTokenExpiresAt || user.activationTokenExpiresAt < new Date()) {
@@ -203,7 +243,7 @@ export class AuthService {
         activationToken: null,
         activationTokenExpiresAt: null
       },
-      include: { clinic: true }
+      include: { clinic: true, vetProfile: true }
     });
 
     return {
@@ -247,7 +287,7 @@ export class AuthService {
   static async getUserProfile(userId: string) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      include: { clinic: true }
+      include: { clinic: true, vetProfile: true }
     });
 
     if (!user) {
@@ -267,10 +307,27 @@ export class AuthService {
     address: string;
     municipioId: string;
     birthDate?: string | null;
+    professionalCard?: string | null;
   }) {
     const municipio = await prisma.municipio.findUnique({ where: { id: data.municipioId } });
     if (!municipio) {
       throw { status: 400, message: 'El municipio seleccionado no es válido.' };
+    }
+
+    if (data.professionalCard) {
+      const cardNorm = data.professionalCard.trim();
+      const existingCard = await prisma.vetProfile.findFirst({
+        where: {
+          professionalCard: { equals: cardNorm, mode: 'insensitive' },
+          userId: { not: userId }
+        }
+      });
+      if (existingCard) {
+        throw {
+          status: 409,
+          message: `Alerta antifraude: La tarjeta profesional COMVEZCOL "${cardNorm}" ya se encuentra registrada por otro médico veterinario.`
+        };
+      }
     }
 
     const updated = await prisma.user.update({
@@ -284,10 +341,34 @@ export class AuthService {
         municipioId: municipio.id,
         birthDate: data.birthDate ? new Date(data.birthDate) : null,
         profileCompleted: true
+      },
+      include: {
+        clinic: true,
+        vetProfile: true
       }
     });
 
-    return toUserResponse(updated);
+    let vetProfile = updated.vetProfile;
+    if (data.professionalCard) {
+      const cardNorm = data.professionalCard.trim();
+      vetProfile = await prisma.vetProfile.upsert({
+        where: { userId },
+        update: {
+          professionalCard: cardNorm
+        },
+        create: {
+          userId,
+          clinicId: updated.clinicId,
+          professionalCard: cardNorm,
+          verificationStatus: 'pending',
+          verificationNotes: 'Tarjeta profesional actualizada en perfil. Pendiente de verificación antifraude ante COMVEZCOL.',
+          city: municipio.nombre,
+          isPublic: false
+        }
+      });
+    }
+
+    return toUserResponse({ ...updated, vetProfile });
   }
 
   static async getClinicConfig(clinicId: string) {
@@ -372,11 +453,27 @@ export class AuthService {
     email: string;
     role: string;
     branchId?: string | null;
+    professionalCard?: string;
   }, appUrl: string) {
     const email = data.email.trim().toLowerCase();
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
       throw { status: 400, message: 'Ya existe un usuario registrado con este correo electrónico.' };
+    }
+
+    if (data.professionalCard) {
+      const cardNorm = data.professionalCard.trim();
+      const existingCard = await prisma.vetProfile.findFirst({
+        where: {
+          professionalCard: { equals: cardNorm, mode: 'insensitive' }
+        }
+      });
+      if (existingCard) {
+        throw {
+          status: 409,
+          message: `Alerta antifraude: La tarjeta profesional COMVEZCOL "${cardNorm}" ya se encuentra registrada por otro médico veterinario.`
+        };
+      }
     }
 
     if (data.branchId) {
@@ -405,6 +502,19 @@ export class AuthService {
         branch: { select: { id: true, name: true } }
       }
     });
+
+    if (data.role === 'vet' || data.professionalCard) {
+      await prisma.vetProfile.create({
+        data: {
+          userId: newUser.id,
+          clinicId,
+          professionalCard: data.professionalCard ? data.professionalCard.trim() : null,
+          verificationStatus: 'pending',
+          verificationNotes: 'Inscripción de profesional del equipo. Pendiente de verificación antifraude ante COMVEZCOL.',
+          isPublic: false
+        }
+      });
+    }
 
     const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
     const activationLink = `${appUrl}/auth/activate?token=${activationToken}`;

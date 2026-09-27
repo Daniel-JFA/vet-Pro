@@ -140,7 +140,7 @@ import { PrivacyModalComponent } from '../../../shared/components/privacy-modal/
             </div>
           }
 
-          <!-- Vet Independiente: documento de identidad personal obligatorio -->
+          <!-- Vet Independiente: documento de identidad personal y tarjeta profesional obligatorios -->
           @if (selectedType() === 'independent_vet') {
             <div class="row-2">
               <div class="field" style="flex: 1;">
@@ -155,6 +155,28 @@ import { PrivacyModalComponent } from '../../../shared/components/privacy-modal/
               <div class="field" style="flex: 2;">
                 <label>Número de Documento *</label>
                 <input type="text" formControlName="documentNumber" placeholder="Ej: 1035800000" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Número de Tarjeta Profesional (COMVEZCOL) *</label>
+              <input
+                type="text"
+                formControlName="professionalCard"
+                placeholder="Ej: COMVEZCOL-34567 o 34567"
+              />
+              <span class="field-hint">
+                Matrícula oficial expedida por el Consejo Profesional de Medicina Veterinaria y Zootecnia.
+              </span>
+            </div>
+
+            <div class="antifraud-notice">
+              <span class="antifraud-icon">🛡️</span>
+              <div class="antifraud-text">
+                <strong>Revisión Antifraude y Cotejo Oficial COMVEZCOL</strong>
+                <p>
+                  Por seguridad de los tutores y cumplimiento legal, tu matrícula profesional será auditada ante el registro nacional antes de habilitar tu perfil público y expedición de recetas.
+                </p>
               </div>
             </div>
           }
@@ -361,6 +383,39 @@ import { PrivacyModalComponent } from '../../../shared/components/privacy-modal/
           }
         }
       }
+      .field-hint {
+        font-size: 11px;
+        color: var(--text-color-secondary, #64748b);
+        margin-top: -2px;
+      }
+      .antifraud-notice {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        padding: 12px 14px;
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-radius: 8px;
+        margin: 10px 0 14px;
+        .antifraud-icon {
+          font-size: 20px;
+          line-height: 1;
+        }
+        .antifraud-text {
+          strong {
+            display: block;
+            font-size: 12px;
+            color: #166534;
+            margin-bottom: 2px;
+          }
+          p {
+            margin: 0;
+            font-size: 11px;
+            color: #15803d;
+            line-height: 1.4;
+          }
+        }
+      }
       .consent-checkbox-field {
         margin: 16px 0 12px;
         .checkbox-label {
@@ -423,6 +478,7 @@ export class RegisterComponent implements OnInit {
     nit: [''],
     documentType: ['CC'],
     documentNumber: [''],
+    professionalCard: [''],
     dataProcessingConsent: [false, [Validators.requiredTrue]],
   });
 
@@ -439,16 +495,20 @@ export class RegisterComponent implements OnInit {
   private applyTypeValidators(type: 'clinic' | 'independent_vet') {
     const nitCtrl = this.form.get('nit');
     const docNumberCtrl = this.form.get('documentNumber');
+    const cardCtrl = this.form.get('professionalCard');
 
     if (type === 'clinic') {
       nitCtrl?.setValidators([Validators.required]);
       docNumberCtrl?.clearValidators();
+      cardCtrl?.clearValidators();
     } else {
       nitCtrl?.clearValidators();
       docNumberCtrl?.setValidators([Validators.required]);
+      cardCtrl?.setValidators([Validators.required, Validators.minLength(3)]);
     }
     nitCtrl?.updateValueAndValidity();
     docNumberCtrl?.updateValueAndValidity();
+    cardCtrl?.updateValueAndValidity();
   }
 
   onDepartamentoChange() {
@@ -492,6 +552,10 @@ export class RegisterComponent implements OnInit {
         documentNumber:
           this.selectedType() === 'independent_vet'
             ? val.documentNumber?.trim() || undefined
+            : undefined,
+        professionalCard:
+          this.selectedType() === 'independent_vet'
+            ? val.professionalCard?.trim() || undefined
             : undefined,
       })
       .subscribe({

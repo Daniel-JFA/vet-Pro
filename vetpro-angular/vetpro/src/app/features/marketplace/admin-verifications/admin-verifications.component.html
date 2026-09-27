@@ -68,7 +68,14 @@
                 <div class="vet-name-cell">
                   <strong>Dr(a). {{ p.user.firstName }} {{ p.user.lastName }}</strong>
                   <span class="vet-email">{{ p.user.email }}</span>
-                  <span class="vet-phone">{{ p.user.phone || 'Sin teléfono' }}</span>
+                  <div class="vet-meta-tags">
+                    @if (p.user.documentNumber) {
+                      <span class="doc-badge-mini" title="Click para copiar número de documento" (click)="copyToClipboard(p.user.documentNumber, 'Documento')">
+                        {{ p.user.documentType || 'CC' }}: {{ p.user.documentNumber }}
+                      </span>
+                    }
+                    <span class="vet-phone">{{ p.user.phone || 'Sin teléfono' }}</span>
+                  </div>
                 </div>
               </td>
               <td>
@@ -76,11 +83,30 @@
                 <span class="clinic-city">{{ p.city || p.clinic.city || 'Bogotá' }}</span>
               </td>
               <td>
-                @if (p.professionalCard) {
-                  <span class="card-badge">{{ p.professionalCard }}</span>
-                } @else {
-                  <span class="text-muted">No especificada</span>
-                }
+                <div class="card-cell">
+                  @if (p.professionalCard) {
+                    <div class="card-badge-row">
+                      <span class="card-badge" (click)="copyToClipboard(p.professionalCard, 'Tarjeta')" title="Click para copiar tarjeta">
+                        {{ p.professionalCard }}
+                      </span>
+                    </div>
+                    <a
+                      href="https://www.comvezcol.org/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="comvezcol-lookup-link"
+                      title="Abrir portal oficial de COMVEZCOL para cotejar profesional"
+                    >
+                      <span class="material-symbols-outlined" style="font-size: 13px;">open_in_new</span>
+                      Cotejar en COMVEZCOL
+                    </a>
+                  } @else {
+                    <span class="text-danger">⚠️ Sin tarjeta registrada</span>
+                  }
+                  @if (p.antifraud?.hasDuplicate) {
+                    <span class="badge-fraud-warning">⚠️ Alerta: Matrícula Duplicada</span>
+                  }
+                </div>
               </td>
               <td>
                 <div class="docs-links">
@@ -187,15 +213,32 @@
             Profesional: <strong>Dr(a). {{ p.user.firstName }} {{ p.user.lastName }}</strong>
             ({{ p.clinic.name }})
           </p>
-          <p>Tarjeta Declarada: <strong>{{ p.professionalCard || 'Sin especificar' }}</strong></p>
+
+          <div class="audit-summary-box">
+            <div class="audit-row">
+              <span>Documento de Identidad:</span>
+              <strong>{{ p.user.documentType || 'CC' }} {{ p.user.documentNumber || 'No registrado' }}</strong>
+            </div>
+            <div class="audit-row">
+              <span>Tarjeta Profesional COMVEZCOL:</span>
+              <strong class="highlight-card">{{ p.professionalCard || 'Sin especificar' }}</strong>
+            </div>
+            <div class="audit-row">
+              <span>Cotejo en Ente Regulador:</span>
+              <a href="https://www.comvezcol.org/" target="_blank" rel="noopener noreferrer" class="comvezcol-btn-external">
+                <span class="material-symbols-outlined">verified</span>
+                Abrir COMVEZCOL.org
+              </a>
+            </div>
+          </div>
 
           <div class="form-group">
-            <label>Notas de auditoría / Retroalimentación:</label>
+            <label>Notas de auditoría antifraude / Justificación:</label>
             <textarea
               [(ngModel)]="notes"
               rows="3"
               class="form-control"
-              placeholder="Explica el motivo de la aprobación o los requisitos faltantes..."
+              placeholder="Explica el resultado del cotejo con el registro oficial de COMVEZCOL..."
             ></textarea>
           </div>
         </div>

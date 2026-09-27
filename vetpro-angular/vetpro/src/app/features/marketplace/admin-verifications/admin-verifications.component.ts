@@ -50,13 +50,20 @@ export class AdminVerificationsComponent implements OnInit {
     return list.filter((p) => p.verificationStatus === status);
   }
 
+  copyToClipboard(text: string, label: string = 'Texto'): void {
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      this.toast.success(`${label} copiado al portapapeles`);
+    });
+  }
+
   openActionModal(profile: any, type: 'verify' | 'reject'): void {
     this.selectedProfile.set(profile);
     this.actionType.set(type);
     this.notes =
       type === 'verify'
-        ? 'Tarjeta profesional COMVEZCOL validada en el registro nacional.'
-        : 'Documento ilegible o tarjeta profesional no coincide con los datos proporcionados.';
+        ? 'Tarjeta profesional COMVEZCOL validada exitosamente en el registro nacional.'
+        : 'Inconsistencia en datos de tarjeta profesional o sin registro vigente ante COMVEZCOL.';
   }
 
   closeActionModal(): void {

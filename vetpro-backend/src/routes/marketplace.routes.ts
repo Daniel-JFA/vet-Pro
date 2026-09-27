@@ -15,6 +15,8 @@ import {
   ServiceModality
 } from '@prisma/client';
 import { WompiService } from '../services/wompi.service.js';
+import { AntifraudService } from '../services/antifraud.service.js';
+import { MailerService } from '../services/mailer.service.js';
 
 const router = Router();
 
@@ -678,17 +680,50 @@ router.put('/profile/me', authMiddleware as any, async (req: AuthRequest, res: R
     const clinicId = req.user!.clinicId;
     const body = UpdateProfileSchema.parse(req.body);
 
+    if (body.professionalCard) {
+      const cardNorm = body.professionalCard.trim();
+      const existing = await prisma.vetProfile.findFirst({
+        where: {
+          professionalCard: { equals: cardNorm, mode: 'insensitive' },
+          userId: { not: userId }
+        }
+      });
+      if (existing) {
+        res.status(409).json({
+          error: `Alerta antifraude: La tarjeta profesional COMVEZCOL "${cardNorm}" ya se encuentra registrada por otro usuario en la plataforma.`
+        });
+        return;
+      }
+    }
+
+    const currentProfile = await prisma.vetProfile.findUnique({ where: { userId } });
+    const cardChanged =
+      body.professionalCard &&
+      currentProfile?.professionalCard &&
+      body.professionalCard.trim().toLowerCase() !== currentProfile.professionalCard.trim().toLowerCase();
+
+    const updateData: any = {
+      ...body,
+      updatedAt: new Date()
+    };
+
+    if (cardChanged) {
+      updateData.verificationStatus = VerificationStatus.pending;
+      updateData.isPublic = false;
+      updateData.verificationNotes = 'Tarjeta profesional modificada. Requiere nueva verificación antifraude ante COMVEZCOL.';
+      updateData.verifiedAt = null;
+      updateData.verifiedBy = null;
+    }
+
     const profile = await prisma.vetProfile.upsert({
       where: { userId },
-      update: {
-        ...body,
-        updatedAt: new Date()
-      },
+      update: updateData,
       create: {
         userId,
         clinicId,
         ...body,
-        verificationStatus: VerificationStatus.pending
+        verificationStatus: VerificationStatus.pending,
+        verificationNotes: 'Inscripción en espera de auditoría antifraude COMVEZCOL.'
       }
     });
 
@@ -847,7 +882,9 @@ router.get(
               lastName: true,
               email: true,
               phone: true,
-              avatarUrl: true
+              avatarUrl: true,
+              documentType: true,
+              documentNumber: true
             }
           },
           clinic: {
@@ -859,7 +896,45 @@ router.get(
         }
       });
 
-      res.json(profiles);
+      const enriched = await Promise.all(
+        profiles.map(async (p) => {
+          let hasDuplicate = false;
+          if (p.professionalCard) {
+            const dups = await prisma.vetProfile.count({
+              where: {
+                professionalCard: { equals: p.professionalCard.trim(), mode: 'insensitive' },
+                id: { not: p.id }
+              }
+            });
+            hasDuplicate = dups > 0;
+          }
+
+          const hasValidCard = Boolean(p.professionalCard && p.professionalCard.trim().length >= 3);
+          const hasDocument = Boolean(p.cardDocumentUrl || p.idDocumentUrl);
+          const hasIdNumber = Boolean(p.user.documentNumber);
+
+          let riskLevel: 'low' | 'medium' | 'high' = 'low';
+          if (hasDuplicate || !hasValidCard || !hasIdNumber) {
+            riskLevel = 'high';
+          } else if (!hasDocument) {
+            riskLevel = 'medium';
+          }
+
+          return {
+            ...p,
+            antifraud: {
+              hasDuplicate,
+              hasValidCard,
+              hasDocument,
+              hasIdNumber,
+              riskLevel,
+              comvezcolQueryUrl: 'https://www.comvezcol.org/'
+            }
+          };
+        })
+      );
+
+      res.json(enriched);
     } catch (err: any) {
       res.status(500).json({ error: 'Error al consultar solicitudes de verificación' });
     }
@@ -893,6 +968,8 @@ router.put(
         dataToUpdate.verifiedBy = req.user!.id;
         if (status === VerificationStatus.verified) {
           dataToUpdate.isPublic = true;
+        } else if (status === VerificationStatus.rejected) {
+          dataToUpdate.isPublic = false;
         }
       }
       if (isFeatured !== undefined) {
@@ -901,8 +978,23 @@ router.put(
 
       const profile = await prisma.vetProfile.update({
         where: { id },
-        data: dataToUpdate
+        data: dataToUpdate,
+        include: {
+          user: true,
+          clinic: true
+        }
       });
+
+      if (status === VerificationStatus.verified && profile.user?.email && profile.professionalCard) {
+        MailerService.sendProfessionalCardVerifiedEmail({
+          to: profile.user.email,
+          firstName: profile.user.firstName,
+          lastName: profile.user.lastName,
+          professionalCard: profile.professionalCard,
+          clinicName: profile.clinic?.name,
+          city: profile.city || profile.clinic?.city || undefined
+        }).catch((err: any) => console.error('Error enviando correo de certificación COMVEZCOL:', err));
+      }
 
       res.json({
         message: 'Solicitud actualizada con éxito',
@@ -914,6 +1006,28 @@ router.put(
         return;
       }
       res.status(500).json({ error: 'Error al actualizar estado de verificación' });
+    }
+  }
+);
+
+/**
+ * POST /api/v1/marketplace/admin/verifications/auto-verify-all
+ * Proceso para certificar automáticamente a todos los veterinarios registrados
+ * con matrícula válida y notificarles vía correo electrónico.
+ */
+router.post(
+  '/admin/verifications/auto-verify-all',
+  authMiddleware as any,
+  roleMiddleware(['admin']),
+  async (_req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      const summary = await AntifraudService.verifyAllRegisteredVets();
+      res.json({
+        message: 'Proceso de certificación automática COMVEZCOL completado.',
+        summary
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: 'Error durante la verificación automática masiva.' });
     }
   }
 );
