@@ -46,6 +46,34 @@
     background: radial-gradient(circle, hsla(162, 72%, 46%, 0.22) 0%, transparent 70%);
     pointer-events: none;
   }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #94a3b8;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 20px;
+    transition: all 0.2s ease;
+    position: relative;
+    z-index: 2;
+
+    span.material-symbols-outlined {
+      font-size: 18px;
+      transition: transform 0.2s ease;
+    }
+
+    &:hover {
+      color: hsl(162, 72%, 52%);
+      transform: translateX(-3px);
+
+      span.material-symbols-outlined {
+        transform: translateX(-2px);
+      }
+    }
+  }
 }
 
 /* ── CABECERA ─────────────────────────────────────────── */

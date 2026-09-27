@@ -12,6 +12,11 @@ import { PrivacyModalComponent } from '../../../shared/components/privacy-modal/
   template: `
     <div class="login-page">
       <div class="login-card">
+        <a routerLink="/landing" class="back-link">
+          <span class="material-symbols-outlined">arrow_back</span>
+          <span>Volver al inicio</span>
+        </a>
+
         <div class="logo">
           <span class="logo-mark">V</span>
           <span class="logo-name">VetPro</span>
@@ -84,6 +89,26 @@ import { PrivacyModalComponent } from '../../../shared/components/privacy-modal/
         border-radius: 12px;
         padding: 40px;
         width: 360px;
+      }
+      .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-color-secondary, #64748b);
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 20px;
+        transition: color 0.2s ease, transform 0.2s ease;
+
+        span.material-symbols-outlined {
+          font-size: 18px;
+        }
+
+        &:hover {
+          color: var(--primary-color);
+          transform: translateX(-3px);
+        }
       }
       .logo {
         display: flex;

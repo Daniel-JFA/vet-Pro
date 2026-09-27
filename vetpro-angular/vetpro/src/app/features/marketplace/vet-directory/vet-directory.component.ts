@@ -1,7 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
   MarketplaceService,
   PublicVetItem,
@@ -14,7 +14,7 @@ import { ToastService } from '../../../core/services/toast.service';
 @Component({
   selector: 'app-vet-directory',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './vet-directory.component.html',
   styleUrls: ['./vet-directory.component.scss']
 })

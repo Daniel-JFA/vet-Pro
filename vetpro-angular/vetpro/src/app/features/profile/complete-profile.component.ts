@@ -12,6 +12,13 @@ import { GeoService, Departamento, Municipio } from '../../core/services/geo.ser
   template: `
     <div class="complete-profile-page">
       <div class="profile-card">
+        <div class="card-top-bar">
+          <button type="button" class="back-link-btn" (click)="logoutAndExit()">
+            <span class="material-symbols-outlined">arrow_back</span>
+            <span>Volver al inicio</span>
+          </button>
+        </div>
+
         <div class="logo">
           <span class="logo-mark">V</span>
           <span class="logo-name">VetPro</span>
@@ -109,6 +116,11 @@ import { GeoService, Departamento, Municipio } from '../../core/services/geo.ser
               <span class="material-symbols-outlined">arrow_forward</span>
             }
           </button>
+
+          <button type="button" class="btn-exit" (click)="logoutAndExit()">
+            <span class="material-symbols-outlined">logout</span>
+            <span>Cerrar sesión y volver más tarde</span>
+          </button>
         </div>
       </div>
     </div>
@@ -137,6 +149,36 @@ import { GeoService, Departamento, Municipio } from '../../core/services/geo.ser
         display: flex;
         flex-direction: column;
         gap: 16px;
+      }
+
+      .card-top-bar {
+        display: flex;
+        align-items: center;
+        margin-bottom: -6px;
+      }
+
+      .back-link-btn {
+        background: transparent;
+        border: none;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-color-secondary, #64748b);
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        font-family: inherit;
+        transition: color 0.2s ease, transform 0.2s ease;
+
+        span.material-symbols-outlined {
+          font-size: 18px;
+        }
+
+        &:hover {
+          color: var(--primary-color, #2563eb);
+          transform: translateX(-3px);
+        }
       }
 
       .logo {
@@ -227,7 +269,10 @@ import { GeoService, Departamento, Municipio } from '../../core/services/geo.ser
       }
 
       .actions {
-        margin-top: 4px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 6px;
       }
 
       .submit-btn {
@@ -258,6 +303,34 @@ import { GeoService, Departamento, Municipio } from '../../core/services/geo.ser
         &:disabled {
           opacity: 0.6;
           cursor: not-allowed;
+        }
+      }
+
+      .btn-exit {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        padding: 10px;
+        background: transparent;
+        border: 1px solid var(--surface-border, #e2e8f0);
+        color: var(--text-color-secondary, #64748b);
+        border-radius: 7px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.2s ease;
+
+        span.material-symbols-outlined {
+          font-size: 18px;
+        }
+
+        &:hover {
+          background: #fef2f2;
+          color: #dc2626;
+          border-color: #fca5a5;
         }
       }
     `,
@@ -346,5 +419,10 @@ export class CompleteProfileComponent implements OnInit {
           );
         },
       });
+  }
+
+  logoutAndExit() {
+    this.auth.logout();
+    this.router.navigate(['/landing']);
   }
 }

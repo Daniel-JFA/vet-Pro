@@ -18,7 +18,16 @@ export class LandingComponent {
   fullSpeech =
     'Paciente Toby, canino Golden Retriever de 5 años. Presenta cojera en miembro posterior derecho después de correr en el parque. Al examen físico hay dolor moderado y test de Cajón Anterior positivo. Sospecha de ruptura de ligamento cruzado. Tratamiento: reposo absoluto por 15 días y Meloxicam 0.1 mg cada 24 horas.';
 
+  mobileMenuOpen = signal(false);
   openFaq = signal<number | null>(null);
+
+  toggleMobileMenu() {
+    this.mobileMenuOpen.update((v) => !v);
+  }
+
+  closeMobileMenu() {
+    this.mobileMenuOpen.set(false);
+  }
 
   faqList = signal([
     {

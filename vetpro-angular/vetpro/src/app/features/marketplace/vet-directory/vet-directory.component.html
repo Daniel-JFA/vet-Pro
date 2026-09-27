@@ -1,4 +1,30 @@
 <div class="directory-container">
+  <!-- ── BARRA SUPERIOR DE NAVEGACIÓN Y RETORNO ── -->
+  <nav class="directory-top-nav">
+    <div class="nav-left">
+      <a routerLink="/landing" class="btn-back-landing">
+        <span class="material-symbols-outlined">arrow_back</span>
+        <span>Volver al Inicio</span>
+      </a>
+      <div class="nav-divider"></div>
+      <a routerLink="/landing" class="nav-brand">
+        <span class="brand-logo-mark">V</span>
+        <span class="brand-name">VetPro <span class="brand-sub">Directorio</span></span>
+      </a>
+    </div>
+
+    <div class="nav-right">
+      <a routerLink="/portal/login" class="nav-link-item">
+        <span class="material-symbols-outlined">pets</span>
+        <span>Portal Tutor</span>
+      </a>
+      <a routerLink="/auth/login" class="nav-btn-vet">
+        <span class="material-symbols-outlined">login</span>
+        <span>Soy Veterinario / Ingresar</span>
+      </a>
+    </div>
+  </nav>
+
   <!-- Hero Section -->
   <header class="directory-hero">
     <div class="hero-content">

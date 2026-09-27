@@ -1,17 +1,21 @@
 import { Component, inject, signal } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { PlatformAuthService } from '../../core/services/platform-auth.service';
 
 @Component({
   selector: 'app-platform-login',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, RouterLink],
   template: `
     <div class="platform-login-page">
       <div class="login-card glass-effect animate-fade-in">
         <div class="card-glow"></div>
+        <a routerLink="/landing" class="back-link">
+          <span class="material-symbols-outlined">arrow_back</span>
+          <span>Volver al sitio principal</span>
+        </a>
         <span class="material-symbols-outlined shield-icon">shield_person</span>
         <h2>Super Administración</h2>
         <p class="subtitle">Panel de plataforma VetPro — visión general de todos los tenants.</p>
@@ -94,6 +98,33 @@ import { PlatformAuthService } from '../../core/services/platform-auth.service';
           height: 120px;
           background: radial-gradient(circle, hsla(255, 70%, 60%, 0.25) 0%, transparent 70%);
           pointer-events: none;
+        }
+
+        .back-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          color: #94a3b8;
+          text-decoration: none;
+          font-size: 13px;
+          font-weight: 500;
+          margin-bottom: 4px;
+          transition: all 0.2s ease;
+          align-self: flex-start;
+
+          span.material-symbols-outlined {
+            font-size: 18px;
+            transition: transform 0.2s ease;
+          }
+
+          &:hover {
+            color: #a78bfa;
+            transform: translateX(-3px);
+
+            span.material-symbols-outlined {
+              transform: translateX(-2px);
+            }
+          }
         }
       }
       .shield-icon {

@@ -1,13 +1,13 @@
 import { Component, inject, signal } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { TutorAuthService } from '../../../core/services/tutor-auth.service';
 
 @Component({
   selector: 'app-portal-login',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, RouterLink],
   templateUrl: './portal-login.component.html',
   styleUrl: './portal-login.component.scss',
 })

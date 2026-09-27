@@ -7,54 +7,133 @@
         </div>
         <div class="nav-links">
           <a href="#features">Características</a>
-          <a href="#ai-demo">Dictado en Campo</a>
+          <a href="#directorio-section" class="nav-link-directorio">
+            Directorio Vets <span class="badge-new">Nuevo</span>
+          </a>
+          <a href="#ai-demo">Dictado IA</a>
           <a href="#tutor-portal">Portal de Tutores</a>
-          <a routerLink="/directorio">Directorio Vets 🩺</a>
           <a href="#pricing">Planes</a>
           <a href="#faq">Preguntas</a>
         </div>
         <div class="nav-actions">
-          <a routerLink="/directorio" class="btn-secondary-nav" style="border-color: rgba(52, 211, 153, 0.4); color: #34d399;">
-            <span class="material-symbols-outlined">storefront</span> Buscar Vet
+          <a routerLink="/directorio" class="btn-directory-nav">
+            <span class="material-symbols-outlined">search</span> Buscar Veterinario
           </a>
           <a routerLink="/portal/login" class="btn-secondary-nav">
-            <span class="material-symbols-outlined">tactic</span> Portal Tutor
+            <span class="material-symbols-outlined">pets</span> Portal Tutor
           </a>
           <a routerLink="/auth/login" class="btn-primary-nav">
             <span class="material-symbols-outlined">login</span> Ingresar Médico
           </a>
+          <button class="mobile-toggle-btn" (click)="toggleMobileMenu()" aria-label="Menú principal">
+            <span class="material-symbols-outlined">{{ mobileMenuOpen() ? 'close' : 'menu' }}</span>
+          </button>
         </div>
       </nav>
+
+      <!-- ── MOBILE MENU DRAWER ── -->
+      @if (mobileMenuOpen()) {
+        <div class="mobile-menu-drawer animate-fade-in">
+          <div class="mobile-menu-links">
+            <a href="#features" (click)="closeMobileMenu()">
+              <span class="material-symbols-outlined">featured_play_list</span> Características
+            </a>
+            <a href="#directorio-section" (click)="closeMobileMenu()" class="mobile-highlight">
+              <span class="material-symbols-outlined">verified</span> Directorio Vets <span class="badge-new">Nuevo</span>
+            </a>
+            <a href="#ai-demo" (click)="closeMobileMenu()">
+              <span class="material-symbols-outlined">mic</span> Dictado Clínico IA
+            </a>
+            <a href="#tutor-portal" (click)="closeMobileMenu()">
+              <span class="material-symbols-outlined">devices</span> Portal de Tutores (PWA)
+            </a>
+            <a href="#pricing" (click)="closeMobileMenu()">
+              <span class="material-symbols-outlined">sell</span> Planes y Precios
+            </a>
+            <a href="#faq" (click)="closeMobileMenu()">
+              <span class="material-symbols-outlined">help</span> Preguntas Frecuentes
+            </a>
+          </div>
+          <div class="mobile-menu-actions">
+            <a routerLink="/directorio" (click)="closeMobileMenu()" class="btn-mobile-directory">
+              <span class="material-symbols-outlined">search</span> Buscar Veterinario en Directorio
+            </a>
+            <a routerLink="/portal/login" (click)="closeMobileMenu()" class="btn-mobile-secondary">
+              <span class="material-symbols-outlined">pets</span> Acceso Portal Tutor
+            </a>
+            <a routerLink="/auth/login" (click)="closeMobileMenu()" class="btn-mobile-primary">
+              <span class="material-symbols-outlined">login</span> Ingresar como Médico / Clínica
+            </a>
+          </div>
+        </div>
+      }
 
       <!-- ── HERO SECTION ── -->
       <header class="hero-section">
         <div class="hero-content">
           <div class="hero-badge animate-fade-in">
-            <span class="sparkle">✦</span> VetPro Domiciliario — Edición Medellín 2026
+            <span class="sparkle">✦</span> Plataforma Veterinaria & Directorio Nacional 2026
           </div>
           <h1 class="hero-title animate-slide-up">
             La plataforma definitiva para <br />
-            <span class="gradient-text">Veterinarios a Domicilio</span>
+            <span class="gradient-text">Veterinarios y Clínicas</span> en Colombia
           </h1>
           <p class="hero-subtitle animate-slide-up">
-            El primer software SaaS diseñado exclusivamente para profesionales itinerantes. Optimiza
-            tus rutas de visita en Medellín, redacta expedientes SOAP desde tu celular en casa del
-            paciente y envía recetas digitales por WhatsApp al instante. Todo en una hermosa
-            interfaz ultrarrápida.
+            El ecosistema clínico integral para profesionales independientes, domiciliarios y clínicas. Optimiza expedientes SOAP con IA en 0.0ms, gestiona rutas en vivo, despacha recetas por WhatsApp y conecta con miles de tutores a través de nuestro Directorio Nacional Verificado ante COMVEZCOL con pasarela de pagos Wompi.
           </p>
           <div class="hero-ctas animate-slide-up">
-            <a routerLink="/auth/login" class="btn-hero-primary">
-              <span class="material-symbols-outlined">directions_car</span> Probar Demo de Rutas
+            <a routerLink="/directorio" class="btn-hero-primary">
+              <span class="material-symbols-outlined">travel_explore</span> Explorar Directorio Médico
+            </a>
+            <a routerLink="/auth/register" class="btn-hero-accent">
+              <span class="material-symbols-outlined">add_business</span> Registrar mi Clínica
             </a>
             <a href="#ai-demo" class="btn-hero-secondary">
               <span class="material-symbols-outlined">play_circle</span> Probar Transcriptor IA
             </a>
           </div>
 
-          <div class="hero-trust">
-            <span>✓ Medellín & AMVA</span>
-            <span>✓ Operación Offline / Resiliente</span>
-            <span>✓ Ley 1581 (Habeas Data)</span>
+          <!-- Trust Badges & Normative Compliance -->
+          <div class="hero-trust-badges animate-slide-up">
+            <div class="trust-badge-item">
+              <span class="material-symbols-outlined check-icon">verified</span>
+              <span>Matrícula COMVEZCOL Verificada</span>
+            </div>
+            <div class="trust-badge-item">
+              <span class="material-symbols-outlined check-icon">gavel</span>
+              <span>Habeas Data Ley 1581</span>
+            </div>
+            <div class="trust-badge-item">
+              <span class="material-symbols-outlined check-icon">credit_card</span>
+              <span>Pagos Seguros Wompi Bancolombia</span>
+            </div>
+            <div class="trust-badge-item">
+              <span class="material-symbols-outlined check-icon">wifi_off</span>
+              <span>Operación Offline Resiliente</span>
+            </div>
+          </div>
+
+          <!-- Impact Metrics Strip -->
+          <div class="hero-metrics-strip animate-slide-up">
+            <div class="metric-box">
+              <span class="metric-number">+2,500</span>
+              <span class="metric-label">Mascotas Atendidas</span>
+            </div>
+            <div class="metric-divider"></div>
+            <div class="metric-box">
+              <span class="metric-number">100%</span>
+              <span class="metric-label">Veterinarios Certificados</span>
+            </div>
+            <div class="metric-divider"></div>
+            <div class="metric-box">
+              <span class="metric-number">99.8%</span>
+              <span class="metric-label">Satisfacción Tutores</span>
+            </div>
+            <div class="metric-divider"></div>
+            <div class="metric-box">
+              <span class="metric-number">&lt; 3 min</span>
+              <span class="metric-label">Agendamiento Web Ágil</span>
+            </div>
           </div>
         </div>
 
@@ -193,6 +272,189 @@
               Firma digital de consentimientos informados y resguardo estricto de historiales
               médicos confidenciales de acuerdo a la legislación colombiana de protección de datos.
             </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── SECCIÓN DESTACADA: DIRECTORIO & MARKETPLACE DE VETERINARIOS ── -->
+      <section id="directorio-section" class="directorio-showcase-section">
+        <div class="section-header">
+          <div class="section-header-badge">
+            <span class="material-symbols-outlined">verified</span>
+            <span>DIRECTORIO NACIONAL VETPRO 2026</span>
+          </div>
+          <h2>Encuentra y Reserva con Veterinarios Certificados</h2>
+          <p>
+            Conectamos a tutores de mascotas con los mejores médicos veterinarios y especialistas de Colombia.
+            Todos los profesionales cuentan con matrícula oficial auditada ante COMVEZCOL, agenda en tiempo real y pasarela de pago seguro Wompi.
+          </p>
+        </div>
+
+        <div class="showcase-container">
+          <!-- Demo Cards Grid -->
+          <div class="showcase-cards-grid">
+            <!-- Vet Card 1 -->
+            <div class="vet-showcase-card featured-glow">
+              <div class="card-badge-top">
+                <span class="material-symbols-outlined">stars</span> Recomendada
+              </div>
+              <div class="vet-card-header">
+                <div class="vet-avatar-wrapper avatar-female">
+                  <span class="avatar-initials">VG</span>
+                  <div class="verified-indicator" title="Tarjeta Profesional COMVEZCOL Verificada">
+                    <span class="material-symbols-outlined">verified</span>
+                  </div>
+                </div>
+                <div class="vet-meta">
+                  <h3>Dra. Valeria Gómez S.</h3>
+                  <p class="vet-clinic-label">Centro Veterinario Felino & Domicilios</p>
+                  <div class="vet-comvezcol-tag">
+                    <span class="material-symbols-outlined">verified_user</span>
+                    <span>COMVEZCOL: <strong>28491-COL</strong></span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="vet-specialties-strip">
+                <span class="spec-pill">🐱 Medicina Felina</span>
+                <span class="spec-pill">🔬 Dermatología</span>
+                <span class="spec-pill">🩸 Citología</span>
+              </div>
+
+              <p class="vet-bio-text">
+                Especialista en afecciones dérmicas crónicas, alergias y manejo cat-friendly libre de estrés. Consultas a domicilio en el Valle de Aburrá o consultorio.
+              </p>
+
+              <div class="vet-info-details">
+                <div class="info-row">
+                  <span class="material-symbols-outlined">location_on</span>
+                  <span>Medellín (El Poblado, Laureles, Envigado)</span>
+                </div>
+                <div class="info-row">
+                  <span class="material-symbols-outlined">car_repair</span>
+                  <span>Modalidad: <strong>Domicilio 🚗 & Consultorio 🏥</strong></span>
+                </div>
+              </div>
+
+              <div class="vet-card-bottom">
+                <div class="rating-price-group">
+                  <div class="vet-rating">
+                    <span class="star-symbol">⭐</span>
+                    <strong>4.95</strong>
+                    <span class="reviews-count">(84 reseñas)</span>
+                  </div>
+                  <div class="vet-fee">
+                    <span class="fee-caption">Consulta desde</span>
+                    <span class="fee-val">$85,000 COP</span>
+                  </div>
+                </div>
+                <a routerLink="/directorio" class="btn-card-booking">
+                  <span class="material-symbols-outlined">calendar_month</span> Reservar Cita en Línea
+                </a>
+              </div>
+            </div>
+
+            <!-- Vet Card 2 -->
+            <div class="vet-showcase-card">
+              <div class="vet-card-header">
+                <div class="vet-avatar-wrapper avatar-male">
+                  <span class="avatar-initials">AM</span>
+                  <div class="verified-indicator" title="Tarjeta Profesional COMVEZCOL Verificada">
+                    <span class="material-symbols-outlined">verified</span>
+                  </div>
+                </div>
+                <div class="vet-meta">
+                  <h3>Dr. Alejandro Morales T.</h3>
+                  <p class="vet-clinic-label">Clínica Veterinaria Especializada San Miguel</p>
+                  <div class="vet-comvezcol-tag">
+                    <span class="material-symbols-outlined">verified_user</span>
+                    <span>COMVEZCOL: <strong>19340-COL</strong></span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="vet-specialties-strip">
+                <span class="spec-pill">🦴 Cirugía Ortopédica</span>
+                <span class="spec-pill">⚕️ Traumatología</span>
+                <span class="spec-pill">📋 Cirugía Tejidos</span>
+              </div>
+
+              <p class="vet-bio-text">
+                Cirujano veterinario con más de 12 años de trayectoria. Reconstrucción articular, TPLO y resolución de fracturas con expediente digital respaldado en VetPro.
+              </p>
+
+              <div class="vet-info-details">
+                <div class="info-row">
+                  <span class="material-symbols-outlined">location_on</span>
+                  <span>Bogotá D.C. (Usaquén, Chapinero, Chicó)</span>
+                </div>
+                <div class="info-row">
+                  <span class="material-symbols-outlined">local_hospital</span>
+                  <span>Modalidad: <strong>Clínica / Quirófano 🏥</strong></span>
+                </div>
+              </div>
+
+              <div class="vet-card-bottom">
+                <div class="rating-price-group">
+                  <div class="vet-rating">
+                    <span class="star-symbol">⭐</span>
+                    <strong>5.0</strong>
+                    <span class="reviews-count">(112 reseñas)</span>
+                  </div>
+                  <div class="vet-fee">
+                    <span class="fee-caption">Consulta desde</span>
+                    <span class="fee-val">$95,000 COP</span>
+                  </div>
+                </div>
+                <a routerLink="/directorio" class="btn-card-booking">
+                  <span class="material-symbols-outlined">calendar_month</span> Reservar Cita en Línea
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature Callout & Big Action Box -->
+          <div class="directory-benefits-panel">
+            <div class="benefit-item">
+              <div class="benefit-icon icon-emerald">
+                <span class="material-symbols-outlined">verified_user</span>
+              </div>
+              <div class="benefit-content">
+                <h4>Cotejo Oficial COMVEZCOL</h4>
+                <p>Auditoría preventiva de tarjeta profesional para erradicar el intrusismo y proteger a tu mascota con médicos idóneos.</p>
+              </div>
+            </div>
+
+            <div class="benefit-item">
+              <div class="benefit-icon icon-blue">
+                <span class="material-symbols-outlined">payments</span>
+              </div>
+              <div class="benefit-content">
+                <h4>Pasarela Segura Wompi Bancolombia</h4>
+                <p>Paga con tarjeta de crédito/débito, PSE, Nequi o Botón Bancolombia con confirmación inmediata y voucher descargable.</p>
+              </div>
+            </div>
+
+            <div class="benefit-item">
+              <div class="benefit-icon icon-purple">
+                <span class="material-symbols-outlined">description</span>
+              </div>
+              <div class="benefit-content">
+                <h4>Historial Digital al Tutor</h4>
+                <p>Recibe la fórmula médica digital, diagnóstico e indicaciones directamente en WhatsApp y en tu Portal del Tutor sin contraseñas.</p>
+              </div>
+            </div>
+
+            <div class="directory-cta-actions">
+              <a routerLink="/directorio" class="btn-explore-directory-hero">
+                <span class="material-symbols-outlined">travel_explore</span>
+                Explorar Directorio de Veterinarios →
+              </a>
+              <a routerLink="/auth/register" class="btn-vet-join">
+                <span class="material-symbols-outlined">how_to_reg</span>
+                ¿Eres Veterinario? Publica tu Perfil en el Directorio
+              </a>
+            </div>
           </div>
         </div>
       </section>
@@ -528,28 +790,67 @@
       <footer class="footer">
         <div class="footer-grid">
           <div class="footer-brand">
-            <span class="logo-mark">V</span>
-            <span class="logo-name">VetPro</span>
-            <p>El sistema definitivo para médicos veterinarios a domicilio en Colombia.</p>
-          </div>
-          <div class="footer-links">
-            <h5>Enlaces</h5>
-            <a href="#features">Características</a>
-            <a href="#ai-demo">Dictado IA</a>
-            <a href="#pricing">Planes</a>
-          </div>
-          <div class="footer-legal">
-            <h5>Seguridad & Leyes</h5>
+            <div class="logo">
+              <span class="logo-mark">V</span>
+              <span class="logo-name">VetPro<span class="pro-badge">SaaS</span></span>
+            </div>
             <p>
-              Protección y custodia segura de historiales clínicos y datos de tutores en estricto
-              cumplimiento con la Ley 1581 de 2012 de Habeas Data.
+              El ecosistema tecnológico integral para la práctica veterinaria moderna en Colombia.
+              Historias clínicas inteligentes, logística de rutas, pasarela Wompi y Directorio Nacional de Médicos Verificados COMVEZCOL.
             </p>
+            <div class="footer-compliance-badges">
+              <span class="legal-badge">
+                <span class="material-symbols-outlined">verified</span> COMVEZCOL Auditado
+              </span>
+              <span class="legal-badge">
+                <span class="material-symbols-outlined">security</span> Ley 1581 Habeas Data
+              </span>
+              <span class="legal-badge">
+                <span class="material-symbols-outlined">payments</span> Wompi Bancolombia
+              </span>
+            </div>
+          </div>
+
+          <div class="footer-links">
+            <h5>Directorio & Tutores</h5>
+            <a routerLink="/directorio">Directorio de Veterinarios 🩺</a>
+            <a routerLink="/portal/login">Portal del Tutor (PWA) 📱</a>
+            <a routerLink="/directorio">Agendar Cita en Línea 📅</a>
+            <a routerLink="/portal/login">Carnet de Vacunas Digital 💉</a>
+          </div>
+
+          <div class="footer-links">
+            <h5>Clínicas & Profesionales</h5>
+            <a routerLink="/auth/login">Ingreso a la Plataforma 🔐</a>
+            <a routerLink="/auth/register">Registrar Clínica / Vet Móvil 🏥</a>
+            <a href="#features">Características & Logística</a>
+            <a href="#ai-demo">Transcriptor SOAP con IA</a>
+            <a href="#pricing">Planes y Precios</a>
+          </div>
+
+          <div class="footer-links">
+            <h5>Plataforma & Soporte</h5>
+            <a routerLink="/platform/login">Panel Super Admin 🛡️</a>
+            <a routerLink="/auth/forgot-password">Recuperar Contraseña 🔑</a>
+            <a href="#faq">Preguntas Frecuentes (FAQ)</a>
+            <a routerLink="/auth/login">Centro de Soporte Técnico</a>
           </div>
         </div>
+
+        <!-- Bloque Normativo Habeas Data & Pagos -->
+        <div class="footer-habeas-box">
+          <div class="habeas-header">
+            <span class="material-symbols-outlined">policy</span>
+            <h6>Custodia de Información, Protección de Datos Personales (Ley 1581 de 2012) & Pagos Seguros</h6>
+          </div>
+          <p>
+            VetPro cumple cabalmente con la Ley Estatutaria 1581 de 2012, el Decreto Reglamentario 1377 de 2013 y demás normas concordantes de la República de Colombia. Los historiales clínicos veterinarios y los datos de contacto de pacientes y tutores son custodiados bajo estrictos protocolos de confidencialidad y encriptación. Todas las transacciones comerciales son procesadas de forma certificada PCI-DSS a través de la pasarela de pagos Wompi (Bancolombia S.A.).
+          </p>
+        </div>
+
         <div class="footer-bottom">
           <p>
-            © 2026 VetPro SaaS. Todos los derechos reservados. Desarrollado con 💚 para la
-            Veterinaria Itinerante en Colombia.
+            © 2026 VetPro SaaS Colombia. Todos los derechos reservados. Desarrollado con 💚 y rigurosidad técnica para la medicina veterinaria colombiana.
           </p>
         </div>
       </footer>
