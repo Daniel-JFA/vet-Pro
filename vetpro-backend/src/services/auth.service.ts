@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '../config/database.js';
 import { MailerService } from './mailer.service.js';
 import { TokenService } from './token.service.js';
+import { AntifraudService } from './antifraud.service.js';
 
 export const ACTIVATION_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
 export const PASSWORD_RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hora
@@ -159,14 +160,16 @@ export class AuthService {
       }
 
       let vetProfile = null;
-      if (bType === 'independent_vet' || data.professionalCard) {
+      const cardTrim = data.professionalCard ? data.professionalCard.trim() : null;
+
+      if (bType === 'independent_vet' || cardTrim) {
         vetProfile = await tx.vetProfile.create({
           data: {
             userId: user.id,
             clinicId: clinic.id,
-            professionalCard: data.professionalCard ? data.professionalCard.trim() : null,
+            professionalCard: cardTrim,
             verificationStatus: 'pending',
-            verificationNotes: 'Inscripción inicial en espera de verificación antifraude ante el registro nacional COMVEZCOL.',
+            verificationNotes: 'Inscripción en espera de certificación de matrícula profesional COMVEZCOL.',
             city: municipio.nombre,
             isPublic: false
           }

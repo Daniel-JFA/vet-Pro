@@ -13,6 +13,7 @@
     "db:seed": "node dist/prisma/seed.js",
     "db:seed:dev": "npx prisma db seed",
     "db:seed:okvet": "tsx prisma/seed_okvet.ts",
+    "vets:verify-cards": "tsx src/scripts/verify-registered-vets.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

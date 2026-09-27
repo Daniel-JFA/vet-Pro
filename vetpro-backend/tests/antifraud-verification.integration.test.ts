@@ -232,4 +232,23 @@ describe('Antifraud Verification System (COMVEZCOL Registration & KYC)', () => {
     expect(res.body.verificationStatus).toBe('pending');
     expect(res.body.isPublic).toBe(false);
   });
+
+  it('7. Endpoint administrativo POST /admin/verifications/auto-verify-all certifica automáticamente a los veterinarios registrados con tarjeta válida', async () => {
+    const res = await request(app)
+      .post('/api/v1/marketplace/admin/verifications/auto-verify-all')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('summary');
+    expect(res.body.summary.totalChecked).toBeGreaterThanOrEqual(1);
+
+    // Verificar que el perfil que estaba pendiente ahora está verificado
+    const updatedProfile = await prisma.vetProfile.findFirst({
+      where: { professionalCard: `COMVEZCOL-NEW-${timestamp}` }
+    });
+    expect(updatedProfile).toBeDefined();
+    expect(updatedProfile!.verificationStatus).toBe('verified');
+    expect(updatedProfile!.isPublic).toBe(true);
+    expect(updatedProfile!.verifiedBy).toBe('system_antifraud');
+  });
 });
