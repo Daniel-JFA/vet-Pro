@@ -234,6 +234,13 @@ export class AuthService {
     );
   }
 
+  // El veterinario registra su matrícula y el backend la confirma en el registro de COMVEZCOL
+  submitProfessionalCard(professionalCard: string): Observable<{ user: User; verified: boolean; message: string; comvezcolStatus?: string }> {
+    return this.api
+      .post<{ user: User; verified: boolean; message: string; comvezcolStatus?: string }>('/auth/me/professional-card', { professionalCard })
+      .pipe(tap(res => this.state.update(s => ({ ...s, user: res.user }))));
+  }
+
   // Consulta y actualización de configuración de empresa (Clínica vs Vet Independiente)
   getClinic(): Observable<Clinic> {
     return this.api.get<Clinic>('/auth/clinic');

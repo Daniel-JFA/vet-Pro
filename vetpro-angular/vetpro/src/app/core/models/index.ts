@@ -37,6 +37,8 @@ export interface User {
   professionalCard?: string | null;
   verificationStatus?: 'pending' | 'verified' | 'rejected' | null;
   verificationNotes?: string | null;
+  // true si es médico veterinario y su matrícula aún no está confirmada en COMVEZCOL
+  requiresCardVerification?: boolean;
 }
 
 // ── WALKERS (PASEADORES) ───────────────────────

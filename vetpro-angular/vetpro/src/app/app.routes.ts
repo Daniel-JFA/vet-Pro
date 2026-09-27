@@ -24,6 +24,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/platform/platform-analytics.component').then(m => m.PlatformAnalyticsComponent)
   },
   {
+    path: 'verify-card',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/profile/verify-card.component').then(m => m.VerifyCardComponent)
+  },
+  {
     path: 'complete-profile',
     canActivate: [authGuard],
     loadComponent: () => import('./features/profile/complete-profile.component').then(m => m.CompleteProfileComponent)

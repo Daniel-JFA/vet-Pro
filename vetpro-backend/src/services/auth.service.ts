@@ -33,8 +33,18 @@ export function toUserResponse(user: any) {
     birthDate: user.birthDate ?? null,
     professionalCard: user.vetProfile?.professionalCard ?? null,
     verificationStatus: user.vetProfile?.verificationStatus ?? null,
-    verificationNotes: user.vetProfile?.verificationNotes ?? null
+    verificationNotes: user.vetProfile?.verificationNotes ?? null,
+    requiresCardVerification: requiresCardVerification(user)
   };
+}
+
+/**
+ * Un médico veterinario (rol vet, o admin de un consultorio independiente) debe tener su
+ * matrícula confirmada en COMVEZCOL. Mientras no lo esté, se le pide al iniciar sesión.
+ */
+export function requiresCardVerification(user: any): boolean {
+  const isVet = user.role === 'vet' || user.clinic?.businessType === 'independent_vet';
+  return isVet && user.vetProfile?.verificationStatus !== 'verified';
 }
 
 export function signToken(user: {
@@ -369,6 +379,59 @@ export class AuthService {
     }
 
     return toUserResponse({ ...updated, vetProfile });
+  }
+
+  /**
+   * El veterinario registra (o corrige) su matrícula y se consulta en el registro real de COMVEZCOL.
+   * Si coincide queda verificado; si no, queda pendiente de revisión manual y se le vuelve a pedir.
+   */
+  static async submitProfessionalCard(userId: string, professionalCard: string) {
+    const cardNorm = (professionalCard || '').trim();
+    if (cardNorm.length < 2 || cardNorm.length > 30) {
+      throw { status: 400, message: 'Ingresa un número de matrícula profesional válido.' };
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId }, include: { clinic: true, vetProfile: true } });
+    if (!user) throw { status: 404, message: 'Usuario no encontrado.' };
+
+    if (user.vetProfile?.verificationStatus === 'verified' && user.vetProfile.professionalCard === cardNorm) {
+      return { user: toUserResponse(user), verified: true, message: 'Tu matrícula ya está verificada.' };
+    }
+
+    const existingCard = await prisma.vetProfile.findFirst({
+      where: { professionalCard: { equals: cardNorm, mode: 'insensitive' }, userId: { not: userId } }
+    });
+    if (existingCard) {
+      throw {
+        status: 409,
+        message: `La matrícula "${cardNorm}" ya está registrada por otro médico veterinario. Si es tuya, contacta a soporte.`
+      };
+    }
+
+    const profile = await prisma.vetProfile.upsert({
+      where: { userId },
+      update: { professionalCard: cardNorm, verificationStatus: 'pending', isPublic: false },
+      create: {
+        userId,
+        clinicId: user.clinicId,
+        professionalCard: cardNorm,
+        verificationStatus: 'pending',
+        city: user.clinic?.city || null,
+        isPublic: false
+      }
+    });
+
+    const result = await AntifraudService.autoVerifyVetProfile(profile.id, { sendEmail: true });
+    const refreshed = await prisma.user.findUnique({ where: { id: userId }, include: { clinic: true, vetProfile: true } });
+
+    return {
+      user: toUserResponse(refreshed),
+      verified: result.success,
+      comvezcolStatus: result.comvezcolStatus ?? (result.success ? 'match' : undefined),
+      message: result.success
+        ? '¡Listo! Tu matrícula fue confirmada en el registro de COMVEZCOL.'
+        : `${result.error} Revisa el número; si es correcto, un administrador la revisará manualmente.`
+    };
   }
 
   static async getClinicConfig(clinicId: string) {

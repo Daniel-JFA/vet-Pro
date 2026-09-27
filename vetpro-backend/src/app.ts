@@ -122,6 +122,7 @@ app.use('/api/v1/auth/register', authLimiter);
 app.use('/api/v1/auth/refresh', authLimiter);
 app.use('/api/v1/auth/forgot-password', authLimiter);
 app.use('/api/v1/auth/activate', authLimiter);
+app.use('/api/v1/auth/me/professional-card', authLimiter);
 app.use('/api/v1/portal/auth/magic-link', authLimiter);
 app.use('/api/v1/platform/auth/login', authLimiter);
 
