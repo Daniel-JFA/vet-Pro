@@ -339,7 +339,7 @@ export async function seedMarketplace(prismaClient?: PrismaClient) {
       ]
     },
 
-    // 6. Cali - Mateo Sánchez (PENDIENTE ANTIFRAUDE / ADMIN)
+    // 6. Cali - Mateo Sánchez (Cirugía, Ortopedia, Medicina General) - Verificado
     {
       user: {
         email: 'mateo@vetpro.co',
@@ -349,26 +349,39 @@ export async function seedMarketplace(prismaClient?: PrismaClient) {
         documentType: 'CC',
         documentNumber: '1143892014',
         address: 'Calle 18 #105-05, Cali',
-        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300'
+        avatarUrl: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=300'
       },
       city: 'Cali',
       profile: {
-        professionalCard: 'COMVEZCOL-40118-PEND',
-        verificationStatus: 'pending' as const,
-        verificationNotes: 'Documento subido pendiente de cotejo con registro oficial COMVEZCOL.',
+        professionalCard: 'COMVEZCOL-40118',
+        verificationStatus: 'verified' as const,
+        verifiedBy: 'system',
         specialties: ['Cirugía', 'Medicina General'],
-        bio: 'Médico veterinario con diplomado en traumatología y ortopedia en animales de compañía.',
-        modalities: ['consultorio'],
+        bio: 'Médico veterinario con diplomado en traumatología, ortopedia y cirugía de tejidos blandos en animales de compañía.',
+        modalities: ['consultorio', 'domicilio'],
         consultationPrice: 70000,
-        homeVisitPrice: null,
-        coverageZones: ['Granada', 'Ciudad Jardín', 'Pance'],
-        rating: 5.0,
-        reviewCount: 0,
-        isPublic: false,
+        homeVisitPrice: 90000,
+        coverageZones: ['Granada', 'Ciudad Jardín', 'Pance', 'San Fernando'],
+        rating: 4.9,
+        reviewCount: 2,
+        isPublic: true,
         isFeatured: false,
         whatsappNumber: '573155557890'
       },
-      reviews: []
+      reviews: [
+        {
+          tutorName: 'Gustavo Adolfo Prado',
+          rating: 5,
+          comment: 'Operó con éxito la fractura de fémur de mi perrita rescatada. Muy dedicado y humano.',
+          serviceType: 'consultorio'
+        },
+        {
+          tutorName: 'Lina María Rengifo',
+          rating: 5,
+          comment: 'Excelente atención a domicilio para el posoperatorio y retiro de puntos.',
+          serviceType: 'domicilio'
+        }
+      ]
     },
 
     // 7. Barranquilla - Sofía Valderrama (Dermatología, Medicina Felina, Medicina General)
@@ -603,6 +616,7 @@ export async function seedMarketplace(prismaClient?: PrismaClient) {
     const user = await prisma.user.upsert({
       where: { email: item.user.email },
       update: {
+        clinicId,
         firstName: item.user.firstName,
         lastName: item.user.lastName,
         role: 'vet',
@@ -691,6 +705,38 @@ export async function seedMarketplace(prismaClient?: PrismaClient) {
       });
     }
   }
+
+  // 3. Crear o asegurar Usuario Administrador General
+  const adminPassword = await bcrypt.hash('admin123', salt);
+  const medellinClinicId = clinicsMap.get('Medellín') || Array.from(clinicsMap.values())[0];
+  await prisma.user.upsert({
+    where: { email: 'admin@vetpro.co' },
+    update: {
+      clinicId: medellinClinicId,
+      firstName: 'Andrés',
+      lastName: 'Espinoza',
+      role: 'admin',
+      phone: '+57 300 456 7890',
+      active: true,
+      profileCompleted: true
+    },
+    create: {
+      clinicId: medellinClinicId,
+      email: 'admin@vetpro.co',
+      firstName: 'Andrés',
+      lastName: 'Espinoza',
+      passwordHash: adminPassword,
+      role: 'admin',
+      phone: '+57 300 456 7890',
+      active: true,
+      profileCompleted: true
+    }
+  });
+
+  // 4. Limpieza de datos temporales E2E huérfanos de pruebas previas
+  await prisma.clinic.deleteMany({
+    where: { name: { contains: 'Test E2E' } }
+  });
 
   console.log(`✅ Directorio Marketplace poblado exitosamente con ${vetsData.length} veterinarios en 8 ciudades colombianas.`);
 }
