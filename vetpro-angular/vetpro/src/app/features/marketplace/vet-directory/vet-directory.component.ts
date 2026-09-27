@@ -10,11 +10,12 @@ import {
   AppointmentVoucherData
 } from '../../../core/services/marketplace.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { WhatsAppWidgetComponent } from '../../../shared/components/whatsapp-widget/whatsapp-widget.component';
 
 @Component({
   selector: 'app-vet-directory',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, WhatsAppWidgetComponent],
   templateUrl: './vet-directory.component.html',
   styleUrls: ['./vet-directory.component.scss']
 })

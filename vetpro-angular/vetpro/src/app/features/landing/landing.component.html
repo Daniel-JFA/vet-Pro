@@ -19,6 +19,15 @@
           <a routerLink="/directorio" class="btn-directory-nav">
             <span class="material-symbols-outlined">search</span> Buscar Veterinario
           </a>
+          <a
+            href="https://wa.me/573122115299?text=%C2%A1Hola%20VetPro!%20Quisiera%20recibir%20asesor%C3%ADa%20personalizada%20sobre%20la%20plataforma."
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-whatsapp-nav"
+            title="Asesoría directa por WhatsApp"
+          >
+            <span class="material-symbols-outlined">chat</span> WhatsApp
+          </a>
           <a routerLink="/portal/login" class="btn-secondary-nav">
             <span class="material-symbols-outlined">pets</span> Portal Tutor
           </a>
@@ -57,6 +66,15 @@
           <div class="mobile-menu-actions">
             <a routerLink="/directorio" (click)="closeMobileMenu()" class="btn-mobile-directory">
               <span class="material-symbols-outlined">search</span> Buscar Veterinario en Directorio
+            </a>
+            <a
+              href="https://wa.me/573122115299?text=%C2%A1Hola%20VetPro!%20Quisiera%20recibir%20asesor%C3%ADa%20personalizada%20sobre%20la%20plataforma."
+              target="_blank"
+              rel="noopener noreferrer"
+              (click)="closeMobileMenu()"
+              class="btn-mobile-whatsapp"
+            >
+              <span class="material-symbols-outlined">chat</span> Contactar por WhatsApp
             </a>
             <a routerLink="/portal/login" (click)="closeMobileMenu()" class="btn-mobile-secondary">
               <span class="material-symbols-outlined">pets</span> Acceso Portal Tutor
@@ -833,6 +851,14 @@
             <a routerLink="/platform/login">Panel Super Admin 🛡️</a>
             <a routerLink="/auth/forgot-password">Recuperar Contraseña 🔑</a>
             <a href="#faq">Preguntas Frecuentes (FAQ)</a>
+            <a
+              href="https://wa.me/573122115299?text=%C2%A1Hola%20VetPro!%20Necesito%20soporte%20o%20asesor%C3%ADa%20sobre%20la%20plataforma."
+              target="_blank"
+              rel="noopener noreferrer"
+              class="footer-wpp-link"
+            >
+              Asesoría WhatsApp 💬
+            </a>
             <a routerLink="/auth/login">Centro de Soporte Técnico</a>
           </div>
         </div>
@@ -854,4 +880,7 @@
           </p>
         </div>
       </footer>
+
+      <!-- ── WIDGET FLOTANTE DE WHATSAPP CON MENSAJES PREESTABLECIDOS ── -->
+      <app-whatsapp-widget></app-whatsapp-widget>
     </div>

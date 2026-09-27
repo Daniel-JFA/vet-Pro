@@ -1,11 +1,11 @@
 import { Component, signal } from '@angular/core';
-
 import { RouterLink } from '@angular/router';
+import { WhatsAppWidgetComponent } from '../../shared/components/whatsapp-widget/whatsapp-widget.component';
 
 @Component({
   selector: 'app-landing',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, WhatsAppWidgetComponent],
   templateUrl: './landing.component.html',
   styleUrl: './landing.component.scss',
 })
