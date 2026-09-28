@@ -623,6 +623,10 @@ export class AuthService {
       throw { status: 400, message: 'No puedes desactivar tu propia cuenta de administrador.' };
     }
 
+    if (user.anonymizedAt) {
+      throw { status: 409, message: 'Este usuario eliminó su cuenta; no se puede modificar ni reactivar.' };
+    }
+
     // Reactivar un usuario también ocupa un cupo del plan
     if (data.active === true && !user.active) {
       await PlanLimitsService.assertCanAddUser(clinicId);

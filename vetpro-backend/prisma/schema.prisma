@@ -100,6 +100,8 @@ model Clinic {
   lastPaymentDate       DateTime?
   aiMinutesUsed         Float                 @default(0)
   aiMinutesLimit        Float                 @default(60) // Límite en minutos según plan
+  // Cierre de cuenta solicitado por su último usuario: se borra todo en esta fecha
+  deletionScheduledAt   DateTime?
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
 
@@ -196,6 +198,9 @@ model User {
   avatarUrl    String?
   active       Boolean  @default(true)
   lastLoginAt  DateTime?
+  // Cuenta eliminada por el propio usuario: sin datos personales ni acceso.
+  // Se conserva el nombre porque figura en las historias clínicas que firmó.
+  anonymizedAt DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -244,6 +249,8 @@ model Tutor {
   address    String?
   notes      String?
   deletedAt  DateTime?
+  // El tutor eliminó sus datos desde el portal (Ley 1581)
+  anonymizedAt DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
@@ -1501,3 +1508,19 @@ model ClinicSubscriptionPayment {
   @@map("clinic_subscription_payments")
 }
 
+
+// Solicitudes de eliminación de datos recibidas por la web pública
+// (/eliminar-cuenta), para quien no puede hacerlo desde la app.
+model DataDeletionRequest {
+  id          String    @id @default(uuid())
+  email       String
+  audience    String // "clinic_staff", "tutor", "other"
+  clinicName  String?
+  message     String?
+  status      String    @default("pending") // "pending", "done", "rejected"
+  resolvedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([status])
+  @@map("data_deletion_requests")
+}

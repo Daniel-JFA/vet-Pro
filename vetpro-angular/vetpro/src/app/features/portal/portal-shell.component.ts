@@ -75,6 +75,11 @@ import { PwaService } from '../../core/services/pwa.service';
             <span class="tab-label">Reservar Cita</span>
           </a>
 
+          <a routerLink="./cuenta" routerLinkActive="active" class="tabbar-item">
+            <span class="material-symbols-outlined tab-icon">person</span>
+            <span class="tab-label">Cuenta</span>
+          </a>
+
           <button (click)="onLogout()" class="tabbar-item logout-btn">
             <span class="material-symbols-outlined tab-icon">logout</span>
             <span class="tab-label">Salir</span>

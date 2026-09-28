@@ -48,6 +48,22 @@ export interface SubscriptionExpiryEmailData {
   renewLink: string;
 }
 
+export interface AccountDeletedEmailData {
+  to: string;
+  firstName: string;
+  clinicName: string;
+  // Fecha del borrado total de la clínica, si esta cuenta era la última
+  clinicDeletionDate: Date | null;
+}
+
+export interface DataDeletionRequestEmailData {
+  to: string;
+  requesterEmail: string;
+  audience: string;
+  clinicName?: string | null;
+  message?: string | null;
+}
+
 export interface MagicLinkEmailData {
   to: string;
   firstName: string;
@@ -540,6 +556,63 @@ Este enlace es personal y expira en 7 días.
       return true;
     } catch (error: any) {
       console.error(`❌ [Mailer] Error al enviar aviso de vencimiento a ${data.to}:`, error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Confirmación de eliminación de cuenta (se envía al correo original antes de borrarlo)
+   */
+  public static async sendAccountDeletedEmail(data: AccountDeletedEmailData): Promise<boolean> {
+    const transporter = this.getTransporter();
+    const from = process.env.SMTP_FROM || `VetPro SaaS <${process.env.SMTP_USER || 'no-reply@vetpro.co'}>`;
+    if (!transporter) {
+      console.warn('⚠️ [Mailer] No se envió confirmación de eliminación a', data.to, ': SMTP no configurado.');
+      return false;
+    }
+
+    const clinicLine = data.clinicDeletionDate
+      ? `Como eras la última persona con acceso a ${data.clinicName}, toda la información de la clínica se eliminará definitivamente el ${data.clinicDeletionDate.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })}. Si fue un error o necesitas una copia, responde a este correo antes de esa fecha.`
+      : `La información clínica y de facturación sigue en poder de ${data.clinicName}, que es la responsable de conservarla. Tu nombre se mantiene solo como autor de los registros que firmaste.`;
+
+    try {
+      await transporter.sendMail({
+        from,
+        to: data.to,
+        ...(this.getBcc() ? { bcc: this.getBcc() } : {}),
+        subject: 'Tu cuenta de VetPro fue eliminada',
+        text: `Hola ${data.firstName}, tu cuenta de VetPro fue eliminada: ya no puedes iniciar sesión y borramos tus datos personales.\n\n${clinicLine}`,
+        html: `<p>Hola, ${data.firstName}:</p><p>Tu cuenta de VetPro fue eliminada: ya no puedes iniciar sesión y borramos tus datos personales (correo, teléfono, documento, dirección y documentos cargados).</p><p>${clinicLine}</p>`
+      });
+      return true;
+    } catch (error: any) {
+      console.error(`❌ [Mailer] Error al enviar confirmación de eliminación a ${data.to}:`, error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Aviso interno de una solicitud de eliminación de datos recibida por la web
+   */
+  public static async sendDataDeletionRequestNotice(data: DataDeletionRequestEmailData): Promise<boolean> {
+    const transporter = this.getTransporter();
+    const from = process.env.SMTP_FROM || `VetPro SaaS <${process.env.SMTP_USER || 'no-reply@vetpro.co'}>`;
+    if (!transporter) {
+      console.warn('⚠️ [Mailer] Solicitud de eliminación registrada sin aviso por correo: SMTP no configurado.');
+      return false;
+    }
+
+    try {
+      await transporter.sendMail({
+        from,
+        to: data.to,
+        replyTo: data.requesterEmail,
+        subject: `Solicitud de eliminación de datos (${data.audience})`,
+        text: `Correo: ${data.requesterEmail}\nTipo: ${data.audience}\nClínica: ${data.clinicName || '-'}\nMensaje: ${data.message || '-'}\n\nPlazo legal de respuesta (Ley 1581): 15 días hábiles.`
+      });
+      return true;
+    } catch (error: any) {
+      console.error('❌ [Mailer] Error al notificar solicitud de eliminación:', error.message);
       return false;
     }
   }

@@ -52,6 +52,10 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
                 las bases de datos de VetPro SaaS en cualquier momento.
               </p>
             </section>
+            <p class="full-policy">
+              <a href="/privacidad" target="_blank" rel="noopener">Leer la política completa</a>
+              (responsable, proveedores fuera de Colombia, plazos de respuesta y eliminación de cuenta).
+            </p>
           </main>
           <footer class="modal-footer">
             <button (click)="close()" class="accept-btn">Entendido y Acepto</button>
@@ -159,6 +163,16 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
         font-size: 0.88rem;
         line-height: 1.5;
         color: #cbd5e1;
+
+        .full-policy {
+          margin: 0;
+          font-size: 0.85rem;
+
+          a {
+            color: #34d399;
+            font-weight: 700;
+          }
+        }
 
         .intro {
           margin: 0;

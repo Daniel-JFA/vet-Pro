@@ -90,6 +90,15 @@ interface NavItem {
         }
 
         <div class="nav-section mt-auto">
+          <a
+            class="nav-link"
+            routerLink="/mi-cuenta"
+            routerLinkActive="active"
+            (click)="mobileSidebarOpen.set(false)"
+          >
+            <span class="material-symbols-outlined nav-icon">manage_accounts</span>
+            <span class="nav-text">Mi cuenta</span>
+          </a>
           <button class="nav-link logout-btn" (click)="auth.logout(); mobileSidebarOpen.set(false)">
             <span class="material-symbols-outlined nav-icon">logout</span>
             <span class="nav-text">Cerrar sesión</span>
