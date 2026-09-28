@@ -1,0 +1,37 @@
+<main class="payment-result">
+  <section class="result-card">
+    @if (notFound()) {
+      <span class="material-symbols-outlined icon icon-error">help</span>
+      <h1>No encontramos este pago</h1>
+      <p>Revisa el enlace o vuelve a intentarlo desde VetPro.</p>
+    } @else if (status() === 'APPROVED') {
+      <span class="material-symbols-outlined icon icon-ok">verified</span>
+      <h1>Pago aprobado</h1>
+      @switch (result()?.paymentType) {
+        @case ('subscription_pro_vet') { <p>Tu membresía Pro Vet ⭐ ya está activa.</p> }
+        @case ('clinic_subscription') { <p>La suscripción de tu clínica ya está activa.</p> }
+        @default { <p>Tu cita quedó pagada. El veterinario ya recibió la notificación.</p> }
+      }
+    } @else if (status() === 'PENDING') {
+      @if (timedOut()) {
+        <span class="material-symbols-outlined icon icon-wait">schedule</span>
+        <h1>Tu pago sigue en proceso</h1>
+        <p>Algunos medios, como PSE, tardan unos minutos en confirmarse. Te avisaremos cuando Wompi lo apruebe; no necesitas pagar de nuevo.</p>
+      } @else {
+        <div class="spinner" aria-hidden="true"></div>
+        <h1>Confirmando tu pago con Wompi…</h1>
+        <p>No cierres esta página.</p>
+      }
+    } @else {
+      <span class="material-symbols-outlined icon icon-error">cancel</span>
+      <h1>El pago no se completó</h1>
+      <p>Wompi lo reportó como {{ status() === 'DECLINED' ? 'rechazado' : 'no procesado' }}. No se hizo ningún cobro; puedes intentarlo otra vez.</p>
+    }
+
+    @if (reference()) {
+      <p class="reference">Referencia: <code>{{ reference() }}</code></p>
+    }
+
+    <a class="btn-back" [routerLink]="backLink().url">{{ backLink().label }}</a>
+  </section>
+</main>

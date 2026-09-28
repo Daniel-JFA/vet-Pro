@@ -284,8 +284,21 @@ describe('Marketplace Payments & Wompi Gateway (Sprint 9 Integration Tests)', ()
     const ref = checkoutRes.body.reference;
 
     // Simular aprobación
+    const platformToken = TokenService.signPlatform({
+      id: 'platform-test-admin',
+      email: 'platform@vetpro.test',
+      role: 'platform_admin'
+    });
+
+    // Sin token de plataforma se rechaza
+    const noAuthRes = await request(app)
+      .post('/api/v1/marketplace/payments/mock-simulate')
+      .send({ reference: ref, status: 'APPROVED' });
+    expect(noAuthRes.status).toBe(401);
+
     const simRes = await request(app)
       .post('/api/v1/marketplace/payments/mock-simulate')
+      .set('Authorization', `Bearer ${platformToken}`)
       .send({
         reference: ref,
         status: 'APPROVED',

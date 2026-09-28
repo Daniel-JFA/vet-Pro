@@ -214,10 +214,12 @@
 
         <footer class="modal-footer">
           <button class="btn btn-ghost" (click)="closeModal()">Cancelar</button>
-          <button class="btn btn-test" [disabled]="simulatingLoading()" (click)="simulateApproval()">
-            <span class="material-symbols-outlined">science</span>
-            {{ simulatingLoading() ? 'Simulando...' : 'Simular Pago Aprobado (Test)' }}
-          </button>
+          @if (canSimulatePayment) {
+            <button class="btn btn-test" [disabled]="simulatingLoading()" (click)="simulateApproval()">
+              <span class="material-symbols-outlined">science</span>
+              {{ simulatingLoading() ? 'Simulando...' : 'Simular Pago Aprobado (Test)' }}
+            </button>
+          }
           <button class="btn btn-primary" (click)="openWompiWidget()">
             <span class="material-symbols-outlined">payments</span>
             Pagar con Wompi

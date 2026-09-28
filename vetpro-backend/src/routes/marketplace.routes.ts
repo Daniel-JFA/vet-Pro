@@ -7,6 +7,8 @@ import crypto from 'crypto';
 import { prisma } from '../config/database.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
 import { roleMiddleware } from '../middleware/role.js';
+import { paymentSimulationGuard, isPaymentSimulationEnabled } from '../middleware/paymentSimulation.js';
+import { platformAuthMiddleware } from '../middleware/platformAuth.js';
 import {
   VerificationStatus,
   PatientSpecies,
@@ -525,9 +527,10 @@ router.post('/payments/webhook', async (req: Request, res: Response): Promise<vo
 
 /**
  * POST /api/v1/marketplace/payments/mock-simulate
- * Endpoint de sandbox / desarrollo para simular pagos sin pasar por la pasarela real
+ * Endpoint de sandbox / desarrollo para simular pagos sin pasar por la pasarela real.
+ * En producción responde 404; fuera de ella exige token de administrador de plataforma.
  */
-router.post('/payments/mock-simulate', async (req: Request, res: Response): Promise<void> => {
+router.post('/payments/mock-simulate', paymentSimulationGuard, platformAuthMiddleware as any, async (req: Request, res: Response): Promise<void> => {
   try {
     const { reference, status = 'APPROVED', paymentMethod = 'CARD' } = req.body;
     if (!reference) {
@@ -539,6 +542,43 @@ router.post('/payments/mock-simulate', async (req: Request, res: Response): Prom
     res.json({ success: true, simulated: true, result });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Error al simular pago' });
+  }
+});
+
+/**
+ * GET /api/v1/marketplace/payments/status/:reference
+ * Estado de un pago para la página de retorno de Wompi. La aprobación la hace
+ * el webhook; aquí solo se consulta. No expone montos ni datos personales.
+ */
+router.get('/payments/status/:reference', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { reference } = req.params;
+
+    const payment = await prisma.marketplacePayment.findUnique({
+      where: { wompiReference: reference },
+      select: { status: true, paymentType: true, appointmentId: true }
+    });
+    if (payment) {
+      res.json({
+        status: payment.status.toUpperCase(),
+        paymentType: payment.paymentType,
+        appointmentId: payment.appointmentId
+      });
+      return;
+    }
+
+    const clinicPayment = await prisma.clinicSubscriptionPayment.findUnique({
+      where: { wompiReference: reference },
+      select: { status: true }
+    });
+    if (clinicPayment) {
+      res.json({ status: clinicPayment.status.toUpperCase(), paymentType: 'clinic_subscription', appointmentId: null });
+      return;
+    }
+
+    res.status(404).json({ error: 'Pago no encontrado' });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Error al consultar el estado del pago' });
   }
 });
 
@@ -805,7 +845,7 @@ router.post('/profile/subscription', authMiddleware as any, async (req: AuthRequ
 
     const checkout = await WompiService.createSubscriptionCheckout(userId);
 
-    if (instantActivate) {
+    if (instantActivate && isPaymentSimulationEnabled()) {
       const simResult = await WompiService.mockSimulatePayment(checkout.reference, 'APPROVED', 'CARD');
       res.status(201).json({
         success: true,

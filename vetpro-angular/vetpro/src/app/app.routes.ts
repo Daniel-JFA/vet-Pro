@@ -54,6 +54,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/marketplace/vet-directory/vet-directory.component').then(m => m.VetDirectoryComponent)
   },
   {
+    path: 'marketplace/payment-result',
+    loadComponent: () => import('./features/marketplace/payment-result/payment-result.component').then(m => m.PaymentResultComponent)
+  },
+  {
     path: 'vets',
     redirectTo: 'directorio',
     pathMatch: 'full'

@@ -5,7 +5,8 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     env: {
       JWT_SECRET: 'test-only-secret-not-used-anywhere-else-0123456789abcdef',
-      NODE_ENV: 'test'
+      NODE_ENV: 'test',
+      ENABLE_PAYMENT_SIMULATION: 'true'
     }
   }
 });

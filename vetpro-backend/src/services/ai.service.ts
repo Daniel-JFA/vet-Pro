@@ -1,7 +1,24 @@
 /**
  * Servicio de Inteligencia Artificial Clínica para VetPro (Doru)
- * Integra OpenAI Whisper (Transcripción de Voz) y Claude 3.5 / GPT-4o (Estructuración SOAP)
+ * Integra OpenAI Whisper (Transcripción de Voz) y Claude / GPT-4o-mini (Estructuración SOAP)
  */
+import Anthropic from '@anthropic-ai/sdk';
+import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
+import { z } from 'zod';
+import { Sentry } from '../utils/sentry.js';
+
+// Modelo principal de la estructuración SOAP. Se puede cambiar sin desplegar código
+// (p. ej. ANTHROPIC_SOAP_MODEL=claude-sonnet-5 para bajar costo).
+const SOAP_MODEL = process.env.ANTHROPIC_SOAP_MODEL || 'claude-opus-5';
+
+const SoapSchema = z.object({
+  title: z.string(),
+  anamnesis: z.string(),
+  physicalExam: z.string(),
+  diagnosis: z.string(),
+  treatment: z.string(),
+  observations: z.string()
+});
 
 export interface SoapClinicalOutput {
   title: string;
@@ -67,40 +84,36 @@ Debes responder ESTRICTAMENTE en formato JSON con las siguientes claves:
 - "treatment": Plan terapéutico detallado (fármacos, dosis por kg, vía y duración)
 - "observations": Recomendaciones al tutor, signos de alarma y próxima cita`;
 
-    // 1. Intentar con Claude 3.5 Sonnet si hay clave
+    // 1. Motor principal: Claude con salida estructurada (JSON validado contra SoapSchema)
     if (anthropicKey) {
       try {
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': anthropicKey,
-            'anthropic-version': '2023-06-01'
-          },
-          body: JSON.stringify({
-            model: 'claude-3-5-sonnet-20241022',
-            max_tokens: 1500,
-            system: systemPrompt,
-            messages: [
-              {
-                role: 'user',
-                content: `Dictado de consulta médica (Paciente: ${patientContext?.name || 'Mascota'}, Especie: ${patientContext?.species || 'Canino'}):\n\n"${transcription}"`
-              }
-            ]
-          })
+        const client = new Anthropic({ apiKey: anthropicKey });
+        const response = await client.messages.parse({
+          model: SOAP_MODEL,
+          max_tokens: 16000,
+          system: systemPrompt,
+          messages: [
+            {
+              role: 'user',
+              content: `Dictado de consulta médica (Paciente: ${patientContext?.name || 'Mascota'}, Especie: ${patientContext?.species || 'Canino'}):\n\n"${transcription}"`
+            }
+          ],
+          output_config: { format: zodOutputFormat(SoapSchema) }
         });
 
-        if (response.ok) {
-          const data: any = await response.json();
-          const text = data.content[0].text;
-          const jsonMatch = text.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            return { ...JSON.parse(jsonMatch[0]), engineSource: 'claude' };
-          }
+        if (response.stop_reason === 'refusal') {
+          this.reportFallback('claude_refusal', { category: response.stop_details?.category });
+        } else if (response.parsed_output) {
+          return { ...response.parsed_output, engineSource: 'claude' };
+        } else {
+          this.reportFallback('claude_unparsed', { stopReason: response.stop_reason });
         }
       } catch (e) {
         console.warn('[AiService] Fallback de Claude:', e);
+        this.reportFallback('claude_error', { error: e instanceof Error ? e.message : String(e) });
       }
+    } else if (process.env.NODE_ENV === 'production') {
+      this.reportFallback('claude_not_configured', {});
     }
 
     // 2. Intentar con OpenAI GPT-4o si hay clave
@@ -133,6 +146,19 @@ Debes responder ESTRICTAMENTE en formato JSON con las siguientes claves:
 
     // 3. Motor Clínico Veterinario Integrado (Procesamiento por reglas, sin conexión a IA externa)
     return this.parseVeterinaryDomain(transcription);
+  }
+
+  /**
+   * El diferenciador que se vende es la nota generada por Claude: si responde otro motor,
+   * se avisa a Sentry para que no pase en silencio.
+   */
+  private static reportFallback(reason: string, extra: Record<string, unknown>): void {
+    console.warn(`[AiService] SOAP sin Claude (${reason})`, extra);
+    Sentry.captureMessage(`SOAP generado sin Claude: ${reason}`, {
+      level: 'warning',
+      tags: { component: 'ai-soap', reason, model: SOAP_MODEL },
+      extra
+    });
   }
 
   /**

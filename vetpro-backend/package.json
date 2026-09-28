@@ -21,6 +21,7 @@
     "seed": "node dist/prisma/seed.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
     "@prisma/client": "^5.12.1",
     "@sentry/node": "^10.75.0",
     "@types/multer": "^2.2.0",

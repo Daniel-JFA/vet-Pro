@@ -4,6 +4,7 @@ import { PlanType } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
 import { roleMiddleware } from '../middleware/role.js';
+import { paymentSimulationGuard } from '../middleware/paymentSimulation.js';
 import { WompiService, wompiConfig } from '../services/wompi.service.js';
 
 export const SUBSCRIPTION_ROUTES = Router();
@@ -291,8 +292,10 @@ SUBSCRIPTION_ROUTES.post('/webhook', async (req, res): Promise<void> => {
 // 4. SIMULACIÓN DE APROBACIÓN (TEST / DEV / LOCAL)
 // ─────────────────────────────────────────────
 // POST /api/v1/subscriptions/simulate-approval/:reference
+// En producción responde 404 (ver paymentSimulationGuard).
 SUBSCRIPTION_ROUTES.post(
   '/simulate-approval/:reference',
+  paymentSimulationGuard,
   authMiddleware as any,
   roleMiddleware(['admin']) as any,
   async (req: AuthRequest, res: Response): Promise<void> => {

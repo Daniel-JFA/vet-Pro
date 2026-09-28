@@ -1,0 +1,71 @@
+.payment-result {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background-color: var(--surface-ground, #f8fafc);
+}
+
+.result-card {
+  width: 100%;
+  max-width: 460px;
+  background: var(--surface-card, #ffffff);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  padding: 40px 28px;
+  text-align: center;
+
+  h1 {
+    font-size: 22px;
+    margin: 12px 0 8px;
+    color: var(--text-color, #1e293b);
+  }
+
+  p {
+    color: #475569;
+    line-height: 1.5;
+    margin: 0 0 12px;
+  }
+}
+
+.icon {
+  font-size: 56px;
+}
+
+.icon-ok { color: #059669; }
+.icon-wait { color: #d97706; }
+.icon-error { color: #dc2626; }
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto;
+  border: 4px solid #d1fae5;
+  border-top-color: #059669;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.reference {
+  font-size: 13px;
+
+  code {
+    word-break: break-all;
+  }
+}
+
+.btn-back {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  background: #064e3b;
+  color: #ffffff;
+  font-weight: 600;
+  text-decoration: none;
+}

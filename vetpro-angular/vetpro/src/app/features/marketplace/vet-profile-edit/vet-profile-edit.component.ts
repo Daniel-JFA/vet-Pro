@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MarketplaceService, MyVetProfile, ProVetSubscriptionStatus } from '../../../core/services/marketplace.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { buildWompiCheckoutUrl } from '../../../core/utils/wompi-checkout';
 
 @Component({
   selector: 'app-vet-profile-edit',
@@ -75,15 +76,13 @@ export class VetProfileEditComponent implements OnInit {
 
   activateProVet(): void {
     this.subscribing.set(true);
-    this.marketplaceService.subscribeProVet(true).subscribe({
-      next: () => {
-        this.toast.success('¡Felicidades! Membresía Pro Vet ⭐ activada exitosamente.');
-        this.subscribing.set(false);
-        this.loadSubscription();
-        this.loadProfile();
+    // La membresía se activa cuando el webhook de Wompi confirma el pago
+    this.marketplaceService.createProVetCheckout().subscribe({
+      next: ({ checkout }) => {
+        window.location.href = buildWompiCheckoutUrl({ ...checkout, signature: checkout.signatureIntegrity });
       },
       error: (err) => {
-        this.toast.error(err.error?.error || 'Error al procesar suscripción');
+        this.toast.error(err.error?.error || 'Error al iniciar el pago de la membresía');
         this.subscribing.set(false);
       }
     });

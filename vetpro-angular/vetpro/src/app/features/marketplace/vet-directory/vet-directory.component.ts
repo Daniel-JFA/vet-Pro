@@ -10,6 +10,7 @@ import {
   AppointmentVoucherData
 } from '../../../core/services/marketplace.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { buildWompiCheckoutUrl } from '../../../core/utils/wompi-checkout';
 import { WhatsAppWidgetComponent } from '../../../shared/components/whatsapp-widget/whatsapp-widget.component';
 
 @Component({
@@ -48,9 +49,7 @@ export class VetDirectoryComponent implements OnInit {
   // Pasarela Wompi & Checkout
   checkoutData = signal<WompiCheckoutData | null>(null);
   loadingCheckout = signal<boolean>(false);
-  processingPayment = signal<boolean>(false);
-  paymentSuccess = signal<boolean>(false);
-  selectedPaymentMethod = signal<'CARD' | 'PSE' | 'NEQUI' | 'BANCOLOMBIA'>('CARD');
+  redirectingToWompi = signal<boolean>(false);
 
   // Comprobante Digital (Voucher)
   voucherData = signal<AppointmentVoucherData | null>(null);
@@ -194,7 +193,6 @@ export class VetDirectoryComponent implements OnInit {
     this.bookingVet.set(null);
     this.bookingSuccess.set(null);
     this.checkoutData.set(null);
-    this.paymentSuccess.set(false);
   }
 
   startOnlinePayment(appointmentId: string): void {
@@ -211,24 +209,13 @@ export class VetDirectoryComponent implements OnInit {
     });
   }
 
-  simulatePayment(): void {
+  // El pago se confirma por webhook; Wompi devuelve al tutor a /marketplace/payment-result
+  goToWompiCheckout(): void {
     const checkout = this.checkoutData();
     if (!checkout) return;
 
-    this.processingPayment.set(true);
-    this.marketplaceService
-      .simulateMockPayment(checkout.reference, 'APPROVED', this.selectedPaymentMethod())
-      .subscribe({
-        next: () => {
-          this.toast.success('¡Pago verificado y aprobado con éxito vía Wompi Colombia!');
-          this.paymentSuccess.set(true);
-          this.processingPayment.set(false);
-        },
-        error: (err) => {
-          this.toast.error(err.error?.error || 'Error al procesar simulación de pago');
-          this.processingPayment.set(false);
-        }
-      });
+    this.redirectingToWompi.set(true);
+    window.location.href = buildWompiCheckoutUrl({ ...checkout, signature: checkout.signatureIntegrity });
   }
 
   openVoucher(appointmentId: string): void {

@@ -219,10 +219,10 @@ export class MarketplaceService {
   }
 
   /**
-   * Simular pago instantáneo en Sandbox / Dev
+   * Estado de un pago por referencia (página de retorno de Wompi)
    */
-  simulateMockPayment(reference: string, status: 'APPROVED' | 'DECLINED' = 'APPROVED', paymentMethod: string = 'CARD'): Observable<any> {
-    return this.api.post<any>('/marketplace/payments/mock-simulate', { reference, status, paymentMethod });
+  getPaymentStatus(reference: string): Observable<PaymentStatusResponse> {
+    return this.api.get<PaymentStatusResponse>(`/marketplace/payments/status/${encodeURIComponent(reference)}`);
   }
 
   /**
@@ -240,11 +240,18 @@ export class MarketplaceService {
   }
 
   /**
-   * Suscribirse o activar membresía Pro Vet ⭐ ($49.000 COP / mes)
+   * Generar checkout Wompi para la membresía Pro Vet ⭐ ($49.000 COP / mes).
+   * Se activa cuando el webhook de Wompi confirma el pago.
    */
-  subscribeProVet(instantActivate: boolean = true): Observable<any> {
-    return this.api.post<any>('/marketplace/profile/subscription', { instantActivate });
+  createProVetCheckout(): Observable<{ success: boolean; checkout: WompiCheckoutData }> {
+    return this.api.post<{ success: boolean; checkout: WompiCheckoutData }>('/marketplace/profile/subscription', {});
   }
+}
+
+export interface PaymentStatusResponse {
+  status: 'PENDING' | 'APPROVED' | 'DECLINED' | 'VOIDED' | 'ERROR';
+  paymentType: 'appointment_booking' | 'subscription_pro_vet' | 'clinic_subscription';
+  appointmentId: string | null;
 }
 
 export interface WompiCheckoutData {
