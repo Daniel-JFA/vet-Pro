@@ -5,7 +5,7 @@ import { prisma } from '../config/database.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
 import { roleMiddleware } from '../middleware/role.js';
 import { paymentSimulationGuard } from '../middleware/paymentSimulation.js';
-import { getClinicAccess } from '../services/subscription-access.service.js';
+import { getClinicAccess, TRIAL_DAYS } from '../services/subscription-access.service.js';
 import { WompiService, wompiConfig } from '../services/wompi.service.js';
 
 export const SUBSCRIPTION_ROUTES = Router();
@@ -78,10 +78,10 @@ SUBSCRIPTION_ROUTES.get(
         return;
       }
 
-      // Si la clínica es nueva y no tiene trialEndsAt, inicializar 14 días de prueba
+      // Si la clínica es nueva y no tiene trialEndsAt, inicializar el período de prueba
       let trialEndsAt = clinic.trialEndsAt;
       if (!trialEndsAt) {
-        trialEndsAt = new Date(clinic.createdAt.getTime() + 14 * 24 * 60 * 60 * 1000);
+        trialEndsAt = new Date(clinic.createdAt.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
         await prisma.clinic.update({
           where: { id: clinicId },
           data: { trialEndsAt, nextBillingDate: trialEndsAt }

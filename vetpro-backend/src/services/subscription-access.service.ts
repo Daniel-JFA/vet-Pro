@@ -2,7 +2,9 @@
 // período pagado vencido tiene 5 días de gracia; después queda en solo lectura:
 // puede consultar y exportar, pero no crear ni modificar nada.
 
-export const TRIAL_DAYS = 14;
+// 6 meses de prueba mientras la plataforma madura (decisión del 28-sep-2026).
+// La migración 20260928070000_trial_6_meses extendió las pruebas que ya existían.
+export const TRIAL_DAYS = 180;
 export const GRACE_DAYS = 5;
 
 const DAY_MS = 24 * 60 * 60 * 1000;

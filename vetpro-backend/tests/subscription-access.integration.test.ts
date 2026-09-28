@@ -66,10 +66,10 @@ describe('Vencimiento de suscripción (Sprint 14.3)', () => {
   describe('getClinicAccess', () => {
     const base = { trialEndsAt: null, nextBillingDate: null, createdAt: new Date() };
 
-    it('una prueba nueva dura 14 días', () => {
+    it('una prueba nueva dura 6 meses', () => {
       const access = getClinicAccess({ ...base, subscriptionStatus: 'trial' });
       expect(access.readOnly).toBe(false);
-      expect(access.daysUntilExpiry).toBe(14);
+      expect(access.daysUntilExpiry).toBe(180);
     });
 
     it('un plan activo usa nextBillingDate', () => {
