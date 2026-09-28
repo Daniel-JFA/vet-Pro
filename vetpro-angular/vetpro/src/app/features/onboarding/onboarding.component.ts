@@ -688,9 +688,11 @@ export class OnboardingComponent implements OnInit {
       })
       .subscribe({
         next: () => this.createVetIfProvided(),
-        error: () => {
+        error: (err) => {
+          // Si el plan no admite otra sede, el backend explica el motivo
           alert(
-            'No se pudo crear la sede/zona de cobertura. Podrás agregarla luego desde Configuración de Sedes.',
+            err?.error?.error ||
+              'No se pudo crear la sede/zona de cobertura. Podrás agregarla luego desde Configuración de Sedes.',
           );
           this.createVetIfProvided();
         },

@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { prisma } from '../config/database.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
 import { roleMiddleware } from '../middleware/role.js';
+import { PlanLimitsService } from '../services/plan-limits.service.js';
 
 const router = Router();
 
@@ -43,6 +44,8 @@ router.post('/', roleMiddleware(['admin']) as any, async (req: AuthRequest, res:
   }
 
   try {
+    await PlanLimitsService.assertCanAddBranch(clinicId);
+
     const branch = await prisma.branch.create({
       data: {
         clinicId,
@@ -55,7 +58,8 @@ router.post('/', roleMiddleware(['admin']) as any, async (req: AuthRequest, res:
     });
 
     return res.status(201).json(branch);
-  } catch (error) {
+  } catch (error: any) {
+    if (error.status) return res.status(error.status).json({ error: error.message });
     console.error('Error al crear sucursal física:', error);
     return res.status(500).json({ error: 'Error interno al registrar la nueva sede física.' });
   }
