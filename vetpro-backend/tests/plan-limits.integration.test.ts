@@ -85,6 +85,31 @@ describe('Límites por plan (Sprint 14.4)', () => {
     expect(res.status).toBe(201);
   });
 
+  it('completar la sede principal (onboarding) no ocupa un cupo nuevo', async () => {
+    const { clinic, token } = await createClinic(PlanType.starter, 0);
+    const main = await prisma.branch.findFirstOrThrow({ where: { clinicId: clinic.id } });
+
+    const res = await request(app)
+      .patch(`/api/v1/branches/${main.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Veterinaria Central', address: 'Carrera 7 # 45-10' });
+    expect(res.status).toBe(200);
+    expect(res.body.name).toBe('Veterinaria Central');
+    expect(await prisma.branch.count({ where: { clinicId: clinic.id } })).toBe(1);
+  });
+
+  it('no se puede editar la sede de otra clínica', async () => {
+    const { clinic: other } = await createClinic(PlanType.starter, 0);
+    const { token } = await createClinic(PlanType.starter, 0);
+    const otherBranch = await prisma.branch.findFirstOrThrow({ where: { clinicId: other.id } });
+
+    const res = await request(app)
+      .patch(`/api/v1/branches/${otherBranch.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Intruso' });
+    expect(res.status).toBe(404);
+  });
+
   it('el plan Pro permite 2 sedes y bloquea la tercera', async () => {
     const { token } = await createClinic(PlanType.pro, 0);
     const branch = { name: 'Sede Norte', address: 'Calle 170', phone: '3100000001' };

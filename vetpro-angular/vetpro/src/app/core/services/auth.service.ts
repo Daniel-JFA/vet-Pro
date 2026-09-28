@@ -161,6 +161,10 @@ export class AuthService {
     return this.api.post<Branch>('/branches', data);
   }
 
+  updateBranch(id: string, data: { name?: string; address?: string; phone?: string; email?: string }): Observable<Branch> {
+    return this.api.patch<Branch>(`/branches/${id}`, data);
+  }
+
   // Cambiar sucursal activa actual
   changeActiveBranch(branchId: string): void {
     localStorage.setItem('vetpro_active_branch_id', branchId);

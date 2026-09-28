@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { GeoService, Departamento, Municipio } from '../../core/services/geo.service';
+import { switchMap } from 'rxjs';
 
 @Component({
   selector: 'app-onboarding',
@@ -680,19 +681,27 @@ export class OnboardingComponent implements OnInit {
       return;
     }
 
+    const data = {
+      name: this.branchName(),
+      address: this.branchAddress(),
+      phone: this.phone() || '+57 300 000 0000',
+    };
+
+    // El registro ya crea una sede principal con datos provisionales: se completa
+    // esa en vez de abrir una segunda (que además ocuparía un cupo del plan).
     this.auth
-      .createBranch({
-        name: this.branchName(),
-        address: this.branchAddress(),
-        phone: this.phone() || '+57 300 000 0000',
-      })
+      .loadBranches()
+      .pipe(
+        switchMap((branches) =>
+          branches.length > 0 ? this.auth.updateBranch(branches[0].id, data) : this.auth.createBranch(data),
+        ),
+      )
       .subscribe({
         next: () => this.createVetIfProvided(),
         error: (err) => {
-          // Si el plan no admite otra sede, el backend explica el motivo
           alert(
             err?.error?.error ||
-              'No se pudo crear la sede/zona de cobertura. Podrás agregarla luego desde Configuración de Sedes.',
+              'No se pudo guardar la sede/zona de cobertura. Podrás corregirla luego desde Configuración de Sedes.',
           );
           this.createVetIfProvided();
         },
