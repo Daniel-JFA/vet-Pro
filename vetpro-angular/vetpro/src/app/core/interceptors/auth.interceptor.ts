@@ -4,11 +4,18 @@ import { catchError, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { TutorAuthService } from '../services/tutor-auth.service';
 import { PlatformAuthService } from '../services/platform-auth.service';
+import { ToastService } from '../services/toast.service';
+
+// Aviso de suscripción vencida (402): una vez por minuto como máximo, para no
+// repetirlo en cada petición bloqueada.
+const EXPIRED_NOTICE_INTERVAL_MS = 60_000;
+let lastExpiredNoticeAt = 0;
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
   const tutorAuth = inject(TutorAuthService);
   const platformAuth = inject(PlatformAuthService);
+  const toast = inject(ToastService);
 
   // El endpoint decide qué token corresponde: plataforma, tutor o staff de clínica
   const isPlatformRequest = req.url.includes('/platform');
@@ -27,6 +34,15 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(authReq).pipe(
     catchError((err: HttpErrorResponse) => {
+      if (err.status === 402 && err.error?.code === 'SUBSCRIPTION_EXPIRED') {
+        const now = Date.now();
+        if (now - lastExpiredNoticeAt > EXPIRED_NOTICE_INTERVAL_MS) {
+          lastExpiredNoticeAt = now;
+          toast.warning('La suscripción de la clínica está vencida: puedes consultar y exportar, pero no crear ni modificar. Un administrador puede renovarla en Suscripción.', 10000);
+        }
+        return throwError(() => err);
+      }
+
       if (err.status !== 401) {
         return throwError(() => err);
       }

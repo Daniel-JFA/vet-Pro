@@ -31,6 +31,7 @@ import { MARKETPLACE_ROUTES } from './routes/marketplace.routes.js';
 import { NOTIFICATION_ROUTES } from './routes/notifications.routes.js';
 import { SUBSCRIPTION_ROUTES } from './routes/subscription.routes.js';
 import { errorHandler, requestId } from './middleware/error.js';
+import { subscriptionGuard } from './middleware/subscriptionGuard.js';
 import { initSentry } from './utils/sentry.js';
 
 dotenv.config();
@@ -141,6 +142,8 @@ app.get(['/health', '/api/health'], (_req, res) => {
 // ─────────────────────────────────────────────
 // REGISTRO DE RUTAS API REST v1
 // ─────────────────────────────────────────────
+// Clínicas con la suscripción vencida (más la gracia) quedan en solo lectura
+app.use('/api/v1', subscriptionGuard);
 app.use('/api/v1/auth', AUTH_ROUTES);
 app.use('/api/v1/patients', PATIENT_ROUTES);
 app.use('/api/v1/tutors', TUTOR_ROUTES);

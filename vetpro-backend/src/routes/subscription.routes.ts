@@ -5,6 +5,7 @@ import { prisma } from '../config/database.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
 import { roleMiddleware } from '../middleware/role.js';
 import { paymentSimulationGuard } from '../middleware/paymentSimulation.js';
+import { getClinicAccess } from '../services/subscription-access.service.js';
 import { WompiService, wompiConfig } from '../services/wompi.service.js';
 
 export const SUBSCRIPTION_ROUTES = Router();
@@ -100,12 +101,15 @@ SUBSCRIPTION_ROUTES.get(
       });
 
       const currentPricing = PLAN_PRICING[clinic.plan] || PLAN_PRICING.starter;
+      const access = getClinicAccess({ ...clinic, trialEndsAt });
 
       res.json({
         clinic: {
           ...clinic,
           trialEndsAt,
-          daysRemaining
+          daysRemaining,
+          readOnly: access.readOnly,
+          graceEndsAt: access.graceEndsAt
         },
         pricing: {
           plan: clinic.plan,

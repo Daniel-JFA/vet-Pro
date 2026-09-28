@@ -15,6 +15,8 @@ export interface ClinicSubscriptionInfo {
     aiMinutesUsed: number;
     aiMinutesLimit: number;
     daysRemaining: number;
+    readOnly: boolean;
+    graceEndsAt: string;
   };
   pricing: {
     plan: string;

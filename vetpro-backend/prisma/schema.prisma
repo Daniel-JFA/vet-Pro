@@ -134,6 +134,7 @@ model Clinic {
   vetProfiles           VetProfile[]
   marketplacePayments   MarketplacePayment[]
   subscriptionPayments  ClinicSubscriptionPayment[]
+  subscriptionNotices   SubscriptionNotice[]
 
   @@map("clinics")
 }
@@ -1461,6 +1462,21 @@ model CrmCampaign {
 // ─────────────────────────────────────────────
 // 💳 SUSCRIPCIONES Y COBROS SAAS RECURRENTES
 // ─────────────────────────────────────────────
+
+// Avisos de vencimiento ya enviados. La clave única evita repetir un aviso
+// para el mismo vencimiento aunque el proceso se reinicie.
+model SubscriptionNotice {
+  id        String   @id @default(uuid())
+  clinicId  String
+  clinic    Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  kind      String // "7d", "1d"
+  sentTo    String
+  sentAt    DateTime @default(now())
+
+  @@unique([clinicId, expiresAt, kind])
+  @@map("subscription_notices")
+}
 
 model ClinicSubscriptionPayment {
   id                  String    @id @default(uuid())

@@ -15,6 +15,24 @@
       </div>
     </header>
 
+    @if (data.clinic.readOnly) {
+      <div class="readonly-alert" role="alert">
+        <span class="material-symbols-outlined">lock</span>
+        <p>
+          <strong>La cuenta está en solo lectura.</strong>
+          El plan venció y terminaron los días de gracia. Puedes consultar y exportar tu información; elige un plan abajo para volver a crear y modificar registros.
+        </p>
+      </div>
+    } @else if (data.clinic.daysRemaining === 0) {
+      <div class="readonly-alert grace" role="alert">
+        <span class="material-symbols-outlined">schedule</span>
+        <p>
+          <strong>El plan está vencido.</strong>
+          Tienes hasta el {{ data.clinic.graceEndsAt | date:'mediumDate' }} para renovarlo; después la cuenta quedará en solo lectura.
+        </p>
+      </div>
+    }
+
     <!-- Banner de Estado Actual -->
     <section class="status-banner">
       <div class="status-header">
