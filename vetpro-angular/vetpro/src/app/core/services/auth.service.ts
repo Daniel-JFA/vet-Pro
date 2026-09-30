@@ -253,6 +253,7 @@ export class AuthService {
     phone?: string;
     address?: string;
     municipioId?: string;
+    onboarded?: boolean;
   }): Observable<{ message: string; clinic: Clinic }> {
     return this.api.patch<{ message: string; clinic: Clinic }>('/auth/clinic', data).pipe(
       tap(res => {

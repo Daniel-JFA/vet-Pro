@@ -5,6 +5,7 @@
 export interface Clinic {
   id: string;
   name: string;
+  onboardedAt?: string | null;
   businessType?: 'clinic' | 'independent_vet';
   logoUrl?: string;
   nit?: string;

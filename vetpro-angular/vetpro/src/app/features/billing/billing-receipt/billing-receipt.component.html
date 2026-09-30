@@ -75,11 +75,15 @@
           <div class="clinic-info">
             <div class="clinic-logo-text">
               <span class="material-symbols-outlined">local_hospital</span>
-              <h2>VETPRO SAS</h2>
+              <h2>{{ clinic()?.name }}</h2>
             </div>
-            <p class="clinic-subtext">NIT: 900.123.456-1</p>
-            <p class="clinic-subtext">Calle 100 #15-30, Medellín</p>
-            <p class="clinic-subtext">Teléfono: +57 312 456 7890 | Correo: contacto@vetpro.co</p>
+            @if (clinic()?.nit) {
+              <p class="clinic-subtext">NIT: {{ clinic()?.nit }}</p>
+            }
+            <p class="clinic-subtext">{{ clinic()?.address }}{{ clinic()?.city ? ', ' + clinic()?.city : '' }}</p>
+            <p class="clinic-subtext">
+              Teléfono: {{ clinic()?.phone }}{{ clinic()?.email ? ' | Correo: ' + clinic()?.email : '' }}
+            </p>
           </div>
           <div class="invoice-meta-box">
             <span class="sheet-badge" [attr.data-status]="invoice()?.status">
@@ -178,10 +182,8 @@
               <p class="notes-text">{{ invoice()?.notes }}</p>
             }
             @if (!invoice()?.notes) {
-              <p class="notes-text">
-                Favor realizar transferencias a nuestra cuenta corriente Bancolombia No.
-                123-456789-01 a nombre de VetPro SAS. Enviar soporte de pago por WhatsApp.
-              </p>
+              <!-- Antes aquí salía una cuenta bancaria ficticia "a nombre de VetPro SAS" -->
+              <p class="notes-text">Consulta con la clínica los medios de pago disponibles.</p>
             }
           </div>
           <!-- TOTALES FINALES -->

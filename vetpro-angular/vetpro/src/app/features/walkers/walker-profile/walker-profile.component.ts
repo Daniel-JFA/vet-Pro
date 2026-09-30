@@ -300,7 +300,7 @@ export class WalkerProfileComponent implements OnInit {
   ngOnInit() {
     this.loading.set(true);
     const userId = this.auth.currentUser?.id;
-    this.api.get<Walker>(`/v1/walkers/by-user/${userId}`).subscribe({
+    this.api.get<Walker>(`/walkers/by-user/${userId}`).subscribe({
       next: (w) => {
         this.profile.set(w);
         this.form = {
@@ -335,7 +335,7 @@ export class WalkerProfileComponent implements OnInit {
     const p = this.profile();
     if (!p) return;
     this.saving.set(true);
-    this.api.put<Walker>(`/v1/walkers/${p.id}`, this.form).subscribe({
+    this.api.put<Walker>(`/walkers/${p.id}`, this.form).subscribe({
       next: (updated) => {
         this.profile.set(updated);
         this.saving.set(false);

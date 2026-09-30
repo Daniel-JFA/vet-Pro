@@ -5,6 +5,7 @@ import { prisma } from '../config/database.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
 import { roleMiddleware } from '../middleware/role.js';
 import { WompiService, wompiConfig } from '../services/wompi.service.js';
+import { requireOnlinePayments, requirePaymentSimulation } from '../middleware/payments.js';
 
 export const SUBSCRIPTION_ROUTES = Router();
 
@@ -131,6 +132,7 @@ const CheckoutSchema = z.object({
 // POST /api/v1/subscriptions/checkout
 SUBSCRIPTION_ROUTES.post(
   '/checkout',
+  requireOnlinePayments as any,
   authMiddleware as any,
   roleMiddleware(['admin']) as any,
   async (req: AuthRequest, res: Response): Promise<void> => {
@@ -203,7 +205,7 @@ SUBSCRIPTION_ROUTES.post(
 // 3. WEBHOOK TRANSACCIONAL DE WOMPI
 // ─────────────────────────────────────────────
 // POST /api/v1/subscriptions/webhook
-SUBSCRIPTION_ROUTES.post('/webhook', async (req, res): Promise<void> => {
+SUBSCRIPTION_ROUTES.post('/webhook', requireOnlinePayments as any, async (req, res): Promise<void> => {
   try {
     const payload = req.body;
     const event = payload?.event;
@@ -293,6 +295,7 @@ SUBSCRIPTION_ROUTES.post('/webhook', async (req, res): Promise<void> => {
 // POST /api/v1/subscriptions/simulate-approval/:reference
 SUBSCRIPTION_ROUTES.post(
   '/simulate-approval/:reference',
+  requirePaymentSimulation as any,
   authMiddleware as any,
   roleMiddleware(['admin']) as any,
   async (req: AuthRequest, res: Response): Promise<void> => {

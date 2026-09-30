@@ -659,6 +659,7 @@ export class OnboardingComponent implements OnInit {
         phone: this.phone(),
         municipioId: this.municipioId(),
         nit: this.nit(),
+        onboarded: true,
       })
       .subscribe({
         next: () => this.createBranchThenVet(),

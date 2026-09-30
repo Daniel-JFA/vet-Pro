@@ -47,20 +47,33 @@ router.post('/', async (req: AuthRequest, res: Response) => {
   if (!clinicId) return res.status(401).json({ error: 'No autorizado.' });
   if (role !== 'admin') return res.status(403).json({ error: 'Acceso denegado. Se requiere rol admin.' });
 
-  const { userId, bio, photoUrl, pricePerHour, maxDogs, coverageZones } = req.body;
-  if (!userId) return res.status(400).json({ error: 'El campo userId es obligatorio.' });
+  // El formulario de la clínica identifica al paseador por su correo (userEmail)
+  const { userId, userEmail, bio, photoUrl, pricePerHour, maxDogs, coverageZones } = req.body;
+  const email = typeof userEmail === 'string' ? userEmail.trim().toLowerCase() : '';
+  if (!userId && !email) return res.status(400).json({ error: 'Indica el correo del usuario paseador.' });
 
   try {
-    const user = await prisma.user.findFirst({ where: { id: userId, clinicId } });
-    if (!user) return res.status(404).json({ error: 'El usuario no existe o no pertenece a su clínica.' });
+    const user = await prisma.user.findFirst({
+      where: userId ? { id: userId, clinicId } : { email, clinicId }
+    });
+    if (!user) {
+      return res.status(404).json({
+        error: 'No existe un usuario de tu clínica con ese correo. Créalo primero en Equipo & Usuarios con el rol Paseador.'
+      });
+    }
     if (user.role !== 'walker') {
-      return res.status(400).json({ error: 'El usuario debe tener el rol walker.' });
+      return res.status(400).json({ error: 'El usuario debe tener el rol Paseador (walker).' });
+    }
+
+    const existingProfile = await prisma.walker.findFirst({ where: { userId: user.id } });
+    if (existingProfile) {
+      return res.status(400).json({ error: 'Este usuario ya tiene un perfil de paseador.' });
     }
 
     const walker = await prisma.walker.create({
       data: {
         clinicId,
-        userId,
+        userId: user.id,
         bio: bio || null,
         photoUrl: photoUrl || null,
         pricePerHour: pricePerHour ?? 25000,
@@ -305,6 +318,30 @@ router.patch('/bookings/:id/rating', async (req: AuthRequest, res: Response) => 
 // ─────────────────────────────────────────────
 // /:id routes — al final para no capturar /bookings
 // ─────────────────────────────────────────────
+
+// GET /api/v1/walkers/by-user/:userId (Perfil del paseador que inició sesión)
+router.get('/by-user/:userId', async (req: AuthRequest, res: Response) => {
+  const clinicId = req.user?.clinicId;
+  const { userId } = req.params;
+
+  if (!clinicId) return res.status(401).json({ error: 'No autorizado.' });
+
+  try {
+    const walker = await prisma.walker.findFirst({
+      where: { userId, clinicId },
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true, email: true, role: true, avatarUrl: true } },
+        walkBookings: { where: { deletedAt: null }, orderBy: { scheduledAt: 'desc' }, take: 10 }
+      }
+    });
+
+    if (!walker) return res.status(404).json({ error: 'Paseador no encontrado.' });
+    return res.json(walker);
+  } catch (error) {
+    console.error('[WalkerRoutes] Error al obtener paseador por usuario:', error);
+    return res.status(500).json({ error: 'Error al obtener el paseador.' });
+  }
+});
 
 // GET /api/v1/walkers/:id
 router.get('/:id', async (req: AuthRequest, res: Response) => {

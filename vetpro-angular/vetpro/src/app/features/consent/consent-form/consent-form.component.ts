@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { ConsentService } from '../../../core/services/consent.service';
 import { PatientService } from '../../../core/services/patient.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { Patient } from '../../../core/models';
 
 interface ConsentTemplate {
@@ -25,6 +26,9 @@ export class ConsentFormComponent implements OnInit {
   private patientSvc = inject(PatientService);
   private router = inject(Router);
   private toast = inject(ToastService);
+  private auth = inject(AuthService);
+  // El documento debe nombrar a la clínica que atiende (antes decía siempre "VetPro")
+  clinicName = signal('');
 
   loading = signal(true);
   submitting = signal(false);
@@ -38,17 +42,17 @@ export class ConsentFormComponent implements OnInit {
     {
       key: 'anesthesia',
       title: 'Autorización para Anestesia y Cirugía',
-      body: 'Por medio del presente documento, yo [NOMBRE_TUTOR] autorizo a la clínica veterinaria VetPro a realizar el procedimiento quirúrgico propuesto bajo anestesia general inhalatoria para mi mascota [NOMBRE_MASCOTA]. Entiendo los riesgos implícitos, incluyendo reacciones adversas a medicamentos anestésicos, shock, paro cardiorrespiratorio o deceso, habiendo sido previamente informado del plan quirúrgico y exámenes prequirúrgicos.',
+      body: 'Por medio del presente documento, yo [NOMBRE_TUTOR] autorizo a la clínica veterinaria [NOMBRE_CLINICA] a realizar el procedimiento quirúrgico propuesto bajo anestesia general inhalatoria para mi mascota [NOMBRE_MASCOTA]. Entiendo los riesgos implícitos, incluyendo reacciones adversas a medicamentos anestésicos, shock, paro cardiorrespiratorio o deceso, habiendo sido previamente informado del plan quirúrgico y exámenes prequirúrgicos.',
     },
     {
       key: 'hospitalization',
       title: 'Consentimiento para Hospitalización General',
-      body: 'Por medio del presente documento, yo [NOMBRE_TUTOR] autorizo a la clínica veterinaria VetPro a hospitalizar a mi mascota [NOMBRE_MASCOTA] para la administración de terapia de soporte, terapia de fluidos endovenosos y monitoreo clínico. Entiendo que se me informará periódicamente de su estado y autorizo tratamientos de urgencia que sean médicamente necesarios para salvaguardar su vida.',
+      body: 'Por medio del presente documento, yo [NOMBRE_TUTOR] autorizo a la clínica veterinaria [NOMBRE_CLINICA] a hospitalizar a mi mascota [NOMBRE_MASCOTA] para la administración de terapia de soporte, terapia de fluidos endovenosos y monitoreo clínico. Entiendo que se me informará periódicamente de su estado y autorizo tratamientos de urgencia que sean médicamente necesarios para salvaguardar su vida.',
     },
     {
       key: 'euthanasia',
       title: 'Consentimiento de Procedimiento de Eutanasia',
-      body: 'Por medio del presente documento, yo [NOMBRE_TUTOR] certifico ser el tutor legal de [NOMBRE_MASCOTA]. Autorizo de forma libre y voluntaria a los profesionales de VetPro a aplicar la eutanasia humanitaria (sobredosis anestésica controlada) a mi mascota, con el fin de evitar sufrimiento innecesario derivado de su enfermedad terminal diagnosticada.',
+      body: 'Por medio del presente documento, yo [NOMBRE_TUTOR] certifico ser el tutor legal de [NOMBRE_MASCOTA]. Autorizo de forma libre y voluntaria a los profesionales de [NOMBRE_CLINICA] a aplicar la eutanasia humanitaria (sobredosis anestésica controlada) a mi mascota, con el fin de evitar sufrimiento innecesario derivado de su enfermedad terminal diagnosticada.',
     },
   ];
 
@@ -68,6 +72,12 @@ export class ConsentFormComponent implements OnInit {
   ngOnInit() {
     this.loadPatients();
     this.updateTemplateContent();
+    this.auth.getClinic().subscribe({
+      next: (c) => {
+        this.clinicName.set(c?.name || '');
+        this.updateTemplateContent();
+      },
+    });
   }
 
   loadPatients() {
@@ -117,6 +127,7 @@ export class ConsentFormComponent implements OnInit {
 
     body = body.replace(/\[NOMBRE_MASCOTA\]/g, patName);
     body = body.replace(/\[NOMBRE_TUTOR\]/g, tutName);
+    body = body.replace(/\[NOMBRE_CLINICA\]/g, this.clinicName() || this.auth.state().clinic?.name || '[NOMBRE_CLINICA]');
 
     this.documentContent.set(body);
   }

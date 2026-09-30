@@ -5,7 +5,8 @@ import { FormsModule } from '@angular/forms';
 import { BillingService } from '../../../core/services/billing.service';
 import { DianService } from '../../../core/services/dian.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { Invoice } from '../../../core/models';
+import { AuthService } from '../../../core/services/auth.service';
+import { Clinic, Invoice } from '../../../core/models';
 
 @Component({
   selector: 'app-billing-receipt',
@@ -21,6 +22,9 @@ export class BillingReceiptComponent implements OnInit {
 
   invoiceId = signal<string | null>(null);
   invoice = signal<Invoice | null>(null);
+  // Emisor de la factura: la clínica (antes estaba fijo "VETPRO SAS, NIT 900.123.456-1")
+  clinic = signal<Clinic | null>(null);
+  private auth = inject(AuthService);
   loading = signal(true);
 
   // Modales
@@ -43,6 +47,7 @@ export class BillingReceiptComponent implements OnInit {
   dianTransmitting = signal(false);
 
   ngOnInit() {
+    this.auth.getClinic().subscribe({ next: (c) => this.clinic.set(c), error: () => this.clinic.set(null) });
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.invoiceId.set(id);

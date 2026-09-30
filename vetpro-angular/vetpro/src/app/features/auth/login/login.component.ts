@@ -251,7 +251,10 @@ export class LoginComponent {
     this.auth.login(this.form.value.email!, this.form.value.password!).subscribe({
       next: (res) => {
         // Si el usuario no ha completado el onboarding básico y es admin, llevarlo a Onboarding
-        const isOnboarded = localStorage.getItem('vetpro_clinic_onboarded') === 'true';
+        // El servidor es la fuente de verdad; localStorage solo cubre el instante
+        // entre terminar el onboarding y el próximo login
+        const isOnboarded =
+          !!res.clinic?.onboardedAt || localStorage.getItem('vetpro_clinic_onboarded') === 'true';
         if (res.user.role === 'admin' && !isOnboarded) {
           this.router.navigate(['/onboarding']);
         } else if (!res.user.profileCompleted) {

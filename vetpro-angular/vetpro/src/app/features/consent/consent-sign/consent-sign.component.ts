@@ -151,8 +151,12 @@ export class ConsentSignComponent implements AfterViewInit {
     };
   }
 
+  // Longitud del trazo dibujado; una firma en blanco no es válida
+  private strokeLength = 0;
+
   private draw(x: number, y: number) {
     if (!this.ctx) return;
+    this.strokeLength += Math.hypot(x - this.lastX, y - this.lastY);
     this.ctx.beginPath();
     this.ctx.moveTo(this.lastX, this.lastY);
     this.ctx.lineTo(x, y);
@@ -166,10 +170,16 @@ export class ConsentSignComponent implements AfterViewInit {
     if (!this.ctx) return;
     const canvas = this.canvasRef.nativeElement;
     this.ctx.clearRect(0, 0, canvas.width, canvas.height);
+    this.strokeLength = 0;
   }
 
   submitSignature() {
     if (!this.canvasRef) return;
+    // Antes se aceptaba el lienzo vacío y el consentimiento quedaba "firmado" sin firma
+    if (this.strokeLength < 30) {
+      this.submitError.set('Dibuja tu firma en el recuadro antes de firmar.');
+      return;
+    }
     this.submitting.set(true);
     this.submitError.set(null);
 

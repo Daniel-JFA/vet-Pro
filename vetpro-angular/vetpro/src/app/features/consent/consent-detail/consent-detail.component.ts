@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { ConsentService } from '../../../core/services/consent.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { Clinic } from '../../../core/models';
 
 @Component({
   selector: 'app-consent-detail',
@@ -15,6 +17,8 @@ export class ConsentDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private consentSvc = inject(ConsentService);
   private toast = inject(ToastService);
+  private auth = inject(AuthService);
+  clinic = signal<Clinic | null>(null);
 
   consentId = signal<string | null>(null);
   consent = signal<any | null>(null);
@@ -22,6 +26,7 @@ export class ConsentDetailComponent implements OnInit {
   copied = signal(false);
 
   ngOnInit() {
+    this.auth.getClinic().subscribe({ next: (c) => this.clinic.set(c), error: () => this.clinic.set(null) });
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.consentId.set(id);

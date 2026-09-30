@@ -147,6 +147,35 @@ HOSPITALIZATION_ROUTES.post('/beds', async (req: AuthRequest, res: Response) => 
   }
 });
 
+// PATCH /api/v1/hospitalizations/beds/:id/status (Jaula lista tras limpieza, o en mantenimiento)
+// El alta deja la jaula en "cleaning"; sin esta ruta nunca volvía a quedar disponible.
+const UpdateBedStatusSchema = z.object({
+  status: z.enum([BedStatus.available, BedStatus.cleaning, BedStatus.maintenance])
+});
+
+HOSPITALIZATION_ROUTES.patch('/beds/:id/status', async (req: AuthRequest, res: Response) => {
+  const clinicId = req.user?.clinicId;
+  if (!clinicId) return res.status(401).json({ error: 'No autorizado.' });
+
+  try {
+    const { status } = UpdateBedStatusSchema.parse(req.body);
+    const bed = await prisma.hospitalBed.findFirst({ where: { id: req.params.id, clinicId } });
+    if (!bed) return res.status(404).json({ error: 'Cama/jaula no encontrada.' });
+    if (bed.status === BedStatus.occupied) {
+      return res.status(400).json({ error: `La cama ${bed.code} está ocupada; primero da de alta al paciente.` });
+    }
+
+    const updated = await prisma.hospitalBed.update({ where: { id: bed.id }, data: { status } });
+    return res.json(updated);
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Datos inválidos', details: error.flatten().fieldErrors });
+    }
+    console.error('[Hospitalization] Error al actualizar estado de cama:', error);
+    return res.status(500).json({ error: 'Error al actualizar la cama.' });
+  }
+});
+
 // GET /api/v1/hospitalizations y /api/v1/hospitalizations/active (Pacientes actualmente hospitalizados y Kardex)
 HOSPITALIZATION_ROUTES.get(['/', '/active'], async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;

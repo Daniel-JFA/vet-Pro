@@ -34,7 +34,7 @@ export class PatientService {
   }
 
   getMedicalHistory(patientId: string): Observable<MedicalRecord[]> {
-    return this.api.get<MedicalRecord[]>(`/patients/${patientId}/medical-records`);
+    return this.api.get<MedicalRecord[]>(`/medical-records/patient/${patientId}`);
   }
 
   getMedicalRecord(id: string): Observable<MedicalRecord> {

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SubscriptionService, ClinicSubscriptionInfo, CheckoutResponse } from '../../../core/services/subscription.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-subscription-management',
@@ -18,6 +19,7 @@ export class SubscriptionManagementComponent implements OnInit {
   loading = signal(true);
   checkoutLoading = signal(false);
   simulatingLoading = signal(false);
+  readonly canSimulatePayments = !environment.production;
 
   info = signal<ClinicSubscriptionInfo | null>(null);
   selectedCycle = signal<'monthly' | 'annual'>('monthly');

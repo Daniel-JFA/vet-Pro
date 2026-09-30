@@ -2,6 +2,8 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LabService, LabOrder, LabTestCatalogItem } from '../../../core/services/lab.service';
+import { PatientService } from '../../../core/services/patient.service';
+import { Patient } from '../../../core/models';
 
 @Component({
   selector: 'app-lab-orders',
@@ -168,6 +170,54 @@ import { LabService, LabOrder, LabTestCatalogItem } from '../../../core/services
       }
 
       <!-- MODAL DIGITACIÓN DE RESULTADOS -->
+      @if (showNewOrder()) {
+        <div class="modal-backdrop">
+          <div class="modal-card">
+            <div class="modal-header">
+              <h3>Nueva orden de laboratorio</h3>
+            </div>
+            <div class="modal-body new-order">
+              <label class="field">
+                <span>Paciente *</span>
+                <select name="orderPatient" [(ngModel)]="newOrder.patientId">
+                  <option value="">Selecciona una mascota…</option>
+                  @for (pt of clinicPatients(); track pt.id) {
+                    <option [value]="pt.id">{{ pt.name }} — {{ pt.tutor?.firstName }} {{ pt.tutor?.lastName }}</option>
+                  }
+                </select>
+              </label>
+              <label class="field">
+                <span>Tipo de muestra *</span>
+                <input name="orderSample" [(ngModel)]="newOrder.sampleType" placeholder="Ej: Sangre EDTA, Suero, Orina" />
+              </label>
+              <div class="field">
+                <span>Exámenes * ({{ newOrder.testIds.size }} seleccionados)</span>
+                <div class="test-picker">
+                  @for (t of catalog(); track t.id) {
+                    <label class="test-option">
+                      <input type="checkbox" [checked]="newOrder.testIds.has(t.id)" (change)="toggleOrderTest(t.id)" />
+                      {{ t.name }} <small>({{ t.code }})</small>
+                    </label>
+                  } @empty {
+                    <p class="modal-desc">No hay exámenes en el catálogo de la clínica.</p>
+                  }
+                </div>
+              </div>
+              <label class="field">
+                <span>Notas clínicas</span>
+                <textarea name="orderNotes" rows="2" [(ngModel)]="newOrder.clinicalNotes"></textarea>
+              </label>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" (click)="showNewOrder.set(false)">Cancelar</button>
+              <button class="btn btn-primary" [disabled]="creatingOrder()" (click)="createOrder()">
+                {{ creatingOrder() ? 'Creando…' : 'Crear orden' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
       @if (selectedOrderModal()) {
         <div class="modal-backdrop">
           <div class="modal-card">
@@ -217,7 +267,9 @@ import { LabService, LabOrder, LabTestCatalogItem } from '../../../core/services
                               ? 'Bajo ⬇'
                               : res.flag === 'high'
                                 ? 'Alto ⬆'
-                                : 'Normal ✓'
+                                : res.flag === 'normal'
+                                  ? 'Normal ✓'
+                                  : '—'
                           }}
                         </span>
                       </td>
@@ -479,6 +531,17 @@ import { LabService, LabOrder, LabTestCatalogItem } from '../../../core/services
         background: #e2e8f0;
         color: #475569;
       }
+      .new-order { display: flex; flex-direction: column; gap: 12px; }
+      .new-order .field { display: flex; flex-direction: column; gap: 4px; }
+      .new-order .field > span { font-size: 12px; font-weight: 600; color: #475569; }
+      .new-order input:not([type='checkbox']), .new-order select, .new-order textarea {
+        padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; font-size: 14px;
+      }
+      .test-picker {
+        max-height: 220px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;
+        padding: 8px; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px;
+      }
+      .test-option { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
       .modal-backdrop {
         position: fixed;
         inset: 0;
@@ -561,6 +624,12 @@ import { LabService, LabOrder, LabTestCatalogItem } from '../../../core/services
 })
 export class LabOrdersComponent implements OnInit {
   private labService = inject(LabService);
+  private patientService = inject(PatientService);
+
+  showNewOrder = signal(false);
+  creatingOrder = signal(false);
+  clinicPatients = signal<Patient[]>([]);
+  newOrder = { patientId: '', sampleType: 'Sangre EDTA', clinicalNotes: '', testIds: new Set<string>() };
 
   activeTab = signal<'orders' | 'catalog'>('orders');
   isLoading = signal<boolean>(false);
@@ -621,15 +690,22 @@ export class LabOrdersComponent implements OnInit {
     const order = this.selectedOrderModal();
     if (!order) return;
 
+    // Antes un valor vacío se guardaba como 'Normal' (resultado inventado)
+    const missing = this.activeOrderResults().filter((r) => !String(r.valueMeasured ?? '').trim());
+    if (missing.length) {
+      alert(`Falta el valor medido de: ${missing.map((r) => r.testName).join(', ')}.`);
+      return;
+    }
+
     this.labService
       .saveResults(order.id, {
         status: 'completed',
         results: this.activeOrderResults().map((r) => ({
-          labTestCatalogId: r.labTestCatalogId,
+          labTestCatalogId: r.labTestCatalogId ?? undefined,
           testName: r.testName,
-          valueMeasured: r.valueMeasured || 'Normal',
-          unit: r.unit,
-          interpretation: r.interpretation,
+          valueMeasured: String(r.valueMeasured).trim(),
+          unit: r.unit ?? undefined,
+          interpretation: r.interpretation ?? undefined,
         })),
       })
       .subscribe({
@@ -643,8 +719,45 @@ export class LabOrdersComponent implements OnInit {
   }
 
   openNewOrderModal() {
-    alert(
-      'Para emitir una nueva orden de laboratorio, abra la consulta o el perfil del paciente y presione "Ordenar Examen".',
-    );
+    this.newOrder = { patientId: '', sampleType: 'Sangre EDTA', clinicalNotes: '', testIds: new Set<string>() };
+    if (!this.catalog().length) this.loadCatalog();
+    this.patientService.getPatients({ pageSize: 500 }).subscribe({
+      next: (res) => this.clinicPatients.set(res.data || []),
+      error: () => alert('No se pudo cargar el listado de pacientes.'),
+    });
+    this.showNewOrder.set(true);
+  }
+
+  toggleOrderTest(id: string) {
+    const ids = this.newOrder.testIds;
+    ids.has(id) ? ids.delete(id) : ids.add(id);
+  }
+
+  createOrder() {
+    const o = this.newOrder;
+    if (!o.patientId || !o.sampleType.trim() || !o.testIds.size) {
+      alert('Selecciona el paciente, el tipo de muestra y al menos un examen.');
+      return;
+    }
+    this.creatingOrder.set(true);
+    this.labService
+      .createOrder({
+        patientId: o.patientId,
+        sampleType: o.sampleType.trim(),
+        clinicalNotes: o.clinicalNotes.trim() || undefined,
+        testCatalogIds: [...o.testIds],
+      })
+      .subscribe({
+        next: (order) => {
+          this.creatingOrder.set(false);
+          this.showNewOrder.set(false);
+          alert(`Orden ${order.orderNumber} creada.`);
+          this.loadOrders();
+        },
+        error: (err) => {
+          this.creatingOrder.set(false);
+          alert(err?.error?.error || 'No se pudo crear la orden de laboratorio.');
+        },
+      });
   }
 }

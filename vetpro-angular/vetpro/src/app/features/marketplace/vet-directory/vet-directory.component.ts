@@ -11,6 +11,7 @@ import {
 } from '../../../core/services/marketplace.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { WhatsAppWidgetComponent } from '../../../shared/components/whatsapp-widget/whatsapp-widget.component';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-vet-directory',
@@ -47,6 +48,8 @@ export class VetDirectoryComponent implements OnInit {
 
   // Pasarela Wompi & Checkout
   checkoutData = signal<WompiCheckoutData | null>(null);
+  // La aprobación simulada solo existe fuera de producción
+  readonly canSimulatePayments = !environment.production;
   loadingCheckout = signal<boolean>(false);
   processingPayment = signal<boolean>(false);
   paymentSuccess = signal<boolean>(false);
@@ -211,9 +214,20 @@ export class VetDirectoryComponent implements OnInit {
     });
   }
 
+  /** Abre el checkout real de Wompi (antes este botón aprobaba el pago sin cobrar) */
+  payWithWompi(): void {
+    const c = this.checkoutData();
+    if (!c) return;
+    const url =
+      `https://checkout.wompi.co/p/?public-key=${c.publicKey}&currency=${c.currency}` +
+      `&amount-in-cents=${c.amountInCents}&reference=${c.reference}` +
+      `&signature:integrity=${c.signatureIntegrity}&redirect-url=${encodeURIComponent(c.redirectUrl)}`;
+    window.open(url, '_blank');
+  }
+
   simulatePayment(): void {
     const checkout = this.checkoutData();
-    if (!checkout) return;
+    if (!checkout || !this.canSimulatePayments) return;
 
     this.processingPayment.set(true);
     this.marketplaceService

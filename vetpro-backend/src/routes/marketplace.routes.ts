@@ -15,6 +15,8 @@ import {
   ServiceModality
 } from '@prisma/client';
 import { WompiService } from '../services/wompi.service.js';
+import { requireOnlinePayments, requirePaymentSimulation } from '../middleware/payments.js';
+import { env } from '../config/env.js';
 import { AntifraudService } from '../services/antifraud.service.js';
 import { MailerService } from '../services/mailer.service.js';
 
@@ -481,7 +483,7 @@ Quedo atento(a) a su confirmación. ¡Muchas gracias!`;
  * POST /api/v1/marketplace/appointments/:id/checkout
  * Genera la sesión de checkout con firma de integridad para pagar por Wompi
  */
-router.post('/appointments/:id/checkout', async (req: Request, res: Response): Promise<void> => {
+router.post('/appointments/:id/checkout', requireOnlinePayments, async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const checkout = await WompiService.createAppointmentCheckout(id);
@@ -497,7 +499,7 @@ router.post('/appointments/:id/checkout', async (req: Request, res: Response): P
  * POST /api/v1/marketplace/payments/webhook
  * Webhook oficial para recibir actualizaciones de transacciones desde Wompi
  */
-router.post('/payments/webhook', async (req: Request, res: Response): Promise<void> => {
+router.post('/payments/webhook', requireOnlinePayments, async (req: Request, res: Response): Promise<void> => {
   try {
     const payload = req.body;
 
@@ -527,7 +529,7 @@ router.post('/payments/webhook', async (req: Request, res: Response): Promise<vo
  * POST /api/v1/marketplace/payments/mock-simulate
  * Endpoint de sandbox / desarrollo para simular pagos sin pasar por la pasarela real
  */
-router.post('/payments/mock-simulate', async (req: Request, res: Response): Promise<void> => {
+router.post('/payments/mock-simulate', requirePaymentSimulation, async (req: Request, res: Response): Promise<void> => {
   try {
     const { reference, status = 'APPROVED', paymentMethod = 'CARD' } = req.body;
     if (!reference) {
@@ -798,12 +800,17 @@ router.post(
  * POST /api/v1/marketplace/profile/subscription
  * Suscripción mensual a "Pro Vet" ($49.000 COP) para destacar perfil ⭐
  */
-router.post('/profile/subscription', authMiddleware as any, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/profile/subscription', requireOnlinePayments as any, authMiddleware as any, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id;
     const { instantActivate = false } = req.body || {};
 
     const checkout = await WompiService.createSubscriptionCheckout(userId);
+
+    if (instantActivate && !env.paymentSimulationAllowed) {
+      res.status(403).json({ error: 'La simulación de pagos no está permitida en producción.', code: 'PAYMENT_SIMULATION_DISABLED' });
+      return;
+    }
 
     if (instantActivate) {
       const simResult = await WompiService.mockSimulatePayment(checkout.reference, 'APPROVED', 'CARD');

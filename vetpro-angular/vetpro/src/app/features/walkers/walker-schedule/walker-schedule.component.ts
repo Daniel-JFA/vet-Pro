@@ -362,21 +362,23 @@ export class WalkerScheduleComponent implements OnInit {
 
   ngOnInit() {
     this.loading.set(true);
-    this.api.get<WalkBooking[]>('/v1/walkers/bookings').subscribe({
+    this.api.get<WalkBooking[]>('/walkers/bookings').subscribe({
       next: (data) => {
         this.bookings.set(data);
         this.loading.set(false);
       },
       error: () => {
-        this.bookings.set(this.demoBookings());
+        // Antes se mostraban reservas de demostración como si fueran reales
+        this.bookings.set([]);
         this.loading.set(false);
+        alert('No se pudo cargar tu agenda de paseos.');
       },
     });
   }
 
   startWalk(id: string) {
     this.api
-      .patch<WalkBooking>(`/v1/walkers/bookings/${id}/status`, { status: 'walking' })
+      .patch<WalkBooking>(`/walkers/bookings/${id}/status`, { status: 'walking' })
       .subscribe({
         next: (updated) =>
           this.bookings.update((list) => list.map((b) => (b.id === id ? updated : b))),
@@ -391,7 +393,7 @@ export class WalkerScheduleComponent implements OnInit {
 
   completeWalk(id: string) {
     this.api
-      .patch<WalkBooking>(`/v1/walkers/bookings/${id}/status`, { status: 'completed' })
+      .patch<WalkBooking>(`/walkers/bookings/${id}/status`, { status: 'completed' })
       .subscribe({
         next: (updated) =>
           this.bookings.update((list) => list.map((b) => (b.id === id ? updated : b))),
@@ -410,33 +412,4 @@ export class WalkerScheduleComponent implements OnInit {
     return STATUS_LABELS[status] ?? status;
   }
 
-  private demoBookings(): WalkBooking[] {
-    const now = new Date();
-    const in1h = new Date(now.getTime() + 3600000);
-    return [
-      {
-        id: 'wb1',
-        clinicId: 'dev-clinic',
-        tutorId: 't1',
-        tutor: {
-          id: 't1',
-          clinicId: 'dev-clinic',
-          firstName: 'Camila',
-          lastName: 'Torres',
-          phone: '3001234567',
-          createdAt: now,
-        },
-        walkerId: 'dev-walker',
-        patientIds: ['p1'],
-        scheduledAt: in1h,
-        durationMins: 30,
-        address: 'Calle 10 #43-20, Laureles',
-        status: 'assigned',
-        price: 20000,
-        notes: 'Max es muy juguetón, usar correa doble.',
-        photos: [],
-        createdAt: now,
-      },
-    ];
-  }
 }

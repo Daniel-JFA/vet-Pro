@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MarketplaceService, MyVetProfile, ProVetSubscriptionStatus } from '../../../core/services/marketplace.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-vet-profile-edit',
@@ -61,9 +62,10 @@ export class VetProfileEditComponent implements OnInit {
   selectedIdFile: File | null = null;
 
   ngOnInit(): void {
+    // La suscripción se pide después del perfil: /profile/me crea el perfil
+    // la primera vez y, en paralelo, /profile/subscription respondía 404.
     this.loadProfile();
     this.loadEarnings();
-    this.loadSubscription();
   }
 
   loadSubscription(): void {
@@ -75,8 +77,23 @@ export class VetProfileEditComponent implements OnInit {
 
   activateProVet(): void {
     this.subscribing.set(true);
-    this.marketplaceService.subscribeProVet(true).subscribe({
-      next: () => {
+    // Antes siempre se enviaba instantActivate=true: Pro Vet se activaba sin cobrar
+    const simulate = !environment.production;
+    this.marketplaceService.subscribeProVet(simulate).subscribe({
+      next: (res) => {
+        if (!simulate) {
+          const c = res?.checkout;
+          this.subscribing.set(false);
+          if (c) {
+            window.open(
+              `https://checkout.wompi.co/p/?public-key=${c.publicKey}&currency=${c.currency}` +
+                `&amount-in-cents=${c.amountInCents}&reference=${c.reference}` +
+                `&signature:integrity=${c.signatureIntegrity}&redirect-url=${encodeURIComponent(c.redirectUrl)}`,
+              '_blank',
+            );
+          }
+          return;
+        }
         this.toast.success('¡Felicidades! Membresía Pro Vet ⭐ activada exitosamente.');
         this.subscribing.set(false);
         this.loadSubscription();
@@ -94,6 +111,7 @@ export class VetProfileEditComponent implements OnInit {
     this.marketplaceService.getMyProfile().subscribe({
       next: (p) => {
         this.profile.set(p);
+        this.loadSubscription();
         this.professionalCard = p.professionalCard || '';
         this.bio = p.bio || '';
         this.consultationPrice = p.consultationPrice || 50000;

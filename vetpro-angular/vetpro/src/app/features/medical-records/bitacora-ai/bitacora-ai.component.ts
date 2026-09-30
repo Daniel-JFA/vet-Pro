@@ -66,6 +66,8 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
   diagnosis = signal('');
   treatment = signal('');
   notes = signal('');
+  // Minutos de IA del último resultado; null = redactado a mano o desde plantilla
+  aiResultMinutes = signal<number | null>(null);
 
   private timerInterval: any;
   // Plantillas Clínicas Rápidas (Templates editables)
@@ -271,6 +273,7 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
           this.diagnosis.set(res.diagnosis);
           this.treatment.set(res.treatment);
           this.aiMinutesUsed.update(m => m + res.aiTranscriptionMinutes);
+          this.aiResultMinutes.set(res.aiTranscriptionMinutes || null);
           this.processing.set(false);
           this.resultReady.set(true);
           if (res.aiEngine === 'local-engine') {
@@ -308,6 +311,7 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
 
   // Cargar una plantilla de forma instantánea en los campos SOAP correspondientes
   selectTemplate(dict: any) {
+    this.aiResultMinutes.set(null);
     this.title.set(dict.title);
     this.anamnesis.set(dict.anamnesis || '');
     this.physicalExam.set(dict.physicalExam || '');
@@ -332,8 +336,10 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
       treatment: this.treatment(),
       observations: this.notes(),
       type: 'consultation',
-      aiGenerated: true,
-      aiTranscriptionMinutes: parseFloat((this.recordingTime() / 60).toFixed(2)) || 0.75
+      // Solo es "generada por IA" si el contenido salió de processVoice(); antes
+      // toda historia manual quedaba marcada como Bitácora de Voz (0,75 min)
+      aiGenerated: this.aiResultMinutes() !== null,
+      aiTranscriptionMinutes: this.aiResultMinutes()
     };
 
     // Registrar en backend y redireccionar al perfil
@@ -416,6 +422,7 @@ export class BitacoraAiComponent implements OnInit, OnDestroy {
 
   // Permitir la redacción manual desde cero, activando el formulario
   startManualEntry() {
+    this.aiResultMinutes.set(null);
     this.title.set('');
     this.anamnesis.set('');
     this.physicalExam.set('');

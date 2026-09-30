@@ -1,0 +1,42 @@
+# Stack efímero para el E2E real del CI (ci.yml → job e2e). Base de datos vacía;
+# la prueba registra su propia clínica. No usar en producción.
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: vetpro
+      POSTGRES_PASSWORD: vetpro
+      POSTGRES_DB: vetpro_e2e
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vetpro -d vetpro_e2e"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build: ../../vetpro-backend
+    command: ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: warn
+      PORT: "3000"
+      DATABASE_URL: postgresql://vetpro:vetpro@postgres:5432/vetpro_e2e
+      JWT_SECRET: e2e-only-secret-9f3c1a7b5d2e8f4a6c0b9d1e3f5a7c9b2d4f6a8c0e1b3d5f7a9c2e4b6d8f0a1c3e5
+      APP_URL: http://localhost:8080
+      ALLOWED_ORIGINS: http://localhost:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/api/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))\""]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+
+  frontend:
+    build: ../../vetpro-angular/vetpro
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy

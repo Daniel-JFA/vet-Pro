@@ -381,6 +381,100 @@ router.post('/', roleMiddleware(P.FRONT_DESK as unknown as string[]) as any, asy
   }
 });
 
+// PUT /api/v1/appointments/:id (Editar datos de la cita; el estado se cambia con PATCH /:id/status)
+router.put('/:id', roleMiddleware(P.FRONT_DESK as unknown as string[]) as any, async (req: AuthRequest, res: Response) => {
+  const clinicId = req.user?.clinicId;
+  const { id } = req.params;
+  if (!clinicId) {
+    return res.status(401).json({ error: 'No autorizado.' });
+  }
+
+  const parsed = UpdateAppointmentSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'Datos de la cita inválidos',
+      details: parsed.error.format()
+    });
+  }
+
+  const data = parsed.data;
+
+  try {
+    const existing = await prisma.appointment.findFirst({ where: { id, clinicId } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Cita no encontrada.' });
+    }
+
+    const isNewPatient = data.isNewPatient ?? existing.isNewPatient;
+    const patientId = isNewPatient ? null : (data.patientId !== undefined ? data.patientId : existing.patientId);
+    const prospectName = isNewPatient ? (data.prospectName ?? existing.prospectName) : null;
+    const prospectPhone = isNewPatient ? (data.prospectPhone ?? existing.prospectPhone) : null;
+
+    if (isNewPatient ? !(prospectName && prospectPhone) : !patientId) {
+      return res.status(400).json({
+        error: 'Debe seleccionar un paciente existente, o marcar "mascota nueva" e indicar nombre y teléfono del tutor.'
+      });
+    }
+
+    // Anti-IDOR: paciente, sucursal y veterinario deben pertenecer a la clínica
+    if (patientId && patientId !== existing.patientId) {
+      const patient = await prisma.patient.findFirst({ where: { id: patientId, clinicId, deletedAt: null } });
+      if (!patient) {
+        return res.status(404).json({ error: 'El paciente especificado no existe o no pertenece a su clínica.' });
+      }
+    }
+    if (data.branchId && data.branchId !== existing.branchId) {
+      const branch = await prisma.branch.findFirst({ where: { id: data.branchId, clinicId } });
+      if (!branch) {
+        return res.status(404).json({ error: 'La sucursal especificada no pertenece a su clínica.' });
+      }
+    }
+    if (data.vetId && data.vetId !== existing.vetId) {
+      const vet = await prisma.user.findFirst({ where: { id: data.vetId, clinicId } });
+      if (!vet) {
+        return res.status(404).json({ error: 'El veterinario especificado no pertenece a su clínica.' });
+      }
+    }
+
+    const appointment = await prisma.appointment.update({
+      where: { id },
+      data: {
+        patientId,
+        isNewPatient,
+        prospectName,
+        prospectPhone,
+        ...(data.branchId !== undefined && data.branchId !== null && { branchId: data.branchId }),
+        ...(data.vetId !== undefined && { vetId: data.vetId || null }),
+        ...(data.serviceType !== undefined && { serviceType: data.serviceType }),
+        ...(data.modality !== undefined && { modality: data.modality }),
+        ...(data.scheduledAt !== undefined && { scheduledAt: new Date(data.scheduledAt) }),
+        ...(data.durationMinutes !== undefined && { durationMinutes: data.durationMinutes }),
+        ...(data.reason !== undefined && { reason: data.reason || null }),
+        ...(data.notes !== undefined && { notes: data.notes || null }),
+        ...(data.amountCharged !== undefined && { amountCharged: data.amountCharged || null }),
+        ...(data.address !== undefined && { address: data.address || null }),
+        ...(data.city !== undefined && { city: data.city || null }),
+        ...(data.latitude !== undefined && { latitude: data.latitude || null }),
+        ...(data.longitude !== undefined && { longitude: data.longitude || null }),
+        ...(data.travelFee !== undefined && { travelFee: data.travelFee })
+      },
+      include: {
+        patient: {
+          include: { tutor: true }
+        },
+        vet: {
+          select: { firstName: true, lastName: true }
+        }
+      }
+    });
+
+    return res.json(mapAppointmentToApi(appointment));
+  } catch (error: any) {
+    console.error('[AppointmentRoutes] Error al actualizar cita:', error);
+    return res.status(500).json({ error: 'Error al actualizar la cita.' });
+  }
+});
+
 // PATCH /api/v1/appointments/:id/status (Cambiar Estado de Cita / Sala de Espera)
 router.patch('/:id/status', roleMiddleware(P.FRONT_DESK as unknown as string[]) as any, async (req: AuthRequest, res: Response) => {
   const clinicId = req.user?.clinicId;
