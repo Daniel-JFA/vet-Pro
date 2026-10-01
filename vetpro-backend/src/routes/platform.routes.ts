@@ -5,6 +5,7 @@ import { platformAuthMiddleware, PlatformAuthRequest } from '../middleware/platf
 import { TokenService } from '../services/token.service.js';
 import { z } from 'zod';
 import { VerificationStatus } from '@prisma/client';
+import { authMiddleware, AuthRequest } from '../middleware/auth.js';
 import { listVerificationProfiles, updateVerification } from '../services/vet-verification.service.js';
 import { AntifraudService } from '../services/antifraud.service.js';
 
@@ -84,30 +85,77 @@ router.get('/clinics', platformAuthMiddleware as any, async (_req: PlatformAuthR
         trialEndsAt: true,
         nextBillingDate: true,
         lastPaymentDate: true,
+        featureFlags: true,
         _count: {
           select: { users: true, patients: true, branches: true, tutors: true }
         }
       }
     });
 
-    return res.json(clinics.map(c => ({
-      id: c.id,
-      name: c.name,
-      businessType: c.businessType,
-      plan: c.plan,
-      email: c.email,
-      city: c.city,
-      createdAt: c.createdAt,
-      subscriptionStatus: c.subscriptionStatus,
-      billingCycle: c.billingCycle,
-      trialEndsAt: c.trialEndsAt,
-      nextBillingDate: c.nextBillingDate,
-      lastPaymentDate: c.lastPaymentDate,
-      usersCount: c._count.users,
-      patientsCount: c._count.patients,
-      branchesCount: c._count.branches,
-      tutorsCount: c._count.tutors
-    })));
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    // Agrupar citas recientes por clínica para medir adopción (uso activo)
+    const recentActivity = await prisma.appointment.groupBy({
+      by: ['clinicId'],
+      where: { createdAt: { gte: sevenDaysAgo } },
+      _count: { id: true }
+    });
+    
+    const activityMap = new Map(recentActivity.map(a => [a.clinicId, a._count.id]));
+
+    return res.json(clinics.map(c => {
+      const recentAppointments = activityMap.get(c.id) || 0;
+      
+      // ALGORITMO DE SALUD (Health Score 0-100)
+      let score = 0;
+      
+      // 1. Configuración básica (Tienen usuarios y sedes) = 20 pts
+      if (c._count.users > 0) score += 10;
+      if (c._count.branches > 0) score += 10;
+      
+      // 2. Adquisición de Pacientes = 30 pts
+      if (c._count.patients > 50) score += 30;
+      else if (c._count.patients > 10) score += 20;
+      else if (c._count.patients > 0) score += 10;
+
+      // 3. Uso Reciente (Han creado citas en los últimos 7 días) = 30 pts
+      if (recentAppointments > 10) score += 30;
+      else if (recentAppointments > 0) score += 15;
+
+      // 4. Estado de la Suscripción = 20 pts
+      if (c.subscriptionStatus === 'active') score += 20;
+      else if (c.subscriptionStatus === 'trial') score += 15;
+      else if (c.subscriptionStatus === 'past_due') score += 5;
+
+      // Determinar Semáforo
+      let status: 'green' | 'yellow' | 'red' = 'red';
+      if (score >= 70) status = 'green';
+      else if (score >= 40) status = 'yellow';
+
+      return {
+        id: c.id,
+        name: c.name,
+        businessType: c.businessType,
+        plan: c.plan,
+        email: c.email,
+        city: c.city,
+        createdAt: c.createdAt,
+        subscriptionStatus: c.subscriptionStatus,
+        billingCycle: c.billingCycle,
+        trialEndsAt: c.trialEndsAt,
+        nextBillingDate: c.nextBillingDate,
+        lastPaymentDate: c.lastPaymentDate,
+        featureFlags: c.featureFlags,
+        usersCount: c._count.users,
+        patientsCount: c._count.patients,
+        branchesCount: c._count.branches,
+        tutorsCount: c._count.tutors,
+        healthScore: score,
+        healthStatus: status,
+        recentAppointments
+      };
+    }));
   } catch (error) {
     console.error('Error en /platform/clinics:', error);
     return res.status(500).json({ error: 'Error al consultar los tenants de la plataforma.' });
@@ -429,6 +477,158 @@ router.post('/verifications/auto-verify-all', platformAuthMiddleware as any, asy
   } catch (error) {
     console.error('[Platform] Error en verificación automática:', error);
     return res.status(500).json({ error: 'Error durante la verificación automática masiva.' });
+  }
+});
+
+// ─────────────────────────────────────────────
+// TENANT MANAGEMENT (Acciones directas del Super Admin)
+// ─────────────────────────────────────────────
+
+// POST /platform/clinics/:id/change-plan
+router.post('/clinics/:id/change-plan', platformAuthMiddleware as any, async (req: PlatformAuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { plan, status, featureFlags } = req.body;
+
+    const data: any = {};
+    if (plan) data.plan = plan;
+    if (status) data.subscriptionStatus = status;
+    if (featureFlags !== undefined) data.featureFlags = featureFlags;
+
+    const updated = await prisma.clinic.update({
+      where: { id },
+      data
+    });
+
+    return res.json({ message: 'Clínica actualizada con éxito', clinic: updated });
+  } catch (error) {
+    console.error('Error actualizando clínica:', error);
+    return res.status(500).json({ error: 'Error al actualizar la clínica.' });
+  }
+});
+
+// ─────────────────────────────────────────────
+// ANUNCIOS GLOBALES (Platform Announcements)
+// ─────────────────────────────────────────────
+
+// GET /platform/announcements
+router.get('/announcements', platformAuthMiddleware as any, async (req: PlatformAuthRequest, res: Response) => {
+  try {
+    const announcements = await prisma.platformAnnouncement.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    return res.json(announcements);
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al listar anuncios.' });
+  }
+});
+
+// POST /platform/announcements
+router.post('/announcements', platformAuthMiddleware as any, async (req: PlatformAuthRequest, res: Response) => {
+  try {
+    const { title, message, type, targetPlan } = req.body;
+    const announcement = await prisma.platformAnnouncement.create({
+      data: { title, message, type, targetPlan }
+    });
+    return res.status(201).json(announcement);
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al crear anuncio.' });
+  }
+});
+
+// PUT /platform/announcements/:id/toggle
+router.put('/announcements/:id/toggle', platformAuthMiddleware as any, async (req: PlatformAuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+    const updated = await prisma.platformAnnouncement.update({
+      where: { id },
+      data: { isActive }
+    });
+    return res.json(updated);
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al actualizar anuncio.' });
+  }
+});
+
+// GET /platform/public/announcements (Para los usuarios regulares - AuthRequest)
+router.get('/public/announcements', authMiddleware as any, async (req: AuthRequest, res: Response) => {
+  try {
+    const clinic = await prisma.clinic.findUnique({ where: { id: req.user!.clinicId }, select: { plan: true } });
+    const plan = clinic?.plan || 'starter';
+
+    const announcements = await prisma.platformAnnouncement.findMany({
+      where: {
+        isActive: true,
+        OR: [
+          { targetPlan: null },
+          { targetPlan: plan }
+        ]
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    return res.json(announcements);
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al listar anuncios públicos.' });
+  }
+});
+
+// ─────────────────────────────────────────────
+// SUPPORT TICKETS (Help Desk)
+// ─────────────────────────────────────────────
+
+// GET /platform/support/tickets (Para Super Admins)
+router.get('/support/tickets', platformAuthMiddleware as any, async (req: PlatformAuthRequest, res: Response) => {
+  try {
+    const tickets = await prisma.supportTicket.findMany({
+      include: {
+        clinic: { select: { name: true, plan: true } },
+        user: { select: { firstName: true, lastName: true, email: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    return res.json(tickets);
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al listar tickets.' });
+  }
+});
+
+// PUT /platform/support/tickets/:id (Super Admins resolviendo ticket)
+router.put('/support/tickets/:id', platformAuthMiddleware as any, async (req: PlatformAuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const updated = await prisma.supportTicket.update({
+      where: { id },
+      data: { 
+        status, 
+        resolvedAt: status === 'resolved' || status === 'closed' ? new Date() : null 
+      }
+    });
+    return res.json(updated);
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al actualizar ticket.' });
+  }
+});
+
+// POST /platform/public/support/tickets (Usuarios creando ticket)
+router.post('/public/support/tickets', authMiddleware as any, async (req: AuthRequest, res: Response) => {
+  try {
+    const { subject, description, priority, screenUrl, errorLogs } = req.body;
+    const ticket = await prisma.supportTicket.create({
+      data: {
+        clinicId: req.user!.clinicId,
+        userId: req.user!.id,
+        subject,
+        description,
+        priority: priority || 'medium',
+        screenUrl,
+        errorLogs: errorLogs ? JSON.parse(JSON.stringify(errorLogs)) : null
+      }
+    });
+    return res.status(201).json(ticket);
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al crear ticket de soporte.' });
   }
 });
 

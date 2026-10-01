@@ -34,6 +34,9 @@ export interface PlatformClinic {
   patientsCount: number;
   branchesCount: number;
   tutorsCount: number;
+  healthScore?: number;
+  healthStatus?: 'green' | 'yellow' | 'red';
+  recentAppointments?: number;
 }
 
 export interface PlatformAnalyticsOverview {
@@ -68,6 +71,32 @@ export interface PlatformClinicUser {
   active: boolean;
   lastLoginAt: string | null;
   branchName: string | null;
+}
+
+export interface PlatformAnnouncement {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  isActive: boolean;
+  targetPlan: string | null;
+  createdAt: string;
+}
+
+export interface SupportTicket {
+  id: string;
+  clinicId: string;
+  userId: string;
+  subject: string;
+  description: string;
+  status: string;
+  priority: string;
+  screenUrl: string | null;
+  errorLogs: any;
+  createdAt: string;
+  resolvedAt: string | null;
+  clinic?: { name: string; plan: string };
+  user?: { firstName: string; lastName: string; email: string };
 }
 
 @Injectable({ providedIn: 'root' })
@@ -126,5 +155,32 @@ export class PlatformAuthService {
 
   updateVerification(id: string, body: { status?: 'verified' | 'rejected' | 'pending'; notes?: string; isFeatured?: boolean }): Observable<any> {
     return this.api.put<any>(`/platform/verifications/${id}`, body);
+  }
+
+  // Tenant Management Actions
+  changeClinicPlan(clinicId: string, payload: { plan?: string; status?: string; featureFlags?: any }): Observable<any> {
+    return this.api.post<any>(`/platform/clinics/${clinicId}/change-plan`, payload);
+  }
+
+  // Announcements
+  getAnnouncements(): Observable<PlatformAnnouncement[]> {
+    return this.api.get<PlatformAnnouncement[]>('/platform/announcements');
+  }
+
+  createAnnouncement(payload: Partial<PlatformAnnouncement>): Observable<PlatformAnnouncement> {
+    return this.api.post<PlatformAnnouncement>('/platform/announcements', payload);
+  }
+
+  toggleAnnouncement(id: string, isActive: boolean): Observable<PlatformAnnouncement> {
+    return this.api.put<PlatformAnnouncement>(`/platform/announcements/${id}/toggle`, { isActive });
+  }
+
+  // Support Tickets
+  getTickets(): Observable<SupportTicket[]> {
+    return this.api.get<SupportTicket[]>('/platform/support/tickets');
+  }
+
+  resolveTicket(id: string, status: string): Observable<SupportTicket> {
+    return this.api.put<SupportTicket>(`/platform/support/tickets/${id}`, { status });
   }
 }

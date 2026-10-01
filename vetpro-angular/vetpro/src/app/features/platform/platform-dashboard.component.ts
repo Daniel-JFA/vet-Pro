@@ -1,11 +1,14 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import {
   PlatformAuthService,
   PlatformStats,
   PlatformClinic,
   PlatformClinicUser,
+  PlatformAnnouncement,
+  SupportTicket
 } from '../../core/services/platform-auth.service';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -28,7 +31,7 @@ const SUBSCRIPTION_LABELS: Record<string, string> = {
 @Component({
   selector: 'app-platform-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, FormsModule],
   template: `
     <div class="platform-dashboard">
       <header>
@@ -50,34 +53,55 @@ const SUBSCRIPTION_LABELS: Record<string, string> = {
         </div>
       </header>
 
-      @if (stats(); as s) {
-        <section class="stats-grid">
-          <div class="stat-card">
-            <span class="material-symbols-outlined">domain</span>
-            <strong>{{ s.clinicsCount }}</strong>
-            <small>Clínicas / Tenants</small>
-          </div>
-          <div class="stat-card">
-            <span class="material-symbols-outlined">group</span>
-            <strong>{{ s.usersCount }}</strong>
-            <small>Usuarios Totales</small>
-          </div>
-          <div class="stat-card">
-            <span class="material-symbols-outlined">pets</span>
-            <strong>{{ s.patientsCount }}</strong>
-            <small>Pacientes Totales</small>
-          </div>
-          <div class="stat-card">
-            <span class="material-symbols-outlined">event</span>
-            <strong>{{ s.appointmentsCount }}</strong>
-            <small>Citas Totales</small>
-          </div>
-        </section>
-      }
+      <div class="main-tabs">
+        <button [class.active]="mainTab() === 'clinics'" (click)="mainTab.set('clinics')">
+          <span class="material-symbols-outlined">domain</span> Tenants
+        </button>
+        <button [class.active]="mainTab() === 'announcements'" (click)="mainTab.set('announcements')">
+          <span class="material-symbols-outlined">campaign</span> Anuncios
+        </button>
+        <button [class.active]="mainTab() === 'tickets'" (click)="mainTab.set('tickets')">
+          <span class="material-symbols-outlined">support_agent</span> Tickets de Soporte
+        </button>
+      </div>
+
+      @if (mainTab() === 'clinics') {
+        @if (stats(); as s) {
+          <section class="stats-grid">
+            <div class="stat-card">
+              <span class="material-symbols-outlined">domain</span>
+              <strong>{{ s.clinicsCount }}</strong>
+              <small>Clínicas / Tenants</small>
+            </div>
+            <div class="stat-card">
+              <span class="material-symbols-outlined">group</span>
+              <strong>{{ s.usersCount }}</strong>
+              <small>Usuarios Totales</small>
+            </div>
+            <div class="stat-card">
+              <span class="material-symbols-outlined">pets</span>
+              <strong>{{ s.patientsCount }}</strong>
+              <small>Pacientes Totales</small>
+            </div>
+            <div class="stat-card">
+              <span class="material-symbols-outlined">event</span>
+              <strong>{{ s.appointmentsCount }}</strong>
+              <small>Citas Totales</small>
+            </div>
+          </section>
+        }
 
       <section class="clinics-table-wrapper">
         <div class="table-header">
           <h2>Tenants Registrados</h2>
+          
+          <div class="quick-tabs">
+            <button [class.active]="statusFilter() === ''" (click)="statusFilter.set('')">Todos</button>
+            <button [class.active]="statusFilter() === 'active'" (click)="statusFilter.set('active')">Activos</button>
+            <button [class.active]="statusFilter() === 'trial'" (click)="statusFilter.set('trial')">En Prueba</button>
+            <button [class.active]="statusFilter() === 'past_due'" (click)="statusFilter.set('past_due')">En Riesgo</button>
+          </div>
+
           <div class="filters">
             <input
               type="text"
@@ -85,17 +109,6 @@ const SUBSCRIPTION_LABELS: Record<string, string> = {
               [value]="searchTerm()"
               (input)="searchTerm.set($any($event.target).value)"
             />
-            <select [value]="businessTypeFilter()" (change)="businessTypeFilter.set($any($event.target).value)">
-              <option value="">Todos los tipos</option>
-              <option value="clinic">Clínica</option>
-              <option value="independent_vet">Vet Independiente</option>
-            </select>
-            <select [value]="planFilter()" (change)="planFilter.set($any($event.target).value)">
-              <option value="">Todos los planes</option>
-              <option value="starter">Starter</option>
-              <option value="pro">Pro</option>
-              <option value="enterprise">Enterprise</option>
-            </select>
           </div>
         </div>
         <div class="table-scroll">
@@ -107,12 +120,10 @@ const SUBSCRIPTION_LABELS: Record<string, string> = {
                 <th>Tipo</th>
                 <th>Plan</th>
                 <th>Suscripción</th>
-                <th>Ciudad</th>
+                <th>Salud</th>
                 <th>Usuarios</th>
                 <th>Pacientes</th>
-                <th>Sedes</th>
-                <th>Tutores</th>
-                <th>Registrada</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -136,12 +147,19 @@ const SUBSCRIPTION_LABELS: Record<string, string> = {
                       {{ subscriptionLabel(c.subscriptionStatus) }}
                     </span>
                   </td>
-                  <td>{{ c.city }}</td>
+                  <td>
+                    <div class="health-indicator" [title]="'Score: ' + c.healthScore">
+                      <div class="health-dot" [class]="'health-' + c.healthStatus"></div>
+                      <span>{{ c.healthScore }}%</span>
+                    </div>
+                  </td>
                   <td>{{ c.usersCount }}</td>
                   <td>{{ c.patientsCount }}</td>
-                  <td>{{ c.branchesCount }}</td>
-                  <td>{{ c.tutorsCount }}</td>
-                  <td>{{ c.createdAt | date: 'dd/MM/yyyy' }}</td>
+                  <td class="actions-cell" (click)="$event.stopPropagation()">
+                    <button class="action-btn" title="Gestionar Plan" (click)="openPlanModal(c)">
+                      <span class="material-symbols-outlined">settings</span>
+                    </button>
+                  </td>
                 </tr>
                 @if (expandedClinicId() === c.id) {
                   <tr class="expanded-row">
@@ -195,6 +213,196 @@ const SUBSCRIPTION_LABELS: Record<string, string> = {
           </table>
         </div>
       </section>
+
+      <!-- Modal para Gestionar Plan -->
+      @if (selectedClinicForPlan()) {
+        <div class="modal-overlay" (click)="closePlanModal()">
+          <div class="modal-content glass-effect" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+              <h2>Gestionar: {{ selectedClinicForPlan()?.name }}</h2>
+              <button class="close-btn" (click)="closePlanModal()">&times;</button>
+            </div>
+            
+            <div class="form-group">
+              <label>Plan de Suscripción</label>
+              <select [(ngModel)]="editPlan">
+                <option value="starter">Starter</option>
+                <option value="pro">Pro</option>
+                <option value="enterprise">Enterprise</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Estado de la Cuenta</label>
+              <select [(ngModel)]="editStatus">
+                <option value="active">Activa</option>
+                <option value="trial">En Prueba</option>
+                <option value="past_due">Pago Pendiente (En Riesgo)</option>
+                <option value="suspended">Suspendida / Bloqueada</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Módulos a la carta (Feature Flags)</label>
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="editFeatureFlags.ai_assistant" />
+                Asistente IA (Doru)
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="editFeatureFlags.dian_billing" />
+                Facturación Electrónica DIAN
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="editFeatureFlags.whatsapp_crm" />
+                CRM Marketing WhatsApp
+              </label>
+            </div>
+
+            <div class="modal-actions">
+              <button class="cancel-btn" (click)="closePlanModal()">Cancelar</button>
+              <button class="save-btn" (click)="savePlanChanges()">Guardar Cambios</button>
+            </div>
+          </div>
+        </div>
+      }
+      } <!-- End Clinics Tab -->
+
+      @if (mainTab() === 'announcements') {
+        <section class="clinics-table-wrapper">
+          <div class="table-header">
+            <h2>Anuncios Globales</h2>
+            <button class="save-btn" (click)="openAnnouncementModal()">
+              <span class="material-symbols-outlined">add</span> Crear Anuncio
+            </button>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Título</th>
+                  <th>Tipo</th>
+                  <th>Plan Destino</th>
+                  <th>Estado</th>
+                  <th>Fecha</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (a of announcements(); track a.id) {
+                  <tr>
+                    <td><strong>{{ a.title }}</strong></td>
+                    <td><span class="badge" [class]="'badge-' + a.type">{{ a.type }}</span></td>
+                    <td>{{ a.targetPlan || 'Todos' }}</td>
+                    <td>
+                      <span class="badge" [class]="a.isActive ? 'badge-active' : 'badge-suspended'">
+                        {{ a.isActive ? 'Activo' : 'Inactivo' }}
+                      </span>
+                    </td>
+                    <td>{{ a.createdAt | date:'short' }}</td>
+                    <td class="actions-cell">
+                      <button class="action-btn" (click)="toggleAnnouncement(a)">
+                        <span class="material-symbols-outlined">{{ a.isActive ? 'visibility_off' : 'visibility' }}</span>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        @if (showAnnouncementModal()) {
+          <div class="modal-overlay" (click)="showAnnouncementModal.set(false)">
+            <div class="modal-content glass-effect" (click)="$event.stopPropagation()">
+              <div class="modal-header">
+                <h2>Nuevo Anuncio Global</h2>
+                <button class="close-btn" (click)="showAnnouncementModal.set(false)">&times;</button>
+              </div>
+              <div class="form-group">
+                <label>Título</label>
+                <input type="text" [(ngModel)]="newAnnouncement.title" placeholder="Ej: Nuevo Asistente de IA" class="basic-input" />
+              </div>
+              <div class="form-group">
+                <label>Mensaje</label>
+                <textarea [(ngModel)]="newAnnouncement.message" rows="4" class="basic-input" placeholder="Detalles del anuncio..."></textarea>
+              </div>
+              <div class="form-group">
+                <label>Tipo</label>
+                <select [(ngModel)]="newAnnouncement.type">
+                  <option value="info">Info</option>
+                  <option value="success">Éxito</option>
+                  <option value="warning">Advertencia</option>
+                  <option value="error">Alerta Roja</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Público Objetivo (Plan)</label>
+                <select [(ngModel)]="newAnnouncement.targetPlan">
+                  <option [ngValue]="null">Todos los planes</option>
+                  <option value="starter">Starter</option>
+                  <option value="pro">Pro</option>
+                  <option value="enterprise">Enterprise</option>
+                </select>
+              </div>
+              <div class="modal-actions">
+                <button class="cancel-btn" (click)="showAnnouncementModal.set(false)">Cancelar</button>
+                <button class="save-btn" (click)="saveAnnouncement()">Publicar</button>
+              </div>
+            </div>
+          </div>
+        }
+      }
+
+      @if (mainTab() === 'tickets') {
+        <section class="clinics-table-wrapper">
+          <div class="table-header">
+            <h2>Tickets de Soporte (Help Desk)</h2>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Clínica</th>
+                  <th>Usuario</th>
+                  <th>Asunto</th>
+                  <th>Prioridad</th>
+                  <th>Estado</th>
+                  <th>Fecha</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (t of tickets(); track t.id) {
+                  <tr>
+                    <td>
+                      <strong>{{ t.clinic?.name }}</strong>
+                      <small>{{ t.clinic?.plan }}</small>
+                    </td>
+                    <td>
+                      {{ t.user?.firstName }} {{ t.user?.lastName }}
+                      <small>{{ t.user?.email }}</small>
+                    </td>
+                    <td>
+                      <strong>{{ t.subject }}</strong>
+                      <small>{{ t.description | slice:0:50 }}...</small>
+                    </td>
+                    <td><span class="badge" [class]="'badge-' + t.priority">{{ t.priority }}</span></td>
+                    <td><span class="badge" [class]="'badge-' + t.status">{{ t.status }}</span></td>
+                    <td>{{ t.createdAt | date:'short' }}</td>
+                    <td class="actions-cell">
+                      @if (t.status !== 'resolved' && t.status !== 'closed') {
+                        <button class="action-btn" title="Marcar Resuelto" (click)="resolveTicket(t)">
+                          <span class="material-symbols-outlined">check_circle</span>
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
     </div>
   `,
   styles: [
@@ -394,6 +602,27 @@ const SUBSCRIPTION_LABELS: Record<string, string> = {
           font-size: 0.65rem;
         }
       }
+
+      /* Health Indicator */
+      .health-indicator {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 600;
+        span {
+          font-size: 0.75rem;
+        }
+      }
+      .health-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        box-shadow: 0 0 8px currentColor;
+      }
+      .health-green { color: #22c55e; background: #22c55e; }
+      .health-yellow { color: #f59e0b; background: #f59e0b; }
+      .health-red { color: #ef4444; background: #ef4444; }
+
       .badge {
         display: inline-block;
         padding: 3px 10px;
@@ -419,6 +648,208 @@ const SUBSCRIPTION_LABELS: Record<string, string> = {
         background: rgba(248, 113, 113, 0.15);
         color: #f87171;
       }
+      .badge-info { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+      .badge-success { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+      .badge-warning { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+      .badge-error { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+      .badge-high, .badge-critical { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+      .badge-medium { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+      .badge-low { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+      .badge-open { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+      .badge-in_progress { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+      .badge-resolved, .badge-closed { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+
+      /* Main Tabs */
+      .main-tabs {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 24px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 12px;
+        button {
+          background: transparent;
+          border: none;
+          color: #9ca3af;
+          font-size: 1.05rem;
+          font-weight: 500;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 16px;
+          border-radius: 8px;
+          transition: all 0.2s;
+          &:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05);
+          }
+          &.active {
+            color: #a78bfa;
+            background: rgba(167, 139, 250, 0.15);
+          }
+        }
+      }
+      
+      /* Quick Tabs */
+      .quick-tabs {
+        display: flex;
+        gap: 8px;
+        button {
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: #9ca3af;
+          padding: 6px 14px;
+          border-radius: 8px;
+          font-size: 0.8rem;
+          cursor: pointer;
+          transition: all 0.2s;
+          &:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+          }
+          &.active {
+            background: rgba(167, 139, 250, 0.2);
+            border-color: rgba(167, 139, 250, 0.5);
+            color: #a78bfa;
+            font-weight: 600;
+          }
+        }
+      }
+
+      /* Actions Cell */
+      .actions-cell {
+        display: flex;
+        gap: 6px;
+      }
+      .action-btn {
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #cbd5e1;
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        span {
+          font-size: 16px;
+        }
+        &:hover {
+          background: rgba(167, 139, 250, 0.2);
+          color: #a78bfa;
+          border-color: rgba(167, 139, 250, 0.4);
+        }
+      }
+
+      /* Modal Overlay */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+      .modal-content {
+        background: hsl(220, 25%, 10%);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        width: 400px;
+        padding: 24px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      }
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        h2 {
+          margin: 0;
+          font-size: 1.1rem;
+          color: #fff;
+        }
+        .close-btn {
+          background: transparent;
+          border: none;
+          color: #9ca3af;
+          font-size: 24px;
+          cursor: pointer;
+          &:hover { color: #fff; }
+        }
+      }
+      .form-group {
+        margin-bottom: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        label {
+          font-size: 0.8rem;
+          color: #cbd5e1;
+          font-weight: 600;
+        }
+        select, .basic-input {
+          background: rgba(0, 0, 0, 0.2);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: #fff;
+          padding: 10px;
+          border-radius: 8px;
+          font-family: inherit;
+          outline: none;
+          &:focus {
+            border-color: #a78bfa;
+          }
+        }
+        textarea.basic-input {
+          resize: vertical;
+        }
+      }
+      .checkbox-label {
+        display: flex;
+        align-items: center;
+        flex-direction: row;
+        gap: 8px;
+        font-size: 0.85rem;
+        color: #f3f4f6;
+        font-weight: normal;
+        cursor: pointer;
+        input {
+          width: 16px;
+          height: 16px;
+          cursor: pointer;
+        }
+      }
+      .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 24px;
+        .cancel-btn {
+          background: transparent;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          color: #cbd5e1;
+          padding: 8px 16px;
+          border-radius: 8px;
+          cursor: pointer;
+          &:hover { background: rgba(255, 255, 255, 0.05); }
+        }
+        .save-btn {
+          background: #7c3aed;
+          border: none;
+          color: #fff;
+          padding: 8px 16px;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          &:hover { background: #6d28d9; }
+        }
+      }
     `,
   ],
 })
@@ -431,15 +862,32 @@ export class PlatformDashboardComponent implements OnInit {
   searchTerm = signal('');
   businessTypeFilter = signal('');
   planFilter = signal('');
+  statusFilter = signal('');
 
   expandedClinicId = signal<string | null>(null);
   loadingUsersFor = signal<string | null>(null);
   clinicUsersCache = signal<Map<string, PlatformClinicUser[]>>(new Map());
 
+  // Modal State
+  selectedClinicForPlan = signal<any | null>(null);
+  editPlan = '';
+  editStatus = '';
+  editFeatureFlags: any = { ai_assistant: false, dian_billing: false, whatsapp_crm: false };
+
+  mainTab = signal<'clinics'|'announcements'|'tickets'>('clinics');
+  announcements = signal<PlatformAnnouncement[]>([]);
+  tickets = signal<SupportTicket[]>([]);
+
+  showAnnouncementModal = signal(false);
+  newAnnouncement: Partial<PlatformAnnouncement> = {
+    title: '', message: '', type: 'info', targetPlan: null
+  };
+
   filteredClinics = computed(() => {
     const term = this.searchTerm().trim().toLowerCase();
     const type = this.businessTypeFilter();
     const plan = this.planFilter();
+    const status = this.statusFilter();
 
     return this.clinics().filter((c) => {
       const matchesTerm =
@@ -449,13 +897,16 @@ export class PlatformDashboardComponent implements OnInit {
         c.city.toLowerCase().includes(term);
       const matchesType = !type || c.businessType === type;
       const matchesPlan = !plan || c.plan === plan;
-      return matchesTerm && matchesType && matchesPlan;
+      const matchesStatus = !status || c.subscriptionStatus === status;
+      return matchesTerm && matchesType && matchesPlan && matchesStatus;
     });
   });
 
   ngOnInit() {
     this.auth.getStats().subscribe((s) => this.stats.set(s));
     this.auth.getClinics().subscribe((c) => this.clinics.set(c));
+    this.auth.getAnnouncements().subscribe((a) => this.announcements.set(a));
+    this.auth.getTickets().subscribe((t) => this.tickets.set(t));
   }
 
   toggleExpand(clinicId: string) {
@@ -493,5 +944,81 @@ export class PlatformDashboardComponent implements OnInit {
 
   subscriptionLabel(status: string): string {
     return SUBSCRIPTION_LABELS[status] || status;
+  }
+
+  // Tenant Management Actions
+  openPlanModal(clinic: any) {
+    this.selectedClinicForPlan.set(clinic);
+    this.editPlan = clinic.plan;
+    this.editStatus = clinic.subscriptionStatus;
+    this.editFeatureFlags = clinic.featureFlags ? { ...clinic.featureFlags } : { ai_assistant: false, dian_billing: false, whatsapp_crm: false };
+  }
+
+  closePlanModal() {
+    this.selectedClinicForPlan.set(null);
+  }
+
+  savePlanChanges() {
+    const clinic = this.selectedClinicForPlan();
+    if (!clinic) return;
+
+    this.auth.changeClinicPlan(clinic.id, { 
+      plan: this.editPlan, 
+      status: this.editStatus,
+      featureFlags: this.editFeatureFlags 
+    }).subscribe({
+      next: (res) => {
+        // Actualizar la lista en local para reflejar cambios de inmediato
+        this.clinics.update(list => list.map(c => c.id === clinic.id ? { 
+          ...c, 
+          plan: this.editPlan, 
+          subscriptionStatus: this.editStatus,
+          featureFlags: { ...this.editFeatureFlags }
+        } : c));
+        this.closePlanModal();
+      },
+      error: (err) => alert(err?.error?.error || 'Error al cambiar plan.')
+    });
+  }
+
+  // ─────────────────────────────────────────
+  // Anuncios
+  // ─────────────────────────────────────────
+  openAnnouncementModal() {
+    this.newAnnouncement = { title: '', message: '', type: 'info', targetPlan: null };
+    this.showAnnouncementModal.set(true);
+  }
+
+  saveAnnouncement() {
+    this.auth.createAnnouncement(this.newAnnouncement).subscribe({
+      next: (ann) => {
+        this.announcements.update(list => [ann, ...list]);
+        this.showAnnouncementModal.set(false);
+      },
+      error: (err) => alert('Error al crear anuncio')
+    });
+  }
+
+  toggleAnnouncement(a: PlatformAnnouncement) {
+    this.auth.toggleAnnouncement(a.id, !a.isActive).subscribe({
+      next: (res) => {
+        this.announcements.update(list => list.map(item => item.id === res.id ? res : item));
+      },
+      error: (err) => alert('Error al cambiar estado del anuncio')
+    });
+  }
+
+  // ─────────────────────────────────────────
+  // Tickets
+  // ─────────────────────────────────────────
+  resolveTicket(t: SupportTicket) {
+    if (confirm(`¿Marcar el ticket "${t.subject}" como resuelto?`)) {
+      this.auth.resolveTicket(t.id, 'resolved').subscribe({
+        next: (res) => {
+          this.tickets.update(list => list.map(item => item.id === res.id ? { ...item, status: 'resolved' } : item));
+        },
+        error: (err) => alert('Error al resolver el ticket')
+      });
+    }
   }
 }
