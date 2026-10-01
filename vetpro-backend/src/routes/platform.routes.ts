@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { VerificationStatus } from '@prisma/client';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
 import { listVerificationProfiles, updateVerification } from '../services/vet-verification.service.js';
+import { MailerService } from '../services/mailer.service.js';
 import { AntifraudService } from '../services/antifraud.service.js';
 
 const router = Router();
@@ -195,6 +196,31 @@ router.get('/clinics/:id/users', platformAuthMiddleware as any, async (req: Plat
   } catch (error) {
     console.error('Error en /platform/clinics/:id/users:', error);
     return res.status(500).json({ error: 'Error al consultar los usuarios del tenant.' });
+  }
+});
+
+// POST /platform/clinics/:id/users/:userId/help-email (correo de ayuda a usuario que nunca ha iniciado sesión)
+router.post('/clinics/:id/users/:userId/help-email', platformAuthMiddleware as any, async (req: PlatformAuthRequest, res: Response) => {
+  try {
+    const user = await prisma.user.findFirst({
+      where: { id: req.params.userId, clinicId: req.params.id },
+      select: { email: true, firstName: true, lastLoginAt: true, clinic: { select: { name: true } } }
+    });
+
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado en este tenant.' });
+    if (user.lastLoginAt) return res.status(400).json({ error: 'Este usuario ya ha iniciado sesión.' });
+
+    const sent = await MailerService.sendLoginHelpEmail({
+      to: user.email,
+      firstName: user.firstName,
+      clinicName: user.clinic?.name || 'tu clínica'
+    });
+
+    if (!sent) return res.status(502).json({ error: 'No se pudo enviar el correo. Verifica la configuración SMTP.' });
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('Error en /platform/clinics/:id/users/:userId/help-email:', error);
+    return res.status(500).json({ error: 'Error al enviar el correo de ayuda.' });
   }
 });
 

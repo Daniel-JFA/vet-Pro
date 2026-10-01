@@ -153,6 +153,10 @@ export class PlatformAuthService {
     return this.api.get<PlatformClinic[]>('/platform/clinics');
   }
 
+  sendLoginHelpEmail(clinicId: string, userId: string): Observable<{ success: boolean }> {
+    return this.api.post<{ success: boolean }>(`/platform/clinics/${clinicId}/users/${userId}/help-email`, {});
+  }
+
   getClinicUsers(clinicId: string): Observable<PlatformClinicUser[]> {
     return this.api.get<PlatformClinicUser[]>(`/platform/clinics/${clinicId}/users`);
   }

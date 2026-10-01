@@ -80,6 +80,12 @@ export interface ProfessionalCardVerifiedEmailData {
   city?: string;
 }
 
+export interface LoginHelpEmailData {
+  to: string;
+  firstName: string;
+  clinicName: string;
+}
+
 function getRoleLabel(role: string): string {
   const roles: Record<string, string> = {
     admin: '🛡️ Administrador (Gestión Total & Finanzas)',
@@ -665,6 +671,62 @@ Este enlace es personal y expira en 7 días.
       return true;
     } catch (error: any) {
       console.error(`❌ [Mailer] Error al enviar enlace de acceso a ${data.to}:`, error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Aviso a un usuario que aún no ha iniciado sesión, ofreciendo ayuda para ingresar.
+   */
+  public static async sendLoginHelpEmail(data: LoginHelpEmailData): Promise<boolean> {
+    const transporter = this.getTransporter();
+    const from = process.env.SMTP_FROM || `VetPro SaaS <${process.env.SMTP_USER || 'no-reply@vetpro.co'}>`;
+    const appUrl = process.env.APP_URL || 'https://vetpro.danielflorez.dev';
+
+    if (!transporter) {
+      console.warn('⚠️ [Mailer] No se envió correo de ayuda de acceso: SMTP no configurado.');
+      return false;
+    }
+
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="utf-8">
+      <title>¿Necesitas ayuda para ingresar a VetPro?</title>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; margin: 0; padding: 24px; color: #1e293b; }
+        .container { max-width: 540px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 32px 28px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+        .title { font-size: 20px; font-weight: 700; color: #0f172a; margin: 0 0 16px; }
+        .btn { display: inline-block; background: #10b981; color: #fff !important; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 700; margin-top: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h2 class="title">¿Necesitas ayuda para ingresar?</h2>
+        <p>Hola, ${data.firstName}:</p>
+        <p>Notamos que tu usuario en <strong>${data.clinicName}</strong> aún no ha iniciado sesión en VetPro. Si tuviste algún inconveniente para ingresar, responde este correo y con gusto te ayudamos.</p>
+        <p><a href="${appUrl}" class="btn">Ir a VetPro</a></p>
+        <p style="font-size: 12px; color: #94a3b8; margin-top: 24px;">Si olvidaste tu contraseña, puedes recuperarla desde la pantalla de inicio de sesión.</p>
+      </div>
+    </body>
+    </html>
+    `;
+
+    try {
+      await transporter.sendMail({
+        from,
+        to: data.to,
+        ...(this.getBcc() ? { bcc: this.getBcc() } : {}),
+        subject: `¿Necesitas ayuda para ingresar a VetPro? — ${data.clinicName}`,
+        text: `Hola ${data.firstName}, notamos que aún no has iniciado sesión en VetPro (${data.clinicName}). Si necesitas ayuda, responde este correo. Ingresa en: ${appUrl}`,
+        html: htmlContent
+      });
+
+      console.log(`✉️ [Mailer] Correo de ayuda de acceso enviado a: ${data.to}`);
+      return true;
+    } catch (error: any) {
+      console.error(`❌ [Mailer] Error al enviar correo de ayuda de acceso a ${data.to}:`, error.message);
       return false;
     }
   }

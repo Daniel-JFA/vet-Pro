@@ -206,9 +206,9 @@ const SUBSCRIPTION_LABELS: Record<string, string> = {
                                   <td class="actions-cell">
                                     @if (!u.lastLoginAt) {
                                       <div style="display: flex; gap: 6px;">
-                                        <a [href]="'mailto:' + u.email + '?subject=Acceso a VetPro'" title="Enviar Correo" class="contact-btn mail">
-                                          <span class="material-symbols-outlined" style="font-size: 18px;">mail</span>
-                                        </a>
+                                        <button type="button" title="Enviar correo de ayuda" class="contact-btn mail" [disabled]="sendingHelpEmailFor() === u.id" (click)="sendHelpEmail(c.id, u)">
+                                          <span class="material-symbols-outlined" style="font-size: 18px;">{{ sendingHelpEmailFor() === u.id ? 'hourglass_empty' : 'mail' }}</span>
+                                        </button>
                                         <a [href]="'https://wa.me/' + cleanPhone(c.phone) + '?text=Hola, notamos que el usuario ' + u.firstName + ' no ha iniciado sesión en VetPro. ¿Podemos ayudarles?'" target="_blank" title="Enviar WhatsApp" class="contact-btn wa">
                                           <span class="material-symbols-outlined" style="font-size: 18px;">chat</span>
                                         </a>
@@ -681,7 +681,7 @@ const SUBSCRIPTION_LABELS: Record<string, string> = {
           &:hover {
             transform: scale(1.1);
           }
-          &.mail { background: #3b82f6; }
+          &.mail { background: #3b82f6; border: none; cursor: pointer; padding: 0; }
           &.wa { background: #25D366; }
         }
       }
@@ -1029,6 +1029,22 @@ export class PlatformDashboardComponent implements OnInit {
 
   subscriptionLabel(status: string): string {
     return SUBSCRIPTION_LABELS[status] || status;
+  }
+
+  sendingHelpEmailFor = signal<string | null>(null);
+
+  sendHelpEmail(clinicId: string, user: { id: string; email: string }) {
+    this.sendingHelpEmailFor.set(user.id);
+    this.auth.sendLoginHelpEmail(clinicId, user.id).subscribe({
+      next: () => {
+        this.sendingHelpEmailFor.set(null);
+        alert(`Correo enviado a ${user.email}`);
+      },
+      error: (err) => {
+        this.sendingHelpEmailFor.set(null);
+        alert(err?.error?.error || 'Error al enviar el correo.');
+      }
+    });
   }
 
   cleanPhone(phone: string | undefined): string {
