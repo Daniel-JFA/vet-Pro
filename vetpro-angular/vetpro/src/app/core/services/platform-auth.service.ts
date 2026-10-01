@@ -100,6 +100,18 @@ export interface SupportTicket {
   user?: { firstName: string; lastName: string; email: string };
 }
 
+export interface AuditLog {
+  id: string;
+  action: string;
+  entity: string;
+  entityId: string | null;
+  details: any;
+  userId: string | null;
+  clinicId: string | null;
+  ipAddress: string | null;
+  createdAt: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class PlatformAuthService {
   private api = inject(ApiService);
@@ -183,5 +195,10 @@ export class PlatformAuthService {
 
   resolveTicket(id: string, status: string): Observable<SupportTicket> {
     return this.api.put<SupportTicket>(`/platform/support/tickets/${id}`, { status });
+  }
+
+  // Audit Logs
+  getAuditLogs(): Observable<AuditLog[]> {
+    return this.api.get<AuditLog[]>('/platform/audit-logs');
   }
 }

@@ -502,6 +502,16 @@ router.post('/clinics/:id/change-plan', platformAuthMiddleware as any, async (re
       data
     });
 
+    await prisma.auditLog.create({
+      data: {
+        action: 'UPDATE_TENANT_PLAN_OR_FEATURES',
+        entity: 'Clinic',
+        entityId: id,
+        details: data,
+        userId: req.platformAdmin?.id || 'system'
+      }
+    });
+
     return res.json({ message: 'Clínica actualizada con éxito', clinic: updated });
   } catch (error) {
     console.error('Error actualizando clínica:', error);
@@ -532,6 +542,17 @@ router.post('/announcements', platformAuthMiddleware as any, async (req: Platfor
     const announcement = await prisma.platformAnnouncement.create({
       data: { title, message, type, targetPlan }
     });
+
+    await prisma.auditLog.create({
+      data: {
+        action: 'CREATE_ANNOUNCEMENT',
+        entity: 'PlatformAnnouncement',
+        entityId: announcement.id,
+        details: { title, type, targetPlan },
+        userId: req.platformAdmin?.id || 'system'
+      }
+    });
+
     return res.status(201).json(announcement);
   } catch (error) {
     return res.status(500).json({ error: 'Error al crear anuncio.' });
@@ -631,6 +652,20 @@ router.post('/public/support/tickets', authMiddleware as any, async (req: AuthRe
     return res.status(201).json(ticket);
   } catch (error) {
     return res.status(500).json({ error: 'Error al crear ticket de soporte.' });
+  }
+});
+
+// GET /platform/audit-logs
+router.get('/audit-logs', platformAuthMiddleware as any, async (req: PlatformAuthRequest, res: Response) => {
+  try {
+    const logs = await prisma.auditLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+    });
+    return res.json(logs);
+  } catch (error) {
+    console.error('Error en /platform/audit-logs:', error);
+    return res.status(500).json({ error: 'Error al consultar logs de auditoría.' });
   }
 });
 

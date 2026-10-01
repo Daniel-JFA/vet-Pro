@@ -8,7 +8,8 @@ import {
   PlatformClinic,
   PlatformClinicUser,
   PlatformAnnouncement,
-  SupportTicket
+  SupportTicket,
+  AuditLog
 } from '../../core/services/platform-auth.service';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -62,6 +63,9 @@ const SUBSCRIPTION_LABELS: Record<string, string> = {
         </button>
         <button [class.active]="mainTab() === 'tickets'" (click)="mainTab.set('tickets')">
           <span class="material-symbols-outlined">support_agent</span> Tickets de Soporte
+        </button>
+        <button [class.active]="mainTab() === 'audit'" (click)="mainTab.set('audit')">
+          <span class="material-symbols-outlined">security</span> Auditoría
         </button>
       </div>
 
@@ -415,6 +419,38 @@ const SUBSCRIPTION_LABELS: Record<string, string> = {
                         </button>
                       }
                     </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
+
+      @if (mainTab() === 'audit') {
+        <section class="clinics-table-wrapper">
+          <div class="table-header">
+            <h2>Registro de Auditoría (Security Logs)</h2>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Acción</th>
+                  <th>Entidad</th>
+                  <th>ID Entidad</th>
+                  <th>Usuario Autor</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (log of auditLogs(); track log.id) {
+                  <tr>
+                    <td>{{ log.createdAt | date:'short' }}</td>
+                    <td><span class="badge badge-info">{{ log.action }}</span></td>
+                    <td>{{ log.entity }}</td>
+                    <td><small style="color: #9ca3af;">{{ log.entityId || 'N/A' }}</small></td>
+                    <td>{{ log.userId || 'Sistema' }}</td>
                   </tr>
                 }
               </tbody>
@@ -921,9 +957,10 @@ export class PlatformDashboardComponent implements OnInit {
   editStatus = '';
   editFeatureFlags: any = { ai_assistant: false, dian_billing: false, whatsapp_crm: false };
 
-  mainTab = signal<'clinics'|'announcements'|'tickets'>('clinics');
+  mainTab = signal<'clinics'|'announcements'|'tickets'|'audit'>('clinics');
   announcements = signal<PlatformAnnouncement[]>([]);
   tickets = signal<SupportTicket[]>([]);
+  auditLogs = signal<AuditLog[]>([]);
 
   showAnnouncementModal = signal(false);
   newAnnouncement: Partial<PlatformAnnouncement> = {
@@ -954,6 +991,7 @@ export class PlatformDashboardComponent implements OnInit {
     this.auth.getClinics().subscribe((c) => this.clinics.set(c));
     this.auth.getAnnouncements().subscribe((a) => this.announcements.set(a));
     this.auth.getTickets().subscribe((t) => this.tickets.set(t));
+    this.auth.getAuditLogs().subscribe((l) => this.auditLogs.set(l));
   }
 
   toggleExpand(clinicId: string) {

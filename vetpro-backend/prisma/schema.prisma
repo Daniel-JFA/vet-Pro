@@ -1573,3 +1573,18 @@ model SupportTicket {
   @@index([status])
   @@map("support_tickets")
 }
+
+// ----------------------------------------------------------------------
+// MÓDULO DE AUDITORÍA GLOBAL (Audit Trail)
+// ----------------------------------------------------------------------
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String   // Ej: "UPDATE_PLAN", "CREATE_USER", "DELETE_PATIENT"
+  entity    String   // Ej: "Clinic", "User", "Appointment"
+  entityId  String?  // ID de la entidad afectada
+  details   Json?    // Contexto o diff (antes/después)
+  userId    String?  // Quién realizó la acción
+  clinicId  String?  // A qué clínica pertenece el evento
+  ipAddress String?
+  createdAt DateTime @default(now())
+}
