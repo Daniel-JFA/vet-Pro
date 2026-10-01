@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import { prisma } from '../src/config/database.js';
 import { AUTH_ROUTES } from '../src/routes/auth.routes.js';
 import { MARKETPLACE_ROUTES } from '../src/routes/marketplace.routes.js';
+import { PLATFORM_ROUTES } from '../src/routes/platform.routes.js';
 import { TokenService } from '../src/services/token.service.js';
 import { ComvezcolService } from '../src/services/comvezcol.service.js';
 
@@ -13,6 +14,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use('/api/v1/auth', AUTH_ROUTES);
 app.use('/api/v1/marketplace', MARKETPLACE_ROUTES);
+app.use('/api/v1/platform', PLATFORM_ROUTES);
 
 describe('Antifraud Verification System (COMVEZCOL Registration & KYC)', () => {
   const timestamp = Date.now();
@@ -169,10 +171,29 @@ describe('Antifraud Verification System (COMVEZCOL Registration & KYC)', () => {
     expect(res.body.error).toContain('ya se encuentra registrada');
   });
 
+  const platformToken = () => TokenService.signPlatform({ id: 'platform-test', email: 'platform@vetpro.test' } as any);
+
+  // Admin de la clínica propia del veterinario independiente registrado en el test 2
+  async function ownClinicAdminToken() {
+    const profile = await prisma.vetProfile.findFirstOrThrow({ where: { professionalCard: testCardNumber } });
+    return {
+      profile,
+      token: TokenService.signStaff({ id: profile.userId, email: 'vet_andres@test.com', role: 'admin', clinicId: profile.clinicId })
+    };
+  }
+
   it('4. El panel administrativo GET /admin/verificaciones debe incluir datos de documento y metadata antifraude COMVEZCOL', async () => {
-    const res = await request(app)
+    // Un admin de otra clínica no ve los perfiles ajenos
+    const other = await request(app)
       .get('/api/v1/marketplace/admin/verifications')
       .set('Authorization', `Bearer ${adminToken}`);
+    expect(other.status).toBe(200);
+    expect(other.body.find((p: any) => p.professionalCard === testCardNumber)).toBeUndefined();
+
+    const { token } = await ownClinicAdminToken();
+    const res = await request(app)
+      .get('/api/v1/marketplace/admin/verifications')
+      .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
@@ -187,15 +208,26 @@ describe('Antifraud Verification System (COMVEZCOL Registration & KYC)', () => {
     expect(vetItem.antifraud.comvezcolQueryUrl).toContain('comvezcol.org');
   });
 
-  it('5. Administrador aprueba verificación COMVEZCOL: perfil pasa a verificado y se hace público', async () => {
-    const profile = await prisma.vetProfile.findFirst({
-      where: { professionalCard: testCardNumber }
-    });
-    expect(profile).not.toBeNull();
+  it('5. Solo VetPro (plataforma) aprueba la verificación COMVEZCOL: perfil pasa a verificado y se hace público', async () => {
+    const { profile, token } = await ownClinicAdminToken();
+
+    // Ni la propia clínica ni otra pueden aprobar: el endpoint de clínica es solo lectura
+    for (const t of [token, adminToken]) {
+      const denied = await request(app)
+        .put(`/api/v1/marketplace/admin/verifications/${profile.id}`)
+        .set('Authorization', `Bearer ${t}`)
+        .send({ status: 'verified' });
+      expect(denied.status).toBe(404);
+      const deniedPlatform = await request(app)
+        .put(`/api/v1/platform/verifications/${profile.id}`)
+        .set('Authorization', `Bearer ${t}`)
+        .send({ status: 'verified' });
+      expect(deniedPlatform.status).toBe(401);
+    }
 
     const res = await request(app)
-      .put(`/api/v1/marketplace/admin/verifications/${profile!.id}`)
-      .set('Authorization', `Bearer ${adminToken}`)
+      .put(`/api/v1/platform/verifications/${profile.id}`)
+      .set('Authorization', `Bearer ${platformToken()}`)
       .send({
         status: 'verified',
         notes: 'Tarjeta profesional COMVEZCOL validada exitosamente en el registro nacional.'
@@ -204,7 +236,7 @@ describe('Antifraud Verification System (COMVEZCOL Registration & KYC)', () => {
     expect(res.status).toBe(200);
     expect(res.body.profile.verificationStatus).toBe('verified');
     expect(res.body.profile.isPublic).toBe(true);
-    expect(res.body.profile.verifiedBy).toBe(testAdminUserId);
+    expect(res.body.profile.verifiedBy).toBe('platform:platform-test');
   });
 
   it('6. Si el veterinario modifica su tarjeta profesional, debe reactivarse la revisión antifraude (status: pending, isPublic: false)', async () => {
@@ -241,9 +273,15 @@ describe('Antifraud Verification System (COMVEZCOL Registration & KYC)', () => {
       message: 'Coincide con registro oficial COMVEZCOL.'
     });
 
-    const res = await request(app)
-      .post('/api/v1/marketplace/admin/verifications/auto-verify-all')
+    // El admin de una clínica no puede dispararlo: afecta a todas las clínicas
+    const denied = await request(app)
+      .post('/api/v1/platform/verifications/auto-verify-all')
       .set('Authorization', `Bearer ${adminToken}`);
+    expect(denied.status).toBe(401);
+
+    const res = await request(app)
+      .post('/api/v1/platform/verifications/auto-verify-all')
+      .set('Authorization', `Bearer ${platformToken()}`);
 
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('summary');

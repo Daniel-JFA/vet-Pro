@@ -118,4 +118,13 @@ export class PlatformAuthService {
   getAnalyticsOverview(): Observable<PlatformAnalyticsOverview> {
     return this.api.get<PlatformAnalyticsOverview>('/platform/analytics/overview');
   }
+
+  // Verificación COMVEZCOL de veterinarios de todas las clínicas
+  getVerifications(): Observable<any[]> {
+    return this.api.get<any[]>('/platform/verifications');
+  }
+
+  updateVerification(id: string, body: { status?: 'verified' | 'rejected' | 'pending'; notes?: string; isFeatured?: boolean }): Observable<any> {
+    return this.api.put<any>(`/platform/verifications/${id}`, body);
+  }
 }

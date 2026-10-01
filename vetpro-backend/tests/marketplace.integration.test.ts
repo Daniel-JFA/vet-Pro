@@ -144,8 +144,8 @@ describe('Marketplace Web de Veterinarios (Integration Tests)', () => {
 
   it('5. El administrador aprueba la verificación COMVEZCOL del veterinario', async () => {
     const res = await request(app)
-      .put(`/api/v1/marketplace/admin/verifications/${createdVetProfileId}`)
-      .set('Authorization', `Bearer ${adminUserToken}`)
+      .put(`/api/v1/platform/verifications/${createdVetProfileId}`)
+      .set('Authorization', `Bearer ${TokenService.signPlatform({ id: 'platform-test', email: 'platform@vetpro.test' } as any)}`)
       .send({
         status: 'verified',
         notes: 'Matrícula COMVEZCOL verificada con éxito en el registro nacional.'

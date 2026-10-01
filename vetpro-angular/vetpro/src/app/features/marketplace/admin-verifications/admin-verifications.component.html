@@ -1,8 +1,16 @@
 <div class="verifications-page">
   <header class="page-header">
     <div>
-      <h1>Verificación de Veterinarios (COMVEZCOL)</h1>
-      <p>Audita las credenciales, matrícula profesional y documentos de los médicos antes de publicarlos en la red.</p>
+      @if (canManage) {
+        <a routerLink="/platform/dashboard" class="back-link">
+          <span class="material-symbols-outlined">arrow_back</span> Volver al panel
+        </a>
+        <h1>Verificación de Veterinarios (COMVEZCOL)</h1>
+        <p>Audita las credenciales, matrícula profesional y documentos de los médicos de todas las clínicas antes de publicarlos en la red.</p>
+      } @else {
+        <h1>Verificación de Veterinarios (COMVEZCOL)</h1>
+        <p>Estado de la verificación de los veterinarios de tu clínica. La revisión la hace el equipo de VetPro cotejando la tarjeta profesional con COMVEZCOL; cuando un perfil queda verificado aparece en el directorio público.</p>
+      }
     </div>
     <div class="filter-tabs">
       <button
@@ -58,7 +66,9 @@
             <th>Documentos Adjuntos</th>
             <th>Especialidades</th>
             <th>Estado</th>
-            <th style="text-align: right;">Acciones</th>
+            @if (canManage) {
+              <th style="text-align: right;">Acciones</th>
+            }
           </tr>
         </thead>
         <tbody>
@@ -150,7 +160,11 @@
                     Rechazado
                   }
                 </span>
+                @if (!canManage && p.verificationNotes) {
+                  <small class="verification-notes">{{ p.verificationNotes }}</small>
+                }
               </td>
+              @if (canManage) {
               <td style="text-align: right;">
                 <div class="action-buttons">
                   <button
@@ -184,6 +198,7 @@
                   }
                 </div>
               </td>
+              }
             </tr>
           }
         </tbody>
@@ -191,8 +206,8 @@
     </div>
   }
 
-  <!-- Modal de Aprobación / Rechazo -->
-  @if (selectedProfile(); as p) {
+  <!-- Modal de Aprobación / Rechazo (solo plataforma) -->
+  @if (canManage && selectedProfile(); as p) {
     <div class="modal-backdrop" (click)="closeActionModal()">
       <div class="modal-dialog" (click)="$event.stopPropagation()">
         <header class="modal-header">

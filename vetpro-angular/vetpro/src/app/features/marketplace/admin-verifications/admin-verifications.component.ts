@@ -1,19 +1,27 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink, ActivatedRoute } from '@angular/router';
 import { MarketplaceService } from '../../../core/services/marketplace.service';
+import { PlatformAuthService } from '../../../core/services/platform-auth.service';
 import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-admin-verifications',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './admin-verifications.component.html',
   styleUrls: ['./admin-verifications.component.scss']
 })
 export class AdminVerificationsComponent implements OnInit {
   private marketplaceService = inject(MarketplaceService);
   private toast = inject(ToastService);
+  platformAuth = inject(PlatformAuthService);
+
+  // 'platform': equipo VetPro, todas las clínicas, puede aprobar/rechazar/destacar.
+  // 'clinic': la clínica ve solo el estado de sus veterinarios.
+  readonly mode: 'platform' | 'clinic' = inject(ActivatedRoute).snapshot.data['mode'] === 'platform' ? 'platform' : 'clinic';
+  readonly canManage = this.mode === 'platform';
 
   loading = signal<boolean>(true);
   profiles = signal<any[]>([]);
@@ -31,7 +39,9 @@ export class AdminVerificationsComponent implements OnInit {
 
   loadVerifications(): void {
     this.loading.set(true);
-    this.marketplaceService.getAdminVerifications().subscribe({
+    const source$ =
+      this.mode === 'platform' ? this.platformAuth.getVerifications() : this.marketplaceService.getAdminVerifications();
+    source$.subscribe({
       next: (data) => {
         this.profiles.set(data);
         this.loading.set(false);
@@ -77,8 +87,8 @@ export class AdminVerificationsComponent implements OnInit {
     this.submitting.set(true);
     const newStatus = this.actionType() === 'verify' ? 'verified' : 'rejected';
 
-    this.marketplaceService
-      .verifyVet(p.id, {
+    this.platformAuth
+      .updateVerification(p.id, {
         status: newStatus,
         notes: this.notes
       })
@@ -102,7 +112,7 @@ export class AdminVerificationsComponent implements OnInit {
 
   toggleFeatured(profile: any): void {
     const newFeatured = !profile.isFeatured;
-    this.marketplaceService.verifyVet(profile.id, { isFeatured: newFeatured }).subscribe({
+    this.platformAuth.updateVerification(profile.id, { isFeatured: newFeatured }).subscribe({
       next: () => {
         this.toast.success(
           newFeatured

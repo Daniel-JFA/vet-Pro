@@ -191,17 +191,11 @@ export class MarketplaceService {
   }
 
   /**
-   * Panel Admin: Listar solicitudes de verificación
+   * Clínica: estado de verificación de sus veterinarios (solo lectura;
+   * aprobar, rechazar y destacar lo hace VetPro desde el panel de plataforma)
    */
   getAdminVerifications(): Observable<any[]> {
     return this.api.get<any[]>('/marketplace/admin/verifications');
-  }
-
-  /**
-   * Panel Admin: Aprobar o rechazar verificación, o destacar perfil
-   */
-  verifyVet(id: string, body: { status?: 'verified' | 'rejected' | 'pending'; notes?: string; isFeatured?: boolean }): Observable<any> {
-    return this.api.put<any>(`/marketplace/admin/verifications/${id}`, body);
   }
 
   /**

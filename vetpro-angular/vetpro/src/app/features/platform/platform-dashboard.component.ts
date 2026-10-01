@@ -40,6 +40,9 @@ const SUBSCRIPTION_LABELS: Record<string, string> = {
           </p>
         </div>
         <div class="header-actions">
+          <a routerLink="/platform/verifications" class="analytics-link">
+            <span class="material-symbols-outlined">verified</span> Verificaciones COMVEZCOL
+          </a>
           <a routerLink="/platform/analytics" class="analytics-link">
             <span class="material-symbols-outlined">monitoring</span> Analíticas
           </a>

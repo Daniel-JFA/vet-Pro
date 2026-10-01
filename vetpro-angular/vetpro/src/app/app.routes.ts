@@ -19,6 +19,12 @@ export const routes: Routes = [
     loadComponent: () => import('./features/platform/platform-dashboard.component').then(m => m.PlatformDashboardComponent)
   },
   {
+    path: 'platform/verifications',
+    canActivate: [platformAuthGuard],
+    data: { mode: 'platform' },
+    loadComponent: () => import('./features/marketplace/admin-verifications/admin-verifications.component').then(m => m.AdminVerificationsComponent)
+  },
+  {
     path: 'platform/analytics',
     canActivate: [platformAuthGuard],
     loadComponent: () => import('./features/platform/platform-analytics.component').then(m => m.PlatformAnalyticsComponent)

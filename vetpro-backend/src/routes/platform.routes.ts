@@ -3,6 +3,10 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '../config/database.js';
 import { platformAuthMiddleware, PlatformAuthRequest } from '../middleware/platformAuth.js';
 import { TokenService } from '../services/token.service.js';
+import { z } from 'zod';
+import { VerificationStatus } from '@prisma/client';
+import { listVerificationProfiles, updateVerification } from '../services/vet-verification.service.js';
+import { AntifraudService } from '../services/antifraud.service.js';
 
 const router = Router();
 
@@ -379,6 +383,52 @@ router.get('/analytics/overview', platformAuthMiddleware as any, async (_req: Pl
   } catch (error) {
     console.error('Error en /platform/analytics/overview:', error);
     return res.status(500).json({ error: 'Error al calcular las analíticas de la plataforma.' });
+  }
+});
+
+// ─────────────────────────────────────────────
+// VERIFICACIÓN COMVEZCOL (exclusivo del equipo de VetPro)
+// ─────────────────────────────────────────────
+
+// GET /platform/verifications — perfiles de todas las clínicas
+router.get('/verifications', platformAuthMiddleware as any, async (_req: PlatformAuthRequest, res: Response) => {
+  try {
+    return res.json(await listVerificationProfiles());
+  } catch (error) {
+    console.error('[Platform] Error listando verificaciones:', error);
+    return res.status(500).json({ error: 'Error al consultar solicitudes de verificación' });
+  }
+});
+
+const VerifySchema = z.object({
+  status: z.nativeEnum(VerificationStatus).optional(),
+  notes: z.string().optional(),
+  isFeatured: z.boolean().optional()
+});
+
+// PUT /platform/verifications/:id — aprobar, rechazar o destacar
+router.put('/verifications/:id', platformAuthMiddleware as any, async (req: PlatformAuthRequest, res: Response) => {
+  try {
+    const input = VerifySchema.parse(req.body);
+    const exists = await prisma.vetProfile.findUnique({ where: { id: req.params.id }, select: { id: true } });
+    if (!exists) return res.status(404).json({ error: 'Perfil no encontrado.' });
+    const profile = await updateVerification(req.params.id, input, `platform:${req.platformAdmin!.id}`);
+    return res.json({ message: 'Solicitud actualizada con éxito', profile });
+  } catch (error) {
+    if (error instanceof z.ZodError) return res.status(400).json({ error: error.issues[0]?.message });
+    console.error('[Platform] Error actualizando verificación:', error);
+    return res.status(500).json({ error: 'Error al actualizar estado de verificación' });
+  }
+});
+
+// POST /platform/verifications/auto-verify-all — certificación automática masiva
+router.post('/verifications/auto-verify-all', platformAuthMiddleware as any, async (_req: PlatformAuthRequest, res: Response) => {
+  try {
+    const summary = await AntifraudService.verifyAllRegisteredVets();
+    return res.json({ message: 'Proceso de certificación automática COMVEZCOL completado.', summary });
+  } catch (error) {
+    console.error('[Platform] Error en verificación automática:', error);
+    return res.status(500).json({ error: 'Error durante la verificación automática masiva.' });
   }
 });
 
