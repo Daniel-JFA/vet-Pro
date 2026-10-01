@@ -18,7 +18,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const toast = inject(ToastService);
 
   // El endpoint decide qué token corresponde: plataforma, tutor o staff de clínica
-  const isPlatformRequest = req.url.includes('/platform');
+  // /platform/public/* lo consume el personal de la clínica con su propio token
+  const isPlatformRequest = req.url.includes('/platform') && !req.url.includes('/platform/public/');
   const isPortalRequest = req.url.includes('/portal');
   const isAuthEndpoint = req.url.includes('/auth/login') || req.url.includes('/auth/register') || req.url.includes('/auth/refresh');
 
