@@ -7,6 +7,7 @@ import { AppointmentService } from '../core/services/appointment.service';
 import { PwaService } from '../core/services/pwa.service';
 import { ToastContainerComponent } from '../shared/components/toast/toast-container.component';
 import { AsistenteWidgetComponent } from '../shared/components/asistente-widget/asistente-widget.component';
+import { DatePipe } from '@angular/common';
 
 interface NavItem {
   label: string;
@@ -18,7 +19,7 @@ interface NavItem {
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, FormsModule, ToastContainerComponent, AsistenteWidgetComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, FormsModule, ToastContainerComponent, AsistenteWidgetComponent, DatePipe],
   template: `
     <div class="shell">
       <!-- Backdrop Overlay for Mobile -->
@@ -157,6 +158,44 @@ interface NavItem {
               </div>
             }
 
+            <!-- Botón Soporte -->
+            <button class="icon-btn support-btn" (click)="showSupportModal.set(true)" aria-label="Soporte técnico" title="Contactar a Soporte">
+              <span class="material-symbols-outlined">help</span>
+            </button>
+
+            <!-- Botón Anuncios -->
+            <div style="position: relative;">
+              <button class="icon-btn" (click)="showAnnouncementsPanel.set(!showAnnouncementsPanel())" aria-label="Anuncios de VetPro">
+                <span class="material-symbols-outlined">notifications</span>
+                @if (announcements().length > 0) {
+                  <span class="notification-dot"></span>
+                }
+              </button>
+              
+              @if (showAnnouncementsPanel()) {
+                <div class="announcements-dropdown">
+                  <div class="announcements-header">
+                    <h4>Novedades VetPro</h4>
+                    <button class="close-btn" (click)="showAnnouncementsPanel.set(false)">
+                      <span class="material-symbols-outlined">close</span>
+                    </button>
+                  </div>
+                  <div class="announcements-body">
+                    @if (announcements().length === 0) {
+                      <p class="empty-msg">No hay anuncios nuevos.</p>
+                    }
+                    @for (ann of announcements(); track ann.id) {
+                      <div class="announcement-item" [class]="'type-' + ann.type">
+                        <h5>{{ ann.title }}</h5>
+                        <p>{{ ann.message }}</p>
+                        <small>{{ ann.createdAt | date:'short' }}</small>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+
             @if (!pwa.isOnline()) {
               <div class="offline-pill" title="Trabajando sin conexión">
                 <span class="material-symbols-outlined">wifi_off</span>
@@ -196,6 +235,47 @@ interface NavItem {
     </div>
     <app-toast-container />
     <app-asistente-widget />
+
+    <!-- Modal de Soporte -->
+    @if (showSupportModal()) {
+      <div class="modal-overlay" (click)="showSupportModal.set(false)">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h3>Contactar a Soporte</h3>
+            <button class="close-btn" (click)="showSupportModal.set(false)">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <p>Envíanos un reporte detallado. Nuestro equipo técnico responderá lo antes posible.</p>
+            
+            <div class="form-group">
+              <label>Asunto</label>
+              <input type="text" [(ngModel)]="supportForm.subject" placeholder="Ej: Error al facturar, duda sobre módulos..." />
+            </div>
+
+            <div class="form-group">
+              <label>Prioridad</label>
+              <select [(ngModel)]="supportForm.priority">
+                <option value="low">Baja (Dudas generales)</option>
+                <option value="medium">Media (Falla no crítica)</option>
+                <option value="high">Alta (Urgente / Bloqueo)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Descripción detallada</label>
+              <textarea rows="4" [(ngModel)]="supportForm.description" placeholder="Describe el problema paso a paso..."></textarea>
+            </div>
+
+            <div class="modal-actions">
+              <button class="btn btn-secondary" (click)="showSupportModal.set(false)">Cancelar</button>
+              <button class="btn btn-primary" (click)="submitSupportTicket()" [disabled]="!supportForm.subject || !supportForm.description">Enviar Ticket</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
   `,
   styleUrl: './shell.component.scss',
 })
@@ -219,6 +299,7 @@ export class ShellComponent implements OnInit {
       },
       error: () => this.pendingAppointmentsToday.set(undefined),
     });
+    this.loadPublicAnnouncements();
   }
 
   // Close mobile sidebar menu when Escape key is pressed
@@ -352,5 +433,38 @@ export class ShellComponent implements OnInit {
       default:
         return role;
     }
+  }
+
+  // ----------------------------------------------------------------------
+  // ANUNCIOS Y TICKETS (Plataforma)
+  // ----------------------------------------------------------------------
+  announcements = signal<any[]>([]);
+  showAnnouncementsPanel = signal(false);
+  showSupportModal = signal(false);
+
+  supportForm = {
+    subject: '',
+    priority: 'medium',
+    description: ''
+  };
+
+  loadPublicAnnouncements() {
+    this.auth.getPublicAnnouncements().subscribe((data) => {
+      this.announcements.set(data);
+    });
+  }
+
+  submitSupportTicket() {
+    if (!this.supportForm.subject || !this.supportForm.description) return;
+    this.auth.createSupportTicket(this.supportForm).subscribe({
+      next: () => {
+        alert('Ticket enviado con éxito. Nuestro equipo lo revisará pronto.');
+        this.showSupportModal.set(false);
+        this.supportForm = { subject: '', priority: 'medium', description: '' };
+      },
+      error: () => {
+        alert('Ocurrió un error al enviar el ticket.');
+      }
+    });
   }
 }
