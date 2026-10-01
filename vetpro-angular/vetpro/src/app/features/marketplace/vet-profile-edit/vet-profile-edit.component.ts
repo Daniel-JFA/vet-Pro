@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MarketplaceService, MyVetProfile, ProVetSubscriptionStatus } from '../../../core/services/marketplace.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { environment } from '../../../../environments/environment';
+import { buildWompiCheckoutUrl } from '../../../core/utils/wompi-checkout';
 
 @Component({
   selector: 'app-vet-profile-edit',
@@ -77,30 +77,13 @@ export class VetProfileEditComponent implements OnInit {
 
   activateProVet(): void {
     this.subscribing.set(true);
-    // Antes siempre se enviaba instantActivate=true: Pro Vet se activaba sin cobrar
-    const simulate = !environment.production;
-    this.marketplaceService.subscribeProVet(simulate).subscribe({
-      next: (res) => {
-        if (!simulate) {
-          const c = res?.checkout;
-          this.subscribing.set(false);
-          if (c) {
-            window.open(
-              `https://checkout.wompi.co/p/?public-key=${c.publicKey}&currency=${c.currency}` +
-                `&amount-in-cents=${c.amountInCents}&reference=${c.reference}` +
-                `&signature:integrity=${c.signatureIntegrity}&redirect-url=${encodeURIComponent(c.redirectUrl)}`,
-              '_blank',
-            );
-          }
-          return;
-        }
-        this.toast.success('¡Felicidades! Membresía Pro Vet ⭐ activada exitosamente.');
-        this.subscribing.set(false);
-        this.loadSubscription();
-        this.loadProfile();
+    // La membresía se activa cuando el webhook de Wompi confirma el pago
+    this.marketplaceService.createProVetCheckout().subscribe({
+      next: ({ checkout }) => {
+        window.location.href = buildWompiCheckoutUrl({ ...checkout, signature: checkout.signatureIntegrity });
       },
       error: (err) => {
-        this.toast.error(err.error?.error || 'Error al procesar suscripción');
+        this.toast.error(err.error?.error || 'Error al iniciar el pago de la membresía');
         this.subscribing.set(false);
       }
     });

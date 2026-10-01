@@ -5,6 +5,7 @@ import { MailerService } from '../services/mailer.service.js';
 import { AuthService, toUserResponse } from '../services/auth.service.js';
 import { TokenService } from '../services/token.service.js';
 import { prisma } from '../config/database.js';
+import { AccountDeletionService } from '../services/account-deletion.service.js';
 
 const router = Router();
 
@@ -147,6 +148,33 @@ router.post('/logout', (_req, res) => {
     sameSite: 'lax'
   });
   return res.json({ message: 'Sesión cerrada exitosamente.' });
+});
+
+// DELETE /auth/me (El usuario elimina su propia cuenta; exige su contraseña)
+router.delete('/me', authMiddleware as any, async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id;
+  if (!userId) return res.status(401).json({ error: 'No autorizado.' });
+
+  try {
+    const result = await AccountDeletionService.deleteStaffAccount(userId, req.body?.password);
+    res.clearCookie('vetpro_refresh_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax'
+    });
+    return res.json(
+      result.outcome === 'clinic_scheduled'
+        ? {
+            ...result,
+            message: 'Tu cuenta fue eliminada. Como eras la última persona con acceso, toda la información de la clínica se borrará definitivamente en 30 días.'
+          }
+        : { ...result, message: 'Tu cuenta fue eliminada.' }
+    );
+  } catch (error: any) {
+    if (error.status) return res.status(error.status).json({ error: error.message });
+    console.error('Error al eliminar cuenta:', error);
+    return res.status(500).json({ error: 'No se pudo eliminar la cuenta.' });
+  }
 });
 
 // GET /auth/activation/:token (Consultar datos básicos antes de activar)

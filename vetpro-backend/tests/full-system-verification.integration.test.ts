@@ -448,8 +448,8 @@ describe('Comprehensive System Verification — Full Stack End-to-End Audit', ()
   // ─────────────────────────────────────────────
   it('9. Auditoría y Aprobación COMVEZCOL por el Administrador guardando en PostgreSQL', async () => {
     const res = await request(app)
-      .put(`/api/v1/marketplace/admin/verifications/${vetProfileId}`)
-      .set('Authorization', `Bearer ${adminToken}`)
+      .put(`/api/v1/platform/verifications/${vetProfileId}`)
+      .set('Authorization', `Bearer ${TokenService.signPlatform({ id: 'platform-test', email: 'platform@vetpro.test' } as any)}`)
       .send({
         status: 'verified',
         notes: 'Tarjeta profesional validada exitosamente en registro nacional COMVEZCOL'

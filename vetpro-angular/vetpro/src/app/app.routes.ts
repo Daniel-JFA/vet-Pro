@@ -19,6 +19,12 @@ export const routes: Routes = [
     loadComponent: () => import('./features/platform/platform-dashboard.component').then(m => m.PlatformDashboardComponent)
   },
   {
+    path: 'platform/verifications',
+    canActivate: [platformAuthGuard],
+    data: { mode: 'platform' },
+    loadComponent: () => import('./features/marketplace/admin-verifications/admin-verifications.component').then(m => m.AdminVerificationsComponent)
+  },
+  {
     path: 'platform/analytics',
     canActivate: [platformAuthGuard],
     loadComponent: () => import('./features/platform/platform-analytics.component').then(m => m.PlatformAnalyticsComponent)
@@ -52,6 +58,18 @@ export const routes: Routes = [
   {
     path: 'directorio',
     loadComponent: () => import('./features/marketplace/vet-directory/vet-directory.component').then(m => m.VetDirectoryComponent)
+  },
+  {
+    path: 'privacidad',
+    loadComponent: () => import('./features/legal/privacy-policy.component').then(m => m.PrivacyPolicyComponent)
+  },
+  {
+    path: 'eliminar-cuenta',
+    loadComponent: () => import('./features/legal/account-deletion-info.component').then(m => m.AccountDeletionInfoComponent)
+  },
+  {
+    path: 'marketplace/payment-result',
+    loadComponent: () => import('./features/marketplace/payment-result/payment-result.component').then(m => m.PaymentResultComponent)
   },
   {
     path: 'vets',
@@ -149,6 +167,10 @@ export const routes: Routes = [
         path: 'verificaciones',
         canActivate: [roleGuard(['admin'])],
         loadComponent: () => import('./features/marketplace/admin-verifications/admin-verifications.component').then(m => m.AdminVerificationsComponent)
+      },
+      {
+        path: 'mi-cuenta',
+        loadComponent: () => import('./features/account/my-account.component').then(m => m.MyAccountComponent)
       },
       {
         path: 'suscripcion',

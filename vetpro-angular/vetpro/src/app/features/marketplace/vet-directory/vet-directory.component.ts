@@ -10,6 +10,7 @@ import {
   AppointmentVoucherData
 } from '../../../core/services/marketplace.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { buildWompiCheckoutUrl } from '../../../core/utils/wompi-checkout';
 import { WhatsAppWidgetComponent } from '../../../shared/components/whatsapp-widget/whatsapp-widget.component';
 import { environment } from '../../../../environments/environment';
 
@@ -48,12 +49,8 @@ export class VetDirectoryComponent implements OnInit {
 
   // Pasarela Wompi & Checkout
   checkoutData = signal<WompiCheckoutData | null>(null);
-  // La aprobación simulada solo existe fuera de producción
-  readonly canSimulatePayments = !environment.production;
   loadingCheckout = signal<boolean>(false);
-  processingPayment = signal<boolean>(false);
-  paymentSuccess = signal<boolean>(false);
-  selectedPaymentMethod = signal<'CARD' | 'PSE' | 'NEQUI' | 'BANCOLOMBIA'>('CARD');
+  redirectingToWompi = signal<boolean>(false);
 
   // Comprobante Digital (Voucher)
   voucherData = signal<AppointmentVoucherData | null>(null);
@@ -197,7 +194,6 @@ export class VetDirectoryComponent implements OnInit {
     this.bookingVet.set(null);
     this.bookingSuccess.set(null);
     this.checkoutData.set(null);
-    this.paymentSuccess.set(false);
   }
 
   startOnlinePayment(appointmentId: string): void {
@@ -214,35 +210,13 @@ export class VetDirectoryComponent implements OnInit {
     });
   }
 
-  /** Abre el checkout real de Wompi (antes este botón aprobaba el pago sin cobrar) */
-  payWithWompi(): void {
-    const c = this.checkoutData();
-    if (!c) return;
-    const url =
-      `https://checkout.wompi.co/p/?public-key=${c.publicKey}&currency=${c.currency}` +
-      `&amount-in-cents=${c.amountInCents}&reference=${c.reference}` +
-      `&signature:integrity=${c.signatureIntegrity}&redirect-url=${encodeURIComponent(c.redirectUrl)}`;
-    window.open(url, '_blank');
-  }
-
-  simulatePayment(): void {
+  // El pago se confirma por webhook; Wompi devuelve al tutor a /marketplace/payment-result
+  goToWompiCheckout(): void {
     const checkout = this.checkoutData();
-    if (!checkout || !this.canSimulatePayments) return;
+    if (!checkout) return;
 
-    this.processingPayment.set(true);
-    this.marketplaceService
-      .simulateMockPayment(checkout.reference, 'APPROVED', this.selectedPaymentMethod())
-      .subscribe({
-        next: () => {
-          this.toast.success('¡Pago verificado y aprobado con éxito vía Wompi Colombia!');
-          this.paymentSuccess.set(true);
-          this.processingPayment.set(false);
-        },
-        error: (err) => {
-          this.toast.error(err.error?.error || 'Error al procesar simulación de pago');
-          this.processingPayment.set(false);
-        }
-      });
+    this.redirectingToWompi.set(true);
+    window.location.href = buildWompiCheckoutUrl({ ...checkout, signature: checkout.signatureIntegrity });
   }
 
   openVoucher(appointmentId: string): void {

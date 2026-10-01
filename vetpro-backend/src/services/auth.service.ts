@@ -4,6 +4,7 @@ import { prisma } from '../config/database.js';
 import { MailerService } from './mailer.service.js';
 import { TokenService } from './token.service.js';
 import { AntifraudService } from './antifraud.service.js';
+import { PlanLimitsService } from './plan-limits.service.js';
 
 export const ACTIVATION_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
 export const PASSWORD_RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hora
@@ -546,6 +547,8 @@ export class AuthService {
       if (!branch) throw { status: 404, message: 'Sucursal no encontrada.' };
     }
 
+    await PlanLimitsService.assertCanAddUser(clinicId);
+
     const placeholderHash = await bcrypt.hash(crypto.randomUUID(), 10);
     const activationToken = generateActivationToken();
     const activationTokenExpiresAt = new Date(Date.now() + ACTIVATION_TOKEN_TTL_MS);
@@ -620,6 +623,15 @@ export class AuthService {
 
     if (user.id === currentUserId && data.active === false) {
       throw { status: 400, message: 'No puedes desactivar tu propia cuenta de administrador.' };
+    }
+
+    if (user.anonymizedAt) {
+      throw { status: 409, message: 'Este usuario eliminó su cuenta; no se puede modificar ni reactivar.' };
+    }
+
+    // Reactivar un usuario también ocupa un cupo del plan
+    if (data.active === true && !user.active) {
+      await PlanLimitsService.assertCanAddUser(clinicId);
     }
 
     const updated = await prisma.user.update({

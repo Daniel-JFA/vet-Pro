@@ -261,13 +261,166 @@
       <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--surface-border); padding-bottom: 12px;">
         <div style="display: flex; align-items: center; gap: 8px;">
           <span class="material-symbols-outlined" style="color: var(--primary-color); font-size: 24px;">upload_file</span>
-          <h2 style="margin: 0; font-size: 18px; font-weight: 600;">Importar Pacientes y Tutores (Excel / CSV)</h2>
+          <h2 style="margin: 0; font-size: 18px; font-weight: 600;">Importar pacientes y tutores</h2>
         </div>
         <button type="button" class="btn-close" (click)="closeImportModal()" style="background: none; border: none; color: var(--text-color-secondary); cursor: pointer;">
           <span class="material-symbols-outlined">close</span>
         </button>
       </header>
 
+      <!-- Paso 0: ¿De dónde vienen los datos? -->
+      @if (importSource() === null) {
+        <p style="margin: 0 0 14px 0; font-size: 13px; color: var(--text-color-secondary);">¿De dónde vienen los datos que quieres cargar?</p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px;">
+          <button type="button" class="import-source" (click)="chooseImportSource('okvet')">
+            <span class="material-symbols-outlined">swap_horiz</span>
+            <strong>Cargar datos de OkVet</strong>
+            <span>Sube el Excel de "Mascotas" que exportas desde OkVet, tal cual, sin editarlo.</span>
+          </button>
+          <button type="button" class="import-source" (click)="chooseImportSource('vetpro')">
+            <span class="material-symbols-outlined">table_view</span>
+            <strong>Plantilla VetPro (CSV)</strong>
+            <span>Para datos de otro sistema o de una hoja propia: llena nuestra plantilla y súbela.</span>
+          </button>
+        </div>
+        <footer style="display: flex; justify-content: flex-end; border-top: 1px solid var(--surface-border); padding-top: 16px;">
+          <button type="button" class="btn btn-ghost" (click)="closeImportModal()">Cancelar</button>
+        </footer>
+      }
+
+      <!-- Importación desde OkVet -->
+      @if (importSource() === 'okvet') {
+        <div class="okvet-info">
+          <strong>Qué se carga desde OkVet</strong>
+          <ul>
+            <li><b>Se carga:</b> cada mascota (nombre, especie, raza, sexo, esterilización, peso, fecha de nacimiento) y su tutor (nombre, celular, correo, dirección). Las mascotas fallecidas quedan como fallecidas.</li>
+            <li><b>Va a las notas</b> de la mascota o del tutor, porque VetPro no tiene un campo para eso: color, fecha de fallecimiento, teléfono secundario, contacto alterno, fecha de autorización de tratamiento de datos y fechas de registro en OkVet.</li>
+            <li><b>Documento del tutor:</b> si en OkVet la identificación era el celular, el documento queda vacío y se deja una nota para pedirlo en la próxima visita.</li>
+            <li><b>No duplica:</b> el tutor se reconoce por su celular y la mascota por su nombre y especie. Si cargas el mismo archivo otra vez, lo que ya existe se omite. A un tutor que ya existe no se le cambia nada; solo se completan los datos que tenga vacíos.</li>
+            <li><b>No viene en este archivo:</b> el reporte de Mascotas de OkVet no incluye historias clínicas, vacunas, citas, fórmulas, facturas ni inventario, así que eso no se carga.</li>
+          </ul>
+          <span>Antes de guardar verás exactamente qué se va a agregar.</span>
+        </div>
+
+        @if (!okvetResult()) {
+          <div style="border: 2px dashed var(--surface-border); border-radius: 8px; padding: 20px; text-align: center; background: var(--surface-ground); margin-bottom: 16px;">
+            <input #okvetInput type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" (change)="onOkVetFileSelected($event)" style="display: none;" />
+            @if (okvetFile(); as f) {
+              <p style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: var(--primary-color);">📄 {{ f.name }}</p>
+              <button type="button" class="btn btn-ghost" (click)="okvetInput.click()" [disabled]="okvetLoading()" style="font-size: 11px;">Cambiar archivo</button>
+            } @else {
+              <p style="margin: 0 0 10px 0; font-size: 13px;">Selecciona el archivo .xlsx que exportaste de OkVet</p>
+              <button type="button" class="btn btn-ghost" (click)="okvetInput.click()" [disabled]="okvetLoading()" style="border: 1px solid var(--surface-border); font-size: 12px;">Examinar archivo</button>
+            }
+          </div>
+        }
+
+        @if (okvetError()) {
+          <div class="okvet-alert okvet-alert--error">{{ okvetError() }}</div>
+        }
+        @if (okvetLoading() && !okvetPlan()) {
+          <p style="font-size: 13px; color: var(--text-color-secondary);">Revisando el archivo…</p>
+        }
+
+        @if (okvetResult(); as res) {
+          <div class="okvet-alert okvet-alert--ok">
+            <strong>Importación terminada.</strong>
+            Se agregaron <b>{{ res.patientsCreated }}</b> mascotas y <b>{{ res.tutorsCreated }}</b> tutores nuevos.
+            @if (okvetPlan()?.summary?.patientsSkipped) {
+              Se omitieron {{ okvetPlan()?.summary?.patientsSkipped }} mascotas que ya estaban.
+            }
+            @if (res.failures.length > 0) {
+              <div style="margin-top: 8px; color: #ef4444;">
+                No se pudieron guardar {{ res.failures.length }} tutores (con sus mascotas):
+                <ul style="margin: 4px 0 0 16px; padding: 0;">
+                  @for (fl of res.failures; track $index) {
+                    <li>{{ fl.tutorPhone }}: {{ fl.error }}</li>
+                  }
+                </ul>
+                Puedes volver a cargar el archivo: lo que ya entró no se duplica.
+              </div>
+            }
+          </div>
+        }
+
+        @if (okvetPlan(); as plan) {
+          @if (!okvetResult()) {
+            <div class="okvet-summary">
+              <div><b>{{ plan.summary.patientsToCreate }}</b><span>mascotas se agregan</span></div>
+              <div><b>{{ plan.summary.tutorsToCreate }}</b><span>tutores nuevos</span></div>
+              <div><b>{{ plan.summary.tutorsExisting }}</b><span>tutores ya registrados reciben mascotas</span></div>
+              <div><b>{{ plan.summary.patientsSkipped }}</b><span>ya existen (se omiten)</span></div>
+              <div [class.okvet-bad]="plan.summary.errors > 0"><b>{{ plan.summary.errors }}</b><span>con errores (no se importan)</span></div>
+            </div>
+          }
+
+          <div class="okvet-filters">
+            <button type="button" [class.active]="okvetFilter() === 'all'" (click)="okvetFilter.set('all')">Todas ({{ plan.summary.rows }})</button>
+            <button type="button" [class.active]="okvetFilter() === 'create'" (click)="okvetFilter.set('create')">Se agregan ({{ plan.summary.patientsToCreate }})</button>
+            <button type="button" [class.active]="okvetFilter() === 'skip'" (click)="okvetFilter.set('skip')">Ya existen ({{ plan.summary.patientsSkipped }})</button>
+            <button type="button" [class.active]="okvetFilter() === 'error'" (click)="okvetFilter.set('error')">Errores ({{ plan.summary.errors }})</button>
+            <button type="button" [class.active]="okvetFilter() === 'warning'" (click)="okvetFilter.set('warning')">Con avisos ({{ okvetWarnings() }})</button>
+          </div>
+
+          <div class="okvet-rows">
+            @for (r of okvetRows(); track r.row) {
+              <details class="okvet-row" [class.okvet-row--error]="r.patientAction === 'error'">
+                <summary>
+                  <span class="okvet-badge" [attr.data-action]="r.patientAction">{{ okvetActionLabel(r) }}</span>
+                  <span class="okvet-row-main">
+                    <b>🐾 {{ r.petName || '(sin nombre)' }}</b> · {{ r.species }}
+                    <small>{{ r.tutorName }} · {{ r.tutorPhone }} · {{ okvetTutorLabel(r) }}</small>
+                  </span>
+                  <small class="okvet-row-num">Fila {{ r.row }}</small>
+                </summary>
+                @if (r.reason) {
+                  <p class="okvet-reason">{{ r.reason }}</p>
+                }
+                @for (w of r.warnings; track $index) {
+                  <p class="okvet-warning">⚠ {{ w }}</p>
+                }
+                @if (r.patientAction === 'create') {
+                  <div class="okvet-notes">
+                    <div><span>Notas de la mascota</span><pre>{{ r.patientNotes }}</pre></div>
+                    @if (r.tutorAction !== 'same_file') {
+                      <div><span>Notas del tutor</span><pre>{{ r.tutorNotes }}</pre></div>
+                    }
+                  </div>
+                }
+              </details>
+            } @empty {
+              <p style="font-size: 12px; color: var(--text-color-secondary); padding: 8px;">No hay filas en este filtro.</p>
+            }
+          </div>
+        }
+
+        <footer style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; border-top: 1px solid var(--surface-border); padding-top: 16px; margin-top: 16px;">
+          @if (!okvetResult()) {
+            <button type="button" class="btn btn-ghost" (click)="importSource.set(null)" [disabled]="okvetLoading()">← Volver</button>
+          } @else {
+            <span></span>
+          }
+          <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-left: auto;">
+            <button type="button" class="btn btn-ghost" (click)="closeImportModal()">{{ okvetResult() ? 'Cerrar' : 'Cancelar' }}</button>
+            @if (!okvetResult() && okvetPlan(); as plan) {
+              <button
+                type="button"
+                class="btn btn-primary"
+                (click)="executeOkVetImport()"
+                [disabled]="okvetLoading() || plan.summary.patientsToCreate === 0"
+                style="display: inline-flex; align-items: center; gap: 6px;"
+              >
+                @if (!okvetLoading()) {
+                  <span class="material-symbols-outlined">cloud_upload</span>
+                }
+                {{ okvetLoading() ? 'Importando…' : 'Agregar ' + plan.summary.patientsToCreate + ' mascotas' }}
+              </button>
+            }
+          </div>
+        </footer>
+      }
+
+      @if (importSource() === 'vetpro') {
       <!-- Paso 1: Descargar Plantilla -->
       <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 8px; padding: 14px 16px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
         <div>
@@ -368,6 +521,9 @@
 
       <!-- Botones de Acción -->
       <footer style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--surface-border); padding-top: 16px;">
+        @if (!importResults()) {
+          <button type="button" class="btn btn-ghost" (click)="importSource.set(null)" style="margin-right: auto;">← Volver</button>
+        }
         <button type="button" class="btn btn-ghost" (click)="closeImportModal()">
           {{ importResults() ? 'Cerrar' : 'Cancelar' }}
         </button>
@@ -386,6 +542,7 @@
           </button>
         }
       </footer>
+      }
     </div>
   </div>
 }

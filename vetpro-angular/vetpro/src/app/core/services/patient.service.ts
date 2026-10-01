@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
-import { Patient, Tutor, Vaccine, MedicalRecord, PagedResult, QueryParams } from '../models';
+import { Patient, Tutor, Vaccine, MedicalRecord, PagedResult, QueryParams, OkVetImportResponse } from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class PatientService {
@@ -27,6 +27,13 @@ export class PatientService {
 
   importPatients(items: any[]): Observable<{ success: boolean; message: string; data: { total: number; imported: number; errors: any[] } }> {
     return this.api.post<any>('/patients/import', { items });
+  }
+
+  /** Importación del Excel de "Mascotas" de OkVet: vista previa o guardado. */
+  importOkVet(file: File, mode: 'preview' | 'apply'): Observable<OkVetImportResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.api.post<OkVetImportResponse>(`/patients/import/okvet?mode=${mode}`, formData);
   }
 
   updatePatient(id: string, data: Partial<Patient>): Observable<Patient> {

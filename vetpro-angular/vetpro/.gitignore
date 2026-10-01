@@ -46,3 +46,6 @@ Thumbs.db
 # Playwright
 /playwright-report
 /test-results
+
+# Credenciales de prueba solo para desarrollo local (las lee el login en localhost)
+/public/dev-login.json

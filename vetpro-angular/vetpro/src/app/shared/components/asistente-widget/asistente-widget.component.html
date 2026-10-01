@@ -1,0 +1,145 @@
+@if (visible) {
+  <div class="ast" [attr.data-state]="state" [class.is-open]="open">
+  
+    <!-- Panel de chat -->
+    @if (open) {
+    <div class="ast-panel glass" role="dialog" aria-label="Asistente VetPro">
+      <header>
+        <div class="av sm" aria-hidden="true">
+          <span class="seal">
+            <span class="material-symbols-outlined" style="font-size: 32px; color: var(--accent);">smart_toy</span>
+          </span>
+        </div>
+        <div class="hd-txt">
+          <div class="hd-title">Asistente VetPro</div>
+          <div class="ast-ctx">Contexto: <b>{{ ctx }}</b> · {{ stateLabels[state] }}</div>
+        </div>
+        <div class="flex-grow-1"></div>
+        <button type="button" class="icon-btn" title="Nueva conversación" (click)="reset()">
+          <span class="material-symbols-outlined">refresh</span>
+        </button>
+        <button type="button" class="icon-btn" title="Cerrar" (click)="close()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </header>
+  
+      <div class="ast-tools">
+        <button type="button" class="pill pill-ai" (click)="explain()">✦ Explicar esta vista</button>
+        <button type="button" class="pill" (click)="guide()">➜ Recorrido por la pantalla</button>
+      </div>
+  
+      <div class="ast-msgs" #msgBox aria-live="polite">
+        @for (m of msgs; track $index) {
+          @if (m.from === 'user') {
+            <div class="msg user"><div class="bub">{{ m.full }}</div></div>
+          } @else {
+            <div class="msg bot">
+              <span class="mini" aria-hidden="true">
+                <span class="material-symbols-outlined" style="font-size: 20px; color: var(--accent);">smart_toy</span>
+              </span>
+              <div class="bub">
+                <span [class.caret]="!m.done">{{ m.shown }}</span>
+  
+                @if (m.done && m.kind === 'steps') {
+                  <ol class="steps">
+                    @for (s of (steps[ctx] || steps['General']); track s) { <li>{{ s }}</li> }
+                  </ol>
+                }
+  
+                @if (m.done && m.source !== undefined) {
+                  <div class="meta">
+                    @if (m.kind === 'unanswered') {
+                      <span class="src-tag warn">⚑ Registrada sin respuesta</span>
+                    } @else {
+                      <span class="src-tag">✓ {{ m.source }}</span>
+                    }
+                    <span class="flex-grow-1"></span>
+                    <button type="button" class="rate" [class.on]="m.rate === 'up'" [disabled]="!!m.rate" (click)="rate(m, 'up')" aria-label="Útil">👍</button>
+                    <button type="button" class="rate" [class.on]="m.rate === 'down'" [disabled]="!!m.rate" (click)="rate(m, 'down')" aria-label="No útil">👎</button>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        }
+        @if (state === 'thinking') {
+          <div class="msg bot"><span class="mini" aria-hidden="true">
+            <span class="material-symbols-outlined" style="font-size: 20px; color: var(--accent);">smart_toy</span>
+          </span><div class="bub"><span class="typing"><i></i><i></i><i></i></span></div></div>
+        }
+      </div>
+  
+      <div class="ast-chips">
+        @for (c of chips; track c.key) {
+          <button type="button" class="chip" (click)="chip(c.key, c.label)">{{ c.label }}</button>
+        }
+      </div>
+  
+      <div class="ast-foot">
+        <div class="ast-input">
+          <input type="text" class="form-control" placeholder="Escribe tu duda…" [(ngModel)]="draft" (keyup.enter)="send()">
+          <button type="button" class="btn btn-primary send" [disabled]="!draft.trim()" (click)="send()" aria-label="Enviar">
+            <span class="material-symbols-outlined" style="font-size: 18px;">send</span>
+          </button>
+        </div>
+        El asistente puede cometer errores. Verifica la información.
+      </div>
+    </div>
+    }
+  
+    <!-- Nudge -->
+    @if (nudgeShown && !open) {
+    <div class="ast-nudge">
+      <div class="ast-nudge__txt">{{ nudgeText }}</div>
+      <div class="ast-nudge__actions">
+        <button type="button" (click)="acceptNudge()">Sí, por favor</button>
+        <button type="button" (click)="dismissNudge()">Ahora no</button>
+      </div>
+    </div>
+    }
+  
+    <!-- Botón flotante -->
+    <div class="ast-dock">
+      <button type="button" class="ast-label" (click)="toggle()" [attr.aria-expanded]="open" aria-controls="ast-panel">
+        <div class="ast-label__ico">
+          @if (open) {
+            ✕
+          } @else {
+            <span class="material-symbols-outlined" style="font-size: 20px;">smart_toy</span>
+          }
+        </div>
+        @if (!open) {
+          <div class="ast-label__txt">
+            <b>Asistente</b>
+            <small>Ayuda VetPro</small>
+          </div>
+        }
+      </button>
+    </div>
+  </div>
+  }
+  
+  <!-- Tour guiado (fuera del contenedor ast para no estar limitado por z-index o overflow) -->
+  @if (touring && spot) {
+    <div class="tour-spot" [style.top.px]="spot.top" [style.left.px]="spot.left" [style.width.px]="spot.width" [style.height.px]="spot.height"></div>
+    <div class="tour-card glass" [style.top.px]="cardTop" [style.bottom.px]="cardBottom" [style.left.px]="cardLeft">
+      <div class="tc-head">
+        <span class="material-symbols-outlined" style="color: var(--accent);">info</span>
+        <div class="tc-step">Paso {{ tourIdx + 1 }} de {{ tourSteps.length }}</div>
+        <button type="button" class="icon-btn ms-auto" (click)="endTour()" title="Salir del recorrido">✕</button>
+      </div>
+      <div class="tc-title">{{ tourStep.title }}</div>
+      <div class="tc-text">{{ tourStep.text }}</div>
+      <div class="tc-foot">
+        <div class="tc-dots" aria-hidden="true">
+          @for (s of tourSteps; track $index) {
+            <i [class.on]="tourIdx === $index"></i>
+          }
+        </div>
+        <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="tourIdx === 0" (click)="prev()">Atrás</button>
+        <button type="button" class="btn btn-primary btn-sm" (click)="next()">
+          {{ tourIdx === tourSteps.length - 1 ? 'Terminar' : 'Siguiente' }}
+        </button>
+      </div>
+    </div>
+  }

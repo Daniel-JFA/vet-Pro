@@ -4,6 +4,8 @@ import { PlanType } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
 import { roleMiddleware } from '../middleware/role.js';
+import { paymentSimulationGuard } from '../middleware/paymentSimulation.js';
+import { getClinicAccess, TRIAL_DAYS } from '../services/subscription-access.service.js';
 import { WompiService, wompiConfig } from '../services/wompi.service.js';
 import { requireOnlinePayments, requirePaymentSimulation } from '../middleware/payments.js';
 
@@ -77,10 +79,10 @@ SUBSCRIPTION_ROUTES.get(
         return;
       }
 
-      // Si la clínica es nueva y no tiene trialEndsAt, inicializar 14 días de prueba
+      // Si la clínica es nueva y no tiene trialEndsAt, inicializar el período de prueba
       let trialEndsAt = clinic.trialEndsAt;
       if (!trialEndsAt) {
-        trialEndsAt = new Date(clinic.createdAt.getTime() + 14 * 24 * 60 * 60 * 1000);
+        trialEndsAt = new Date(clinic.createdAt.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
         await prisma.clinic.update({
           where: { id: clinicId },
           data: { trialEndsAt, nextBillingDate: trialEndsAt }
@@ -100,12 +102,15 @@ SUBSCRIPTION_ROUTES.get(
       });
 
       const currentPricing = PLAN_PRICING[clinic.plan] || PLAN_PRICING.starter;
+      const access = getClinicAccess({ ...clinic, trialEndsAt });
 
       res.json({
         clinic: {
           ...clinic,
           trialEndsAt,
-          daysRemaining
+          daysRemaining,
+          readOnly: access.readOnly,
+          graceEndsAt: access.graceEndsAt
         },
         pricing: {
           plan: clinic.plan,
@@ -293,9 +298,10 @@ SUBSCRIPTION_ROUTES.post('/webhook', requireOnlinePayments as any, async (req, r
 // 4. SIMULACIÓN DE APROBACIÓN (TEST / DEV / LOCAL)
 // ─────────────────────────────────────────────
 // POST /api/v1/subscriptions/simulate-approval/:reference
+// En producción responde 404 (ver paymentSimulationGuard).
 SUBSCRIPTION_ROUTES.post(
   '/simulate-approval/:reference',
-  requirePaymentSimulation as any,
+  paymentSimulationGuard,
   authMiddleware as any,
   roleMiddleware(['admin']) as any,
   async (req: AuthRequest, res: Response): Promise<void> => {

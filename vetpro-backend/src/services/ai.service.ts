@@ -1,7 +1,24 @@
 /**
  * Servicio de Inteligencia Artificial Clínica para VetPro (Doru)
- * Integra OpenAI Whisper (Transcripción de Voz) y Claude 3.5 / GPT-4o (Estructuración SOAP)
+ * Integra OpenAI Whisper (Transcripción de Voz) y Claude / GPT-4o-mini (Estructuración SOAP)
  */
+import Anthropic from '@anthropic-ai/sdk';
+import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
+import { z } from 'zod';
+import { Sentry } from '../utils/sentry.js';
+
+// Modelo principal de la estructuración SOAP. Se puede cambiar sin desplegar código
+// (p. ej. ANTHROPIC_SOAP_MODEL=claude-sonnet-5 para bajar costo).
+const SOAP_MODEL = process.env.ANTHROPIC_SOAP_MODEL || 'claude-opus-5';
+
+const SoapSchema = z.object({
+  title: z.string(),
+  anamnesis: z.string(),
+  physicalExam: z.string(),
+  diagnosis: z.string(),
+  treatment: z.string(),
+  observations: z.string()
+});
 
 export interface SoapClinicalOutput {
   title: string;
@@ -67,40 +84,36 @@ Debes responder ESTRICTAMENTE en formato JSON con las siguientes claves:
 - "treatment": Plan terapéutico detallado (fármacos, dosis por kg, vía y duración)
 - "observations": Recomendaciones al tutor, signos de alarma y próxima cita`;
 
-    // 1. Intentar con Claude 3.5 Sonnet si hay clave
+    // 1. Motor principal: Claude con salida estructurada (JSON validado contra SoapSchema)
     if (anthropicKey) {
       try {
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': anthropicKey,
-            'anthropic-version': '2023-06-01'
-          },
-          body: JSON.stringify({
-            model: 'claude-3-5-sonnet-20241022',
-            max_tokens: 1500,
-            system: systemPrompt,
-            messages: [
-              {
-                role: 'user',
-                content: `Dictado de consulta médica (Paciente: ${patientContext?.name || 'Mascota'}, Especie: ${patientContext?.species || 'Canino'}):\n\n"${transcription}"`
-              }
-            ]
-          })
+        const client = new Anthropic({ apiKey: anthropicKey });
+        const response = await client.messages.parse({
+          model: SOAP_MODEL,
+          max_tokens: 16000,
+          system: systemPrompt,
+          messages: [
+            {
+              role: 'user',
+              content: `Dictado de consulta médica (Paciente: ${patientContext?.name || 'Mascota'}, Especie: ${patientContext?.species || 'Canino'}):\n\n"${transcription}"`
+            }
+          ],
+          output_config: { format: zodOutputFormat(SoapSchema) }
         });
 
-        if (response.ok) {
-          const data: any = await response.json();
-          const text = data.content[0].text;
-          const jsonMatch = text.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            return { ...JSON.parse(jsonMatch[0]), engineSource: 'claude' };
-          }
+        if (response.stop_reason === 'refusal') {
+          this.reportFallback('claude_refusal', { category: response.stop_details?.category });
+        } else if (response.parsed_output) {
+          return { ...response.parsed_output, engineSource: 'claude' };
+        } else {
+          this.reportFallback('claude_unparsed', { stopReason: response.stop_reason });
         }
       } catch (e) {
         console.warn('[AiService] Fallback de Claude:', e);
+        this.reportFallback('claude_error', { error: e instanceof Error ? e.message : String(e) });
       }
+    } else if (process.env.NODE_ENV === 'production') {
+      this.reportFallback('claude_not_configured', {});
     }
 
     // 2. Intentar con OpenAI GPT-4o si hay clave
@@ -133,6 +146,19 @@ Debes responder ESTRICTAMENTE en formato JSON con las siguientes claves:
 
     // 3. Motor Clínico Veterinario Integrado (Procesamiento por reglas, sin conexión a IA externa)
     return this.parseVeterinaryDomain(transcription);
+  }
+
+  /**
+   * El diferenciador que se vende es la nota generada por Claude: si responde otro motor,
+   * se avisa a Sentry para que no pase en silencio.
+   */
+  private static reportFallback(reason: string, extra: Record<string, unknown>): void {
+    console.warn(`[AiService] SOAP sin Claude (${reason})`, extra);
+    Sentry.captureMessage(`SOAP generado sin Claude: ${reason}`, {
+      level: 'warning',
+      tags: { component: 'ai-soap', reason, model: SOAP_MODEL },
+      extra
+    });
   }
 
   /**
@@ -191,5 +217,70 @@ Debes responder ESTRICTAMENTE en formato JSON con las siguientes claves:
       observations: 'Próximo control programado en 6 meses o ante cualquier cambio de comportamiento.',
       engineSource: 'local-engine'
     };
+  }
+
+  /**
+   * Procesa comandos de chat del Asistente Virtual usando GPT-4o-mini o Claude
+   */
+  static async processAssistantCommand(message: string, context: string): Promise<{ action: 'REPLY' | 'NAVIGATE', payload: string }> {
+    const openaiKey = process.env.OPENAI_API_KEY;
+
+    if (!openaiKey) {
+      // Si no hay clave, devolver un fallback estático
+      if (message.toLowerCase().includes('cita')) return { action: 'NAVIGATE', payload: '/appointments' };
+      if (message.toLowerCase().includes('paciente')) return { action: 'NAVIGATE', payload: '/patients' };
+      return { action: 'REPLY', payload: 'La IA no está configurada, pero entiendo que necesitas ayuda. Por favor usa el menú lateral.' };
+    }
+
+    const systemPrompt = `Eres el asistente virtual de la plataforma VetPro (software veterinario).
+Tu objetivo es ayudar al usuario a navegar o responder sus dudas.
+El usuario actualmente está en la pantalla: "${context}".
+Si el usuario pide ir a un módulo, buscar algo o agendar, responde con "NAVIGATE" y la ruta correspondiente. Rutas disponibles:
+- /dashboard
+- /patients (o /patients?search=nombre si busca alguien)
+- /appointments
+- /billing
+- /inventory
+- /reports
+- /grooming
+
+INFORMACIÓN ADICIONAL PARA RESPONDER DUDAS:
+- Si el usuario tiene problemas con la plataforma o necesita contactar a soporte, dile que haga clic en el ícono de ayuda (?) en la barra superior derecha para "Contactar a Soporte".
+- Si el usuario pregunta por Novedades o Anuncios, dile que haga clic en el ícono de la campana (🔔) en la barra superior derecha.
+
+Si hace una pregunta de cómo hacer algo, responde con "REPLY" y explica brevemente los pasos.
+RESPONDE SIEMPRE EN FORMATO JSON:
+{
+  "action": "REPLY" | "NAVIGATE",
+  "payload": "La respuesta de texto" | "La ruta de navegación"
+}`;
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${openaiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: message }
+          ]
+        })
+      });
+
+      if (response.ok) {
+        const data: any = await response.json();
+        return JSON.parse(data.choices[0].message.content);
+      } else {
+        throw new Error('OpenAI API Error');
+      }
+    } catch (error) {
+      console.error('[AiService] Error procesando comando del asistente:', error);
+      return { action: 'REPLY', payload: 'Lo siento, tuve un problema al procesar tu solicitud. Intenta de nuevo más tarde.' };
+    }
   }
 }

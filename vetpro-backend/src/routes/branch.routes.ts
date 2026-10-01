@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { prisma } from '../config/database.js';
 import { authMiddleware, AuthRequest } from '../middleware/auth.js';
 import { roleMiddleware } from '../middleware/role.js';
+import { PlanLimitsService } from '../services/plan-limits.service.js';
 
 const router = Router();
 
@@ -43,6 +44,8 @@ router.post('/', roleMiddleware(['admin']) as any, async (req: AuthRequest, res:
   }
 
   try {
+    await PlanLimitsService.assertCanAddBranch(clinicId);
+
     const branch = await prisma.branch.create({
       data: {
         clinicId,
@@ -55,9 +58,43 @@ router.post('/', roleMiddleware(['admin']) as any, async (req: AuthRequest, res:
     });
 
     return res.status(201).json(branch);
-  } catch (error) {
+  } catch (error: any) {
+    if (error.status) return res.status(error.status).json({ error: error.message });
     console.error('Error al crear sucursal física:', error);
     return res.status(500).json({ error: 'Error interno al registrar la nueva sede física.' });
+  }
+});
+
+// PATCH /api/v1/branches/:id — Actualizar datos de una sede (Solo administradores)
+router.patch('/:id', roleMiddleware(['admin']) as any, async (req: AuthRequest, res: Response) => {
+  const clinicId = req.user?.clinicId;
+  const { id } = req.params;
+  const { name, address, phone, email } = req.body;
+
+  if (!clinicId) {
+    return res.status(401).json({ error: 'No autorizado.' });
+  }
+
+  try {
+    const existing = await prisma.branch.findFirst({ where: { id, clinicId } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Sede no encontrada.' });
+    }
+
+    const branch = await prisma.branch.update({
+      where: { id },
+      data: {
+        ...(name ? { name: String(name).trim() } : {}),
+        ...(address ? { address: String(address).trim() } : {}),
+        ...(phone ? { phone: String(phone).trim() } : {}),
+        ...(email !== undefined ? { email: email ? String(email).trim() : null } : {})
+      }
+    });
+
+    return res.json(branch);
+  } catch (error) {
+    console.error('Error al actualizar sucursal:', error);
+    return res.status(500).json({ error: 'Error interno al actualizar la sede.' });
   }
 });
 

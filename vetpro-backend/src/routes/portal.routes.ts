@@ -3,6 +3,7 @@ import { prisma } from '../config/database.js';
 import { tutorAuthMiddleware, TutorAuthRequest } from '../middleware/tutorAuth.js';
 import { MailerService } from '../services/mailer.service.js';
 import { TokenService } from '../services/token.service.js';
+import { AccountDeletionService } from '../services/account-deletion.service.js';
 
 const router = Router();
 const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -293,6 +294,18 @@ router.post('/auth/verify', async (req, res) => {
   } catch (error) {
     console.error('Error al verificar token de tutor:', error);
     return res.status(401).json({ error: 'El enlace de acceso es inválido o ha expirado.' });
+  }
+});
+
+// DELETE /me — El tutor elimina sus datos de contacto y su acceso al portal
+router.delete('/me', tutorAuthMiddleware as any, async (req: TutorAuthRequest, res: Response) => {
+  try {
+    await AccountDeletionService.deleteTutorAccount(req.tutor!.id);
+    return res.json({ message: 'Tus datos fueron eliminados y tu acceso al portal quedó cerrado.' });
+  } catch (error: any) {
+    if (error.status) return res.status(error.status).json({ error: error.message });
+    console.error('Error al eliminar datos del tutor:', error);
+    return res.status(500).json({ error: 'No se pudieron eliminar tus datos.' });
   }
 });
 

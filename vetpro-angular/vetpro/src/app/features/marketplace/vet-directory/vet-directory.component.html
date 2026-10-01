@@ -420,19 +420,7 @@
 
             <!-- Pasarela de Pagos Wompi Colombia -->
             <div class="payment-checkout-section">
-              @if (paymentSuccess()) {
-                <div class="payment-approved-box">
-                  <div class="approved-badge">
-                    <span class="material-symbols-outlined">verified</span>
-                    <strong>¡Pago Aprobado y Conciliado con Wompi!</strong>
-                  </div>
-                  <p>La consulta se encuentra 100% pagada. El médico ha recibido la notificación de pago automático.</p>
-                  <button class="btn-view-voucher" (click)="openVoucher(succ.appointmentId)">
-                    <span class="material-symbols-outlined">receipt_long</span>
-                    Ver Comprobante Digital Oficial (Voucher)
-                  </button>
-                </div>
-              } @else if (checkoutData(); as checkout) {
+              @if (checkoutData(); as checkout) {
                 <div class="wompi-box">
                   <div class="wompi-header">
                     <div class="wompi-logo-title">
@@ -442,33 +430,7 @@
                     <span class="secure-badge">256-bit SSL</span>
                   </div>
 
-                  <p class="wompi-desc">Selecciona tu método de pago preferido para pagar los <strong>${{ checkout.amount | number:'1.0-0' }} COP</strong> de tu cita:</p>
-
-                  <div class="payment-methods-grid">
-                    <label class="pay-method-pill" [class.selected]="selectedPaymentMethod() === 'CARD'">
-                      <input type="radio" name="payMethod" value="CARD" [checked]="selectedPaymentMethod() === 'CARD'" (change)="selectedPaymentMethod.set('CARD')" />
-                      <span class="material-symbols-outlined">credit_card</span>
-                      <span>Tarjeta Crédito/Débito</span>
-                    </label>
-
-                    <label class="pay-method-pill" [class.selected]="selectedPaymentMethod() === 'PSE'">
-                      <input type="radio" name="payMethod" value="PSE" [checked]="selectedPaymentMethod() === 'PSE'" (change)="selectedPaymentMethod.set('PSE')" />
-                      <span class="material-symbols-outlined">account_balance</span>
-                      <span>PSE (Todos los Bancos)</span>
-                    </label>
-
-                    <label class="pay-method-pill" [class.selected]="selectedPaymentMethod() === 'NEQUI'">
-                      <input type="radio" name="payMethod" value="NEQUI" [checked]="selectedPaymentMethod() === 'NEQUI'" (change)="selectedPaymentMethod.set('NEQUI')" />
-                      <span class="material-symbols-outlined">smartphone</span>
-                      <span>Nequi / Daviplata</span>
-                    </label>
-
-                    <label class="pay-method-pill" [class.selected]="selectedPaymentMethod() === 'BANCOLOMBIA'">
-                      <input type="radio" name="payMethod" value="BANCOLOMBIA" [checked]="selectedPaymentMethod() === 'BANCOLOMBIA'" (change)="selectedPaymentMethod.set('BANCOLOMBIA')" />
-                      <span class="material-symbols-outlined">savings</span>
-                      <span>Bancolombia Transfer</span>
-                    </label>
-                  </div>
+                  <p class="wompi-desc">Vas a pagar <strong>${{ checkout.amount | number:'1.0-0' }} COP</strong> por tu cita. En Wompi eliges el medio: tarjeta de crédito o débito, PSE, Nequi o Botón Bancolombia.</p>
 
                   <div class="wompi-ref-row">
                     <span>Referencia: <code>{{ checkout.reference }}</code></span>
@@ -477,11 +439,11 @@
 
                   <button
                     class="btn-pay-wompi-submit"
-                    [disabled]="processingPayment()"
-                    (click)="canSimulatePayments ? simulatePayment() : payWithWompi()"
+                    [disabled]="redirectingToWompi()"
+                    (click)="goToWompiCheckout()"
                   >
-                    @if (processingPayment()) {
-                      <span>Procesando pago seguro...</span>
+                    @if (redirectingToWompi()) {
+                      <span>Abriendo Wompi...</span>
                     } @else {
                       <span class="material-symbols-outlined">payments</span>
                       <span>Pagar ${{ checkout.amount | number:'1.0-0' }} COP con Wompi</span>

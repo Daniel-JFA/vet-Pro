@@ -114,7 +114,7 @@
 
   .status-metrics {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
     gap: 1.5rem;
     padding-top: 1.25rem;
 
@@ -209,7 +209,7 @@
 // Planes Grid
 .plans-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
   gap: 2rem;
   margin-bottom: 3.5rem;
   align-items: stretch;
@@ -570,5 +570,28 @@
         }
       }
     }
+  }
+}
+
+.readonly-alert {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  color: #7f1d1d;
+
+  p {
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  &.grace {
+    background: #fffbeb;
+    border-color: #fef3c7;
+    color: #78350f;
   }
 }

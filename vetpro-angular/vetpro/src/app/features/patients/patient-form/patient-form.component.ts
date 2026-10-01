@@ -234,12 +234,7 @@ export class PatientFormComponent implements OnInit {
       this.markAllAsTouched(this.form);
       return;
     }
-    if (
-      this.tutorMode() === 'new' &&
-      (this.tutorForm.invalid ||
-        this.form.get('name')?.invalid ||
-        this.form.get('species')?.invalid)
-    ) {
+    if (this.tutorMode() === 'new' && (this.tutorForm.invalid || this.form.invalid)) {
       this.markAllAsTouched(this.form);
       this.markAllAsTouched(this.tutorForm);
       return;

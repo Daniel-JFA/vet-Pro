@@ -161,6 +161,10 @@ export class AuthService {
     return this.api.post<Branch>('/branches', data);
   }
 
+  updateBranch(id: string, data: { name?: string; address?: string; phone?: string; email?: string }): Observable<Branch> {
+    return this.api.patch<Branch>(`/branches/${id}`, data);
+  }
+
   // Cambiar sucursal activa actual
   changeActiveBranch(branchId: string): void {
     localStorage.setItem('vetpro_active_branch_id', branchId);
@@ -283,5 +287,25 @@ export class AuthService {
 
   testSmtp(recipient?: string): Observable<{ success: boolean; message: string }> {
     return this.api.post<{ success: boolean; message: string }>('/auth/smtp-test', { recipient });
+  }
+
+  // ---------------------------------------------------------
+  // Módulos a la Carta / Feature Flags
+  // ---------------------------------------------------------
+  hasFeature(featureCode: string): boolean {
+    if (!this.currentClinic || !(this.currentClinic as any).featureFlags) return true;
+    const flags: any = (this.currentClinic as any).featureFlags;
+    return flags[featureCode] !== false;
+  }
+
+  // ---------------------------------------------------------
+  // Integración con Platform (Soporte y Anuncios)
+  // ---------------------------------------------------------
+  getPublicAnnouncements(): Observable<any[]> {
+    return this.api.get<any[]>('/platform/public/announcements');
+  }
+
+  createSupportTicket(data: { subject: string; description: string; priority: string }): Observable<any> {
+    return this.api.post<any>('/platform/public/support/tickets', data);
   }
 }

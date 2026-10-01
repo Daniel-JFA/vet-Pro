@@ -25,6 +25,10 @@ export const PORTAL_ROUTES: Routes = [
         loadComponent: () => import('./portal-history/portal-history.component').then(m => m.PortalHistoryComponent)
       },
       {
+        path: 'cuenta',
+        loadComponent: () => import('./portal-account/portal-account.component').then(m => m.PortalAccountComponent)
+      },
+      {
         path: 'booking',
         loadComponent: () => import('./portal-booking/portal-booking.component').then(m => m.PortalBookingComponent)
       }

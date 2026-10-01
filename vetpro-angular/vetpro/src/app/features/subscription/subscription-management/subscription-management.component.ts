@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SubscriptionService, ClinicSubscriptionInfo, CheckoutResponse } from '../../../core/services/subscription.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { buildWompiCheckoutUrl } from '../../../core/utils/wompi-checkout';
 import { environment } from '../../../../environments/environment';
 
 @Component({
@@ -19,7 +20,8 @@ export class SubscriptionManagementComponent implements OnInit {
   loading = signal(true);
   checkoutLoading = signal(false);
   simulatingLoading = signal(false);
-  readonly canSimulatePayments = !environment.production;
+  // La aprobación simulada solo existe en desarrollo; el backend la responde 404 en producción
+  readonly canSimulatePayment = !environment.production;
 
   info = signal<ClinicSubscriptionInfo | null>(null);
   selectedCycle = signal<'monthly' | 'annual'>('monthly');
@@ -125,9 +127,7 @@ export class SubscriptionManagementComponent implements OnInit {
     const checkout = this.currentCheckout();
     if (!checkout) return;
 
-    // Si Wompi Checkout script está en window, o abrir URL directa
-    const checkoutUrl = `https://checkout.wompi.co/p/?public-key=${checkout.publicKey}&currency=${checkout.currency}&amount-in-cents=${checkout.amountInCents}&reference=${checkout.reference}&signature:integrity=${checkout.signature}&redirect-url=${encodeURIComponent(checkout.redirectUrl)}`;
-    window.open(checkoutUrl, '_blank');
+    window.location.href = buildWompiCheckoutUrl(checkout);
   }
 
   simulateApproval() {

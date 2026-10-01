@@ -31,6 +31,9 @@ import { MARKETPLACE_ROUTES } from './routes/marketplace.routes.js';
 import { NOTIFICATION_ROUTES } from './routes/notifications.routes.js';
 import { SUBSCRIPTION_ROUTES } from './routes/subscription.routes.js';
 import { errorHandler, requestId } from './middleware/error.js';
+import { PRIVACY_ROUTES } from './routes/privacy.routes.js';
+import { ASSISTANT_ROUTES } from './routes/assistant.routes.js';
+import { subscriptionGuard } from './middleware/subscriptionGuard.js';
 import { initSentry } from './utils/sentry.js';
 
 dotenv.config();
@@ -125,6 +128,7 @@ app.use('/api/v1/auth/activate', authLimiter);
 app.use('/api/v1/auth/me/professional-card', authLimiter);
 app.use('/api/v1/portal/auth/magic-link', authLimiter);
 app.use('/api/v1/platform/auth/login', authLimiter);
+app.use('/api/v1/privacy/deletion-requests', authLimiter);
 
 // ─────────────────────────────────────────────
 // RUTAS DE SALUD & DIAGNÓSTICO
@@ -141,6 +145,8 @@ app.get(['/health', '/api/health'], (_req, res) => {
 // ─────────────────────────────────────────────
 // REGISTRO DE RUTAS API REST v1
 // ─────────────────────────────────────────────
+// Clínicas con la suscripción vencida (más la gracia) quedan en solo lectura
+app.use('/api/v1', subscriptionGuard);
 app.use('/api/v1/auth', AUTH_ROUTES);
 app.use('/api/v1/patients', PATIENT_ROUTES);
 app.use('/api/v1/tutors', TUTOR_ROUTES);
@@ -164,6 +170,8 @@ app.use('/api/v1/service-catalog', SERVICE_CATALOG_ROUTES);
 app.use('/api/v1/marketplace', MARKETPLACE_ROUTES);
 app.use('/api/v1/notifications', NOTIFICATION_ROUTES);
 app.use('/api/v1/subscriptions', SUBSCRIPTION_ROUTES);
+app.use('/api/v1/privacy', PRIVACY_ROUTES);
+app.use('/api/v1/assistant', ASSISTANT_ROUTES);
 app.use('/docs', DOCS_ROUTES);
 
 // Manejador global de excepciones

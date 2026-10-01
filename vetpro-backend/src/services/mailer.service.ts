@@ -39,6 +39,31 @@ export interface PasswordRecoveryEmailData {
   resetLink: string;
 }
 
+export interface SubscriptionExpiryEmailData {
+  to: string;
+  clinicName: string;
+  expiresAt: Date;
+  daysLeft: number;
+  graceDays: number;
+  renewLink: string;
+}
+
+export interface AccountDeletedEmailData {
+  to: string;
+  firstName: string;
+  clinicName: string;
+  // Fecha del borrado total de la clínica, si esta cuenta era la última
+  clinicDeletionDate: Date | null;
+}
+
+export interface DataDeletionRequestEmailData {
+  to: string;
+  requesterEmail: string;
+  audience: string;
+  clinicName?: string | null;
+  message?: string | null;
+}
+
 export interface MagicLinkEmailData {
   to: string;
   firstName: string;
@@ -467,6 +492,127 @@ Este enlace es personal y expira en 7 días.
       return true;
     } catch (error: any) {
       console.error(`❌ [Mailer] Error al enviar recuperación a ${data.to}:`, error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Aviso de vencimiento de la prueba o del período pagado (7 días y 1 día antes)
+   */
+  public static async sendSubscriptionExpiryNotice(data: SubscriptionExpiryEmailData): Promise<boolean> {
+    const transporter = this.getTransporter();
+    const from = process.env.SMTP_FROM || `VetPro SaaS <${process.env.SMTP_USER || 'no-reply@vetpro.co'}>`;
+
+    if (!transporter) {
+      console.warn('⚠️ [Mailer] No se envió aviso de vencimiento a', data.to, ': SMTP no configurado.');
+      return false;
+    }
+
+    const dateStr = data.expiresAt.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
+    const whenStr = data.daysLeft <= 1 ? 'mañana' : `en ${data.daysLeft} días`;
+
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="utf-8">
+      <title>Tu suscripción de VetPro vence ${whenStr}</title>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; margin: 0; padding: 24px; color: #1e293b; }
+        .container { max-width: 540px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 32px 28px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+        .title { font-size: 20px; font-weight: 700; color: #0f172a; margin: 0 0 16px; }
+        .btn-container { text-align: center; margin: 28px 0; }
+        .btn { display: inline-block; background: #2563eb; color: #fff !important; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 700; }
+        .notice { font-size: 12px; color: #64748b; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 6px; padding: 10px 14px; line-height: 1.5; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h2 class="title">Tu suscripción vence ${whenStr}</h2>
+        <p>Hola, equipo de <strong>${data.clinicName}</strong>:</p>
+        <p>El plan de VetPro de la clínica vence el <strong>${dateStr}</strong>. Renuévalo para seguir agendando, facturando y registrando historias sin interrupciones.</p>
+        <div class="btn-container">
+          <a href="${data.renewLink}" class="btn" target="_blank">Renovar mi plan</a>
+        </div>
+        <div class="notice">
+          Después del vencimiento tienes ${data.graceDays} días de gracia. Pasado ese plazo la cuenta queda en <strong>solo lectura</strong>: podrás consultar y exportar toda tu información, pero no crear ni modificar registros hasta renovar.
+        </div>
+      </div>
+    </body>
+    </html>
+    `;
+
+    try {
+      await transporter.sendMail({
+        from,
+        to: data.to,
+        ...(this.getBcc() ? { bcc: this.getBcc() } : {}),
+        subject: `Tu suscripción de VetPro vence ${whenStr}`,
+        text: `El plan de VetPro de ${data.clinicName} vence el ${dateStr}. Renuévalo en: ${data.renewLink}\nDespués del vencimiento hay ${data.graceDays} días de gracia; luego la cuenta queda en solo lectura hasta renovar.`,
+        html: htmlContent
+      });
+
+      console.log(`✉️ [Mailer] Aviso de vencimiento enviado a: ${data.to}`);
+      return true;
+    } catch (error: any) {
+      console.error(`❌ [Mailer] Error al enviar aviso de vencimiento a ${data.to}:`, error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Confirmación de eliminación de cuenta (se envía al correo original antes de borrarlo)
+   */
+  public static async sendAccountDeletedEmail(data: AccountDeletedEmailData): Promise<boolean> {
+    const transporter = this.getTransporter();
+    const from = process.env.SMTP_FROM || `VetPro SaaS <${process.env.SMTP_USER || 'no-reply@vetpro.co'}>`;
+    if (!transporter) {
+      console.warn('⚠️ [Mailer] No se envió confirmación de eliminación a', data.to, ': SMTP no configurado.');
+      return false;
+    }
+
+    const clinicLine = data.clinicDeletionDate
+      ? `Como eras la última persona con acceso a ${data.clinicName}, toda la información de la clínica se eliminará definitivamente el ${data.clinicDeletionDate.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })}. Si fue un error o necesitas una copia, responde a este correo antes de esa fecha.`
+      : `La información clínica y de facturación sigue en poder de ${data.clinicName}, que es la responsable de conservarla. Tu nombre se mantiene solo como autor de los registros que firmaste.`;
+
+    try {
+      await transporter.sendMail({
+        from,
+        to: data.to,
+        ...(this.getBcc() ? { bcc: this.getBcc() } : {}),
+        subject: 'Tu cuenta de VetPro fue eliminada',
+        text: `Hola ${data.firstName}, tu cuenta de VetPro fue eliminada: ya no puedes iniciar sesión y borramos tus datos personales.\n\n${clinicLine}`,
+        html: `<p>Hola, ${data.firstName}:</p><p>Tu cuenta de VetPro fue eliminada: ya no puedes iniciar sesión y borramos tus datos personales (correo, teléfono, documento, dirección y documentos cargados).</p><p>${clinicLine}</p>`
+      });
+      return true;
+    } catch (error: any) {
+      console.error(`❌ [Mailer] Error al enviar confirmación de eliminación a ${data.to}:`, error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Aviso interno de una solicitud de eliminación de datos recibida por la web
+   */
+  public static async sendDataDeletionRequestNotice(data: DataDeletionRequestEmailData): Promise<boolean> {
+    const transporter = this.getTransporter();
+    const from = process.env.SMTP_FROM || `VetPro SaaS <${process.env.SMTP_USER || 'no-reply@vetpro.co'}>`;
+    if (!transporter) {
+      console.warn('⚠️ [Mailer] Solicitud de eliminación registrada sin aviso por correo: SMTP no configurado.');
+      return false;
+    }
+
+    try {
+      await transporter.sendMail({
+        from,
+        to: data.to,
+        replyTo: data.requesterEmail,
+        subject: `Solicitud de eliminación de datos (${data.audience})`,
+        text: `Correo: ${data.requesterEmail}\nTipo: ${data.audience}\nClínica: ${data.clinicName || '-'}\nMensaje: ${data.message || '-'}\n\nPlazo legal de respuesta (Ley 1581): 15 días hábiles.`
+      });
+      return true;
+    } catch (error: any) {
+      console.error('❌ [Mailer] Error al notificar solicitud de eliminación:', error.message);
       return false;
     }
   }

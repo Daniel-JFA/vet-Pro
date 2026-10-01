@@ -164,7 +164,7 @@ router.post('/transcribe', async (req: AuthRequest, res: Response) => {
 
     if (clinic.aiMinutesUsed + minutesUsed > clinic.aiMinutesLimit) {
       return res.status(400).json({
-        error: `Ha alcanzado el límite de ${clinic.aiMinutesLimit} minutos de IA en su plan. Recargue una bolsa de minutos para continuar.`
+        error: `Ha alcanzado el límite de ${clinic.aiMinutesLimit} minutos de IA en su plan. Mejore su plan en Suscripción para seguir usando la Bitácora IA este mes; mientras tanto puede escribir la historia manualmente.`
       });
     }
 
