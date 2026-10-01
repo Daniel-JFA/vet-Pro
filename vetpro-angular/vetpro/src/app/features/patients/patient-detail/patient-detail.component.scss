@@ -438,6 +438,7 @@
   font-weight: 500;
   
   &.notes-text {
+    white-space: pre-line;
     line-height: 1.4;
     font-weight: 400;
     color: var(--text-color-secondary);

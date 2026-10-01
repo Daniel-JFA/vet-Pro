@@ -371,6 +371,46 @@ export interface NotificationLog {
 
 // ── PAGINATION ─────────────────────────────────
 
+// ── Importación desde OkVet ──
+export type OkVetTutorAction = 'create' | 'existing' | 'same_file';
+export type OkVetPatientAction = 'create' | 'skip_existing' | 'skip_duplicate_in_file' | 'error';
+
+export interface OkVetPlannedRow {
+  row: number;
+  petName: string;
+  species: string;
+  tutorName: string;
+  tutorPhone: string;
+  tutorAction: OkVetTutorAction;
+  patientAction: OkVetPatientAction;
+  reason?: string;
+  patientNotes: string | null;
+  tutorNotes: string | null;
+  warnings: string[];
+}
+
+export interface OkVetPlan {
+  summary: {
+    rows: number;
+    tutorsToCreate: number;
+    tutorsExisting: number;
+    patientsToCreate: number;
+    patientsSkipped: number;
+    errors: number;
+  };
+  rows: OkVetPlannedRow[];
+}
+
+export interface OkVetImportResponse {
+  success: boolean;
+  mode: 'preview' | 'apply';
+  message?: string;
+  data: {
+    plan: OkVetPlan;
+    result?: { tutorsCreated: number; patientsCreated: number; failures: { tutorPhone: string; error: string }[] };
+  };
+}
+
 export interface PagedResult<T> {
   data: T[];
   total: number;

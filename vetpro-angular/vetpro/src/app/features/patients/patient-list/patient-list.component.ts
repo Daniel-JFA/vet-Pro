@@ -4,7 +4,7 @@ import { RouterLink, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { PatientService } from '../../../core/services/patient.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { Patient, Species, PatientStatus } from '../../../core/models';
+import { Patient, Species, PatientStatus, OkVetPlan, OkVetPlannedRow, OkVetImportResponse } from '../../../core/models';
 
 @Component({
   selector: 'app-patient-list',
@@ -153,6 +153,8 @@ export class PatientListComponent implements OnInit {
   selectedFileName = signal<string>('');
 
   openImportModal() {
+    this.importSource.set(null);
+    this.resetOkVet();
     this.importPreview.set([]);
     this.importResults.set(null);
     this.selectedFileName.set('');
@@ -219,7 +221,7 @@ export class PatientListComponent implements OnInit {
     const petNameIdx = findIndex(['mascota', 'paciente', 'nombre de mascota', 'pet']);
     const speciesIdx = findIndex(['especie', 'species', 'tipo']);
     const breedIdx = findIndex(['raza', 'breed']);
-    const sexIdx = findIndex(['sexo', 'genero', 'sex']);
+    const sexIdx = findIndex(['sexo', 'genero', 'género', 'sex']);
     const weightIdx = findIndex(['peso', 'weight']);
     const tutorNameIdx = findIndex(['nombre tutor', 'tutor', 'nombre_tutor']);
     const tutorLastIdx = findIndex(['apellido tutor', 'apellido_tutor', 'apellido']);
@@ -281,5 +283,109 @@ export class PatientListComponent implements OnInit {
         this.toast.error(err?.error?.error || 'Error al ejecutar la importación masiva.');
       },
     });
+  }
+
+  // ─────────────────────────────────────────────
+  // IMPORTACIÓN DESDE OKVET (Excel de "Mascotas")
+  // ─────────────────────────────────────────────
+  importSource = signal<'vetpro' | 'okvet' | null>(null);
+  okvetFile = signal<File | null>(null);
+  okvetPlan = signal<OkVetPlan | null>(null);
+  okvetResult = signal<NonNullable<OkVetImportResponse['data']['result']> | null>(null);
+  okvetLoading = signal(false);
+  okvetError = signal('');
+  okvetFilter = signal<'all' | 'create' | 'skip' | 'error' | 'warning'>('all');
+
+  okvetRows = computed(() => {
+    const plan = this.okvetPlan();
+    if (!plan) return [];
+    const f = this.okvetFilter();
+    return plan.rows.filter((r) => {
+      if (f === 'create') return r.patientAction === 'create';
+      if (f === 'skip') return r.patientAction === 'skip_existing' || r.patientAction === 'skip_duplicate_in_file';
+      if (f === 'error') return r.patientAction === 'error';
+      if (f === 'warning') return r.warnings.length > 0;
+      return true;
+    });
+  });
+
+  okvetWarnings = computed(() => this.okvetPlan()?.rows.filter((r) => r.warnings.length > 0).length ?? 0);
+
+  chooseImportSource(source: 'vetpro' | 'okvet') {
+    this.importSource.set(source);
+    this.resetOkVet();
+    this.importPreview.set([]);
+    this.importResults.set(null);
+    this.selectedFileName.set('');
+  }
+
+  private resetOkVet() {
+    this.okvetFile.set(null);
+    this.okvetPlan.set(null);
+    this.okvetResult.set(null);
+    this.okvetError.set('');
+    this.okvetFilter.set('all');
+  }
+
+  onOkVetFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    this.resetOkVet();
+    if (!/\.xlsx$/i.test(file.name)) {
+      this.okvetError.set('Sube el archivo Excel (.xlsx) tal como lo exporta OkVet, sin convertirlo.');
+      return;
+    }
+    this.okvetFile.set(file);
+    this.okvetLoading.set(true);
+    this.svc.importOkVet(file, 'preview').subscribe({
+      next: (res) => {
+        this.okvetLoading.set(false);
+        this.okvetPlan.set(res.data.plan);
+      },
+      error: (err) => {
+        this.okvetLoading.set(false);
+        this.okvetError.set(err?.error?.error || 'No se pudo leer el archivo de OkVet.');
+      },
+    });
+  }
+
+  executeOkVetImport() {
+    const file = this.okvetFile();
+    if (!file) return;
+    this.okvetLoading.set(true);
+    this.svc.importOkVet(file, 'apply').subscribe({
+      next: (res) => {
+        this.okvetLoading.set(false);
+        this.okvetPlan.set(res.data.plan);
+        this.okvetResult.set(res.data.result ?? null);
+        if (res.message) this.toast.success(res.message);
+        this.load();
+      },
+      error: (err) => {
+        this.okvetLoading.set(false);
+        this.okvetError.set(err?.error?.error || 'Error al importar los datos de OkVet.');
+      },
+    });
+  }
+
+  okvetActionLabel(r: OkVetPlannedRow): string {
+    switch (r.patientAction) {
+      case 'create':
+        return 'Se agrega';
+      case 'skip_existing':
+        return 'Ya existe';
+      case 'skip_duplicate_in_file':
+        return 'Repetida';
+      default:
+        return 'No se importa';
+    }
+  }
+
+  okvetTutorLabel(r: OkVetPlannedRow): string {
+    if (r.tutorAction === 'existing') return 'Tutor ya registrado';
+    if (r.tutorAction === 'same_file') return 'Mismo tutor de otra fila';
+    return 'Tutor nuevo';
   }
 }

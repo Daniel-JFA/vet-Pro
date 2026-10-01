@@ -10,6 +10,7 @@ import { roleMiddleware } from '../middleware/role.js';
 import { PERMISSIONS as P } from '../config/permissions.js';
 import { detectImageFileType } from '../utils/image-type.js';
 import { PatientSpecies, PatientSex, PatientStatus } from '@prisma/client';
+import { previewOkVetImport, applyOkVetImport, OkVetFormatError } from '../services/okvet-import.service.js';
 
 const router = Router();
 router.use(authMiddleware as any);
@@ -50,7 +51,10 @@ const CreatePatientSchema = z.object({
   ),
   sex: z.nativeEnum(PatientSex),
   sterilized: z.boolean().default(false),
-  weight: z.number().positive().optional().nullable(),
+  weight: z.preprocess(
+    v => (v === '' || v === null || v === undefined ? null : Number(v)),
+    z.number().positive().optional().nullable()
+  ),
   chipId: z.string().optional().nullable(),
   photoUrl: z.string().optional().nullable().or(z.literal('')), // URL absoluta o ruta relativa (/uploads/...)
   allergies: z.string().optional().nullable(),
@@ -552,6 +556,56 @@ router.post('/import', roleMiddleware(P.FRONT_DESK as unknown as string[]) as an
     console.error('[PatientRoutes] Error en importación masiva:', error);
     return res.status(500).json({ error: 'Error al procesar la importación masiva de pacientes.' });
   }
+});
+
+// POST /patients/import/okvet?mode=preview|apply
+// Recibe el Excel de "Mascotas" que exporta OkVet. En modo preview solo
+// devuelve lo que se va a crear; en apply lo guarda (sin duplicar).
+const okvetUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: (_req, file, cb) => {
+    if (!/\.xlsx$/i.test(file.originalname)) {
+      return cb(new Error('Sube el archivo Excel (.xlsx) que exporta OkVet.'));
+    }
+    cb(null, true);
+  }
+});
+
+router.post('/import/okvet', roleMiddleware(P.FRONT_DESK as unknown as string[]) as any, (req: AuthRequest, res: Response) => {
+  okvetUpload.single('file')(req, res, async (err: any) => {
+    if (err) {
+      const msg = err.code === 'LIMIT_FILE_SIZE' ? 'El archivo supera los 10 MB.' : err.message;
+      return res.status(400).json({ error: msg || 'Error al subir el archivo.' });
+    }
+    const clinicId = req.user?.clinicId;
+    if (!clinicId) return res.status(401).json({ error: 'No autorizado.' });
+    const file = req.file;
+    if (!file) return res.status(400).json({ error: 'No se recibió ningún archivo.' });
+    // Un .xlsx es un ZIP: debe empezar por "PK"
+    if (file.buffer.length < 4 || file.buffer[0] !== 0x50 || file.buffer[1] !== 0x4b) {
+      return res.status(400).json({ error: 'El archivo no es un Excel (.xlsx) válido.' });
+    }
+
+    const mode = req.query.mode === 'apply' ? 'apply' : 'preview';
+    try {
+      if (mode === 'preview') {
+        const plan = await previewOkVetImport(clinicId, file.buffer);
+        return res.json({ success: true, mode, data: { plan } });
+      }
+      const { plan, result } = await applyOkVetImport(clinicId, file.buffer);
+      return res.json({
+        success: true,
+        mode,
+        message: `Se importaron ${result.patientsCreated} mascotas y ${result.tutorsCreated} tutores nuevos desde OkVet.`,
+        data: { plan, result }
+      });
+    } catch (error: any) {
+      if (error instanceof OkVetFormatError) return res.status(400).json({ error: error.message });
+      console.error('[PatientRoutes] Error en importación OkVet:', error);
+      return res.status(500).json({ error: 'Error al procesar el archivo de OkVet.' });
+    }
+  });
 });
 
 export const PATIENT_ROUTES = router;
