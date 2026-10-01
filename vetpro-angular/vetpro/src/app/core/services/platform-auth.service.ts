@@ -23,6 +23,7 @@ export interface PlatformClinic {
   businessType: string;
   plan: string;
   email: string;
+  phone: string;
   city: string;
   createdAt: string;
   subscriptionStatus: string;

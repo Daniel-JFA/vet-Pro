@@ -75,6 +75,7 @@ router.get('/clinics', platformAuthMiddleware as any, async (_req: PlatformAuthR
       select: {
         id: true,
         name: true,
+        phone: true,
         businessType: true,
         plan: true,
         email: true,
@@ -136,6 +137,7 @@ router.get('/clinics', platformAuthMiddleware as any, async (_req: PlatformAuthR
       return {
         id: c.id,
         name: c.name,
+        phone: c.phone,
         businessType: c.businessType,
         plan: c.plan,
         email: c.email,

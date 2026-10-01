@@ -177,6 +177,7 @@ const SUBSCRIPTION_LABELS: Record<string, string> = {
                                 <th>Sede</th>
                                 <th>Estado</th>
                                 <th>Último acceso</th>
+                                <th>Acciones</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -191,7 +192,25 @@ const SUBSCRIPTION_LABELS: Record<string, string> = {
                                       {{ u.active ? 'Activo' : 'Inactivo' }}
                                     </span>
                                   </td>
-                                  <td>{{ u.lastLoginAt ? (u.lastLoginAt | date: 'dd/MM/yyyy HH:mm') : 'Nunca ha iniciado sesión' }}</td>
+                                  <td>
+                                    @if (u.lastLoginAt) {
+                                      {{ u.lastLoginAt | date: 'dd/MM/yyyy HH:mm' }}
+                                    } @else {
+                                      <span style="color: #ef4444;">Nunca ha iniciado</span>
+                                    }
+                                  </td>
+                                  <td class="actions-cell">
+                                    @if (!u.lastLoginAt) {
+                                      <div style="display: flex; gap: 6px;">
+                                        <a [href]="'mailto:' + u.email + '?subject=Acceso a VetPro'" title="Enviar Correo" class="contact-btn mail">
+                                          <span class="material-symbols-outlined" style="font-size: 18px;">mail</span>
+                                        </a>
+                                        <a [href]="'https://wa.me/' + cleanPhone(c.phone) + '?text=Hola, notamos que el usuario ' + u.firstName + ' no ha iniciado sesión en VetPro. ¿Podemos ayudarles?'" target="_blank" title="Enviar WhatsApp" class="contact-btn wa">
+                                          <span class="material-symbols-outlined" style="font-size: 18px;">chat</span>
+                                        </a>
+                                      </div>
+                                    }
+                                  </td>
                                 </tr>
                               }
                             </tbody>
@@ -468,31 +487,41 @@ const SUBSCRIPTION_LABELS: Record<string, string> = {
       }
       .stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        gap: 16px;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 24px;
         margin-bottom: 32px;
       }
       .stat-card {
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 16px;
-        padding: 20px;
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 28px 24px;
         display: flex;
         flex-direction: column;
-        gap: 6px;
-        span {
-          font-size: 24px;
+        gap: 8px;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        &:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 12px 24px -10px rgba(167, 139, 250, 0.25);
+          border-color: rgba(167, 139, 250, 0.3);
+        }
+        span.material-symbols-outlined {
+          font-size: 32px;
           color: #a78bfa;
+          margin-bottom: 8px;
         }
         strong {
-          font-size: 1.8rem;
+          font-size: 2.5rem;
           font-weight: 800;
+          line-height: 1.1;
         }
         small {
-          font-size: 0.78rem;
-          color: #9ca3af;
+          font-size: 0.85rem;
+          color: #cbd5e1;
           text-transform: uppercase;
-          letter-spacing: 0.4px;
+          letter-spacing: 0.5px;
         }
       }
       .clinics-table-wrapper {
@@ -544,7 +573,7 @@ const SUBSCRIPTION_LABELS: Record<string, string> = {
         font-size: 0.85rem;
         th {
           text-align: left;
-          padding: 10px 12px;
+          padding: 12px 16px;
           color: #9ca3af;
           text-transform: uppercase;
           font-size: 0.7rem;
@@ -552,15 +581,17 @@ const SUBSCRIPTION_LABELS: Record<string, string> = {
           border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
         td {
-          padding: 12px;
+          padding: 18px 16px;
           border-bottom: 1px solid rgba(255, 255, 255, 0.05);
           vertical-align: top;
           strong {
             display: block;
+            color: #f3f4f6;
+            font-size: 0.9rem;
           }
           small {
             color: #9ca3af;
-            font-size: 0.75rem;
+            font-size: 0.8rem;
           }
         }
         .empty-row {
@@ -600,6 +631,22 @@ const SUBSCRIPTION_LABELS: Record<string, string> = {
         font-size: 0.8rem;
         th {
           font-size: 0.65rem;
+        }
+        .contact-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          border-radius: 6px;
+          color: #fff;
+          text-decoration: none;
+          transition: transform 0.2s;
+          &:hover {
+            transform: scale(1.1);
+          }
+          &.mail { background: #3b82f6; }
+          &.wa { background: #25D366; }
         }
       }
 
@@ -698,9 +745,9 @@ const SUBSCRIPTION_LABELS: Record<string, string> = {
           background: rgba(255, 255, 255, 0.05);
           border: 1px solid rgba(255, 255, 255, 0.1);
           color: #9ca3af;
-          padding: 6px 14px;
-          border-radius: 8px;
-          font-size: 0.8rem;
+          padding: 8px 18px; /* 👈 Más amplio */
+          border-radius: 20px; /* 👈 Pill shape */
+          font-size: 0.85rem;
           cursor: pointer;
           transition: all 0.2s;
           &:hover {
@@ -944,6 +991,11 @@ export class PlatformDashboardComponent implements OnInit {
 
   subscriptionLabel(status: string): string {
     return SUBSCRIPTION_LABELS[status] || status;
+  }
+
+  cleanPhone(phone: string | undefined): string {
+    if (!phone) return '';
+    return phone.replace(/\D/g, '');
   }
 
   // Tenant Management Actions
