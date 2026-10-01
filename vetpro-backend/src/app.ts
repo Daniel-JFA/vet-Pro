@@ -32,6 +32,7 @@ import { NOTIFICATION_ROUTES } from './routes/notifications.routes.js';
 import { SUBSCRIPTION_ROUTES } from './routes/subscription.routes.js';
 import { errorHandler, requestId } from './middleware/error.js';
 import { PRIVACY_ROUTES } from './routes/privacy.routes.js';
+import { ASSISTANT_ROUTES } from './routes/assistant.routes.js';
 import { subscriptionGuard } from './middleware/subscriptionGuard.js';
 import { initSentry } from './utils/sentry.js';
 
@@ -170,6 +171,7 @@ app.use('/api/v1/marketplace', MARKETPLACE_ROUTES);
 app.use('/api/v1/notifications', NOTIFICATION_ROUTES);
 app.use('/api/v1/subscriptions', SUBSCRIPTION_ROUTES);
 app.use('/api/v1/privacy', PRIVACY_ROUTES);
+app.use('/api/v1/assistant', ASSISTANT_ROUTES);
 app.use('/docs', DOCS_ROUTES);
 
 // Manejador global de excepciones

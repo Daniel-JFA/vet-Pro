@@ -6,6 +6,7 @@ import { AuthService } from '../core/services/auth.service';
 import { AppointmentService } from '../core/services/appointment.service';
 import { PwaService } from '../core/services/pwa.service';
 import { ToastContainerComponent } from '../shared/components/toast/toast-container.component';
+import { AsistenteWidgetComponent } from '../shared/components/asistente-widget/asistente-widget.component';
 
 interface NavItem {
   label: string;
@@ -17,7 +18,7 @@ interface NavItem {
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, FormsModule, ToastContainerComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, FormsModule, ToastContainerComponent, AsistenteWidgetComponent],
   template: `
     <div class="shell">
       <!-- Backdrop Overlay for Mobile -->
@@ -194,6 +195,7 @@ interface NavItem {
       </main>
     </div>
     <app-toast-container />
+    <app-asistente-widget />
   `,
   styleUrl: './shell.component.scss',
 })

@@ -297,5 +297,5 @@ describe('Antifraud Verification System (COMVEZCOL Registration & KYC)', () => {
     expect(updatedProfile!.verifiedBy).toBe('system_comvezcol');
 
     spy.mockRestore();
-  });
+  }, 30000); // recorre todos los veterinarios de la base: puede tardar con la suite en paralelo
 });

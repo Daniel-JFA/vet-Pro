@@ -218,4 +218,64 @@ Debes responder ESTRICTAMENTE en formato JSON con las siguientes claves:
       engineSource: 'local-engine'
     };
   }
+
+  /**
+   * Procesa comandos de chat del Asistente Virtual usando GPT-4o-mini o Claude
+   */
+  static async processAssistantCommand(message: string, context: string): Promise<{ action: 'REPLY' | 'NAVIGATE', payload: string }> {
+    const openaiKey = process.env.OPENAI_API_KEY;
+
+    if (!openaiKey) {
+      // Si no hay clave, devolver un fallback estático
+      if (message.toLowerCase().includes('cita')) return { action: 'NAVIGATE', payload: '/appointments' };
+      if (message.toLowerCase().includes('paciente')) return { action: 'NAVIGATE', payload: '/patients' };
+      return { action: 'REPLY', payload: 'La IA no está configurada, pero entiendo que necesitas ayuda. Por favor usa el menú lateral.' };
+    }
+
+    const systemPrompt = `Eres el asistente virtual de la plataforma VetPro (software veterinario).
+Tu objetivo es ayudar al usuario a navegar o responder sus dudas.
+El usuario actualmente está en la pantalla: "${context}".
+Si el usuario pide ir a un módulo, buscar algo o agendar, responde con "NAVIGATE" y la ruta correspondiente. Rutas disponibles:
+- /dashboard
+- /patients (o /patients?search=nombre si busca alguien)
+- /appointments
+- /billing
+- /inventory
+- /reports
+- /grooming
+Si hace una pregunta de cómo hacer algo, responde con "REPLY" y explica brevemente los pasos.
+RESPONDE SIEMPRE EN FORMATO JSON:
+{
+  "action": "REPLY" | "NAVIGATE",
+  "payload": "La respuesta de texto" | "La ruta de navegación"
+}`;
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${openaiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: message }
+          ]
+        })
+      });
+
+      if (response.ok) {
+        const data: any = await response.json();
+        return JSON.parse(data.choices[0].message.content);
+      } else {
+        throw new Error('OpenAI API Error');
+      }
+    } catch (error) {
+      console.error('[AiService] Error procesando comando del asistente:', error);
+      return { action: 'REPLY', payload: 'Lo siento, tuve un problema al procesar tu solicitud. Intenta de nuevo más tarde.' };
+    }
+  }
 }
