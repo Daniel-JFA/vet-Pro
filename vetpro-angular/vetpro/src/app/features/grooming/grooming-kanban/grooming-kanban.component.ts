@@ -3,6 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { GroomingService, GroomingItem } from '../../../core/services/grooming.service';
+import { PatientService } from '../../../core/services/patient.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { Patient } from '../../../core/models';
 
 @Component({
   selector: 'app-grooming-kanban',
@@ -227,6 +230,60 @@ import { GroomingService, GroomingItem } from '../../../core/services/grooming.s
         </div>
       </div>
     </div>
+
+    @if (showCheckIn()) {
+      <div class="modal-backdrop" (click)="showCheckIn.set(false)">
+        <div class="modal-box" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h3>Ingreso a peluquería & spa</h3>
+            <button class="close-btn" (click)="showCheckIn.set(false)">✕</button>
+          </div>
+          <div class="modal-body">
+            <label class="field">
+              <span>Paciente *</span>
+              <select name="groomPatient" [(ngModel)]="checkIn.patientId">
+                <option value="">Selecciona una mascota…</option>
+                @for (pt of clinicPatients(); track pt.id) {
+                  <option [value]="pt.id">{{ pt.name }} — {{ pt.tutor?.firstName }} {{ pt.tutor?.lastName }}</option>
+                }
+              </select>
+            </label>
+            <label class="field">
+              <span>Servicio *</span>
+              <select name="groomService" [(ngModel)]="checkIn.serviceType">
+                <option>Baño completo</option>
+                <option>Baño y corte</option>
+                <option>Corte de uñas</option>
+                <option>Baño medicado</option>
+                <option>Deslanado</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Precio (COP)</span>
+              <input name="groomPrice" type="number" min="0" [(ngModel)]="checkIn.price" />
+            </label>
+            <label class="field">
+              <span>Estado del pelaje / piel</span>
+              <input name="groomCoat" [(ngModel)]="checkIn.coatCondition" placeholder="Ej. Nudos en orejas, piel sana" />
+            </label>
+            <label class="field">
+              <span>Shampoo medicado</span>
+              <input name="groomShampoo" [(ngModel)]="checkIn.medicatedShampoo" />
+            </label>
+            <label class="field">
+              <span>Comportamiento / notas</span>
+              <textarea name="groomNotes" rows="2" [(ngModel)]="checkIn.behaviorNotes"></textarea>
+            </label>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" (click)="showCheckIn.set(false)">Cancelar</button>
+            <button class="btn btn-primary" [disabled]="savingCheckIn()" (click)="submitCheckIn()">
+              {{ savingCheckIn() ? 'Guardando…' : 'Registrar ingreso' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
   `,
   styles: [
     `
@@ -440,6 +497,29 @@ import { GroomingService, GroomingItem } from '../../../core/services/grooming.s
         color: #db2777;
         margin: 0;
       }
+      .btn-secondary { background: #f1f5f9; color: #334155; }
+      .modal-backdrop {
+        position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5);
+        display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px;
+      }
+      .modal-box {
+        background: #fff; border-radius: 12px; width: 100%; max-width: 480px;
+        max-height: 90vh; display: flex; flex-direction: column;
+      }
+      .modal-header, .modal-footer {
+        display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px;
+      }
+      .modal-header { border-bottom: 1px solid #e2e8f0; h3 { margin: 0; font-size: 17px; } }
+      .modal-footer { border-top: 1px solid #e2e8f0; justify-content: flex-end; }
+      .close-btn { background: none; border: none; font-size: 18px; cursor: pointer; color: #64748b; }
+      .modal-body { padding: 16px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+      .field {
+        display: flex; flex-direction: column; gap: 4px;
+        span { font-size: 12px; font-weight: 600; color: #475569; }
+        input, select, textarea {
+          padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; font-size: 14px;
+        }
+      }
       .delivered-time {
         font-size: 11px;
         color: #16a34a;
@@ -451,8 +531,14 @@ import { GroomingService, GroomingItem } from '../../../core/services/grooming.s
 })
 export class GroomingKanbanComponent implements OnInit {
   private groomingService = inject(GroomingService);
+  private patientService = inject(PatientService);
+  private auth = inject(AuthService);
 
   services = signal<GroomingItem[]>([]);
+  clinicPatients = signal<Patient[]>([]);
+  showCheckIn = signal(false);
+  savingCheckIn = signal(false);
+  checkIn = this.emptyCheckIn();
 
   ngOnInit() {
     this.loadServices();
@@ -501,8 +587,57 @@ export class GroomingKanbanComponent implements OnInit {
   }
 
   openCheckInModal() {
-    alert(
-      'Ingreso a peluquería: Seleccione un paciente en recepción o cita para iniciar su sesión de spa.',
-    );
+    this.checkIn = this.emptyCheckIn();
+    this.patientService.getPatients({ pageSize: 500 }).subscribe({
+      next: (res) => this.clinicPatients.set(res.data || []),
+      error: () => alert('No se pudo cargar el listado de pacientes.'),
+    });
+    this.showCheckIn.set(true);
+  }
+
+  submitCheckIn() {
+    const c = this.checkIn;
+    const branchId = this.auth.activeBranchId() || this.auth.clinicBranches()[0]?.id;
+    if (!c.patientId || !c.serviceType) {
+      alert('Selecciona el paciente y el servicio.');
+      return;
+    }
+    if (!branchId) {
+      alert('La clínica no tiene una sede configurada.');
+      return;
+    }
+    this.savingCheckIn.set(true);
+    this.groomingService
+      .checkIn({
+        patientId: c.patientId,
+        branchId,
+        serviceType: c.serviceType,
+        price: Number(c.price) >= 0 ? Number(c.price) : undefined,
+        coatCondition: c.coatCondition.trim() || undefined,
+        medicatedShampoo: c.medicatedShampoo.trim() || undefined,
+        behaviorNotes: c.behaviorNotes.trim() || undefined,
+      })
+      .subscribe({
+        next: () => {
+          this.savingCheckIn.set(false);
+          this.showCheckIn.set(false);
+          this.loadServices();
+        },
+        error: (err) => {
+          this.savingCheckIn.set(false);
+          alert(err?.error?.error || 'No se pudo registrar el ingreso a peluquería.');
+        },
+      });
+  }
+
+  private emptyCheckIn() {
+    return {
+      patientId: '',
+      serviceType: 'Baño completo',
+      price: 45000,
+      coatCondition: '',
+      medicatedShampoo: '',
+      behaviorNotes: '',
+    };
   }
 }

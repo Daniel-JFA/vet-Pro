@@ -24,7 +24,21 @@ if (isProduction && (jwtSecret.length < 32 || KNOWN_WEAK_JWT_SECRETS.includes(jw
   fatal('JWT_SECRET de producción es débil o es un valor por defecto conocido. Genera uno con: openssl rand -hex 64');
 }
 
+// Pagos en línea (Wompi). Sin las 4 credenciales reales, el servicio caía en
+// claves de prueba cuyos secretos están en el código: en producción eso permitía
+// falsificar webhooks de "pago aprobado". Ahora los pagos quedan desactivados.
+const wompiConfigured = !!(
+  process.env.WOMPI_PUBLIC_KEY &&
+  process.env.WOMPI_PRIVATE_KEY &&
+  process.env.WOMPI_INTEGRITY_SECRET &&
+  process.env.WOMPI_EVENTS_SECRET
+);
+
 export const env = {
   isProduction,
-  JWT_SECRET: jwtSecret
+  JWT_SECRET: jwtSecret,
+  /** Checkouts y webhooks de Wompi disponibles (siempre fuera de producción, para sandbox y pruebas) */
+  onlinePaymentsEnabled: wompiConfigured || !isProduction,
+  /** Endpoints que aprueban pagos sin pasar por Wompi: nunca en producción salvo que se pida explícitamente */
+  paymentSimulationAllowed: !isProduction || process.env.ALLOW_PAYMENT_SIMULATION === 'true'
 } as const;

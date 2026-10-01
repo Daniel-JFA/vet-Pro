@@ -169,17 +169,20 @@ router.post('/auth/magic-link', async (req, res) => {
   }
 
   try {
-    // 1. Buscar tutor con búsqueda flexible
-    const cleanPhone = phone.replace(/[\s\+\-]/g, '');
-    let tutor = await prisma.tutor.findFirst({
-      where: {
-        OR: [
-          { phone },
-          { phone: { contains: cleanPhone } },
-          { phone: { contains: cleanPhone.slice(-7) } }
-        ]
-      }
+    // 1. Buscar tutor por teléfono, comparando solo dígitos y los últimos 10
+    //    (celular colombiano). Antes bastaba con que el número "contuviera" los
+    //    últimos 7 dígitos: se encontraba a otro tutor y se le enviaba a él el acceso.
+    const digits = String(phone).replace(/\D/g, '');
+    if (digits.length < 7) {
+      return res.status(400).json({ error: 'Escribe el número de teléfono completo.' });
+    }
+    const key = digits.slice(-10);
+    const candidates = await prisma.tutor.findMany({
+      where: { phone: { contains: digits.slice(-4) }, deletedAt: null },
+      take: 200
     });
+    const matches = candidates.filter(t => (t.phone || '').replace(/\D/g, '').slice(-10) === key);
+    let tutor: (typeof matches)[number] | null = matches.find(t => t.email) || matches[0] || null;
 
     // 2. Si no existe, intentar asegurar demo en desarrollo
     if (!tutor && isDevelopment) {

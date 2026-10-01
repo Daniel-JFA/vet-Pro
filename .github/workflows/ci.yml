@@ -1,73 +1,99 @@
-name: CI - build & push
+name: CI - build & test
+
+# Bloquea el merge/deploy si algo de esto falla. Hasta 2026-09-30 este workflow
+# fallaba siempre (las pruebas del backend no tenían base de datos) y el E2E
+# nunca llegó a ejecutarse, así que un formulario roto llegó a producción.
 
 on:
   push:
     branches: [ main ]
+  pull_request:
 
 jobs:
-  build-and-push:
+  contract:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rutas del frontend existen en el backend y formularios ligados
+        run: python3 scripts/check_frontend_contract.py
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./vetpro-angular/vetpro
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npm run build -- --configuration=production
+      - run: npx ng test --watch=false
+
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: vetpro
+          POSTGRES_PASSWORD: vetpro
+          POSTGRES_DB: vetpro_test
+        ports: [ '5432:5432' ]
+        options: >-
+          --health-cmd "pg_isready -U vetpro -d vetpro_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      REGISTRY: ${{ secrets.REGISTRY }}
-      REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
+      DATABASE_URL: postgresql://vetpro:vetpro@localhost:5432/vetpro_test
+      JWT_SECRET: ci-only-secret-not-used-anywhere-else-0123456789abcdef0123456789abcdef
+      NODE_ENV: test
+    defaults:
+      run:
+        working-directory: ./vetpro-backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run build
+      - run: npx prisma migrate deploy
+      - run: npm test
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [contract, frontend, backend]
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Node for frontend
-        uses: actions/setup-node@v4
+      - name: Levantar stack real (db + backend + frontend)
+        run: docker compose -f .github/e2e/docker-compose.yml up -d --build --wait
+
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install & build frontend
+      - name: Instalar dependencias del frontend
         working-directory: ./vetpro-angular/vetpro
         run: |
           npm ci
-          npm run build -- --configuration=production || npm run build
+          npx playwright install --with-deps chromium
 
-      - name: Set up Node for backend
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install & build backend
-        working-directory: ./vetpro-backend
-        run: |
-          npm ci --legacy-peer-deps || npm ci
-          npm run build
-
-      - name: Test backend
-        working-directory: ./vetpro-backend
-        run: npm test
-
-      - name: Install Playwright Browsers
+      - name: E2E contra el backend real
         working-directory: ./vetpro-angular/vetpro
-        run: npx playwright install --with-deps chromium
+        env:
+          E2E_REAL: '1'
+          PLAYWRIGHT_BASE_URL: http://localhost:8080
+        run: npx playwright test e2e/real-backend.spec.ts --project=chromium
 
-      - name: Run Playwright E2E tests
-        working-directory: ./vetpro-angular/vetpro
-        run: npx playwright test --project=chromium
+      - name: Logs del backend si falla
+        if: failure()
+        run: docker compose -f .github/e2e/docker-compose.yml logs backend --tail=200
 
-      - name: Login to registry
-        uses: docker/login-action@v2
+      - uses: actions/upload-artifact@v4
+        if: failure()
         with:
-          registry: ${{ secrets.REGISTRY }}
-          username: ${{ secrets.REGISTRY_USER }}
-          password: ${{ secrets.REGISTRY_TOKEN }}
-
-      - name: Build and push frontend image
-        uses: docker/build-push-action@v4
-        with:
-          context: ./vetpro-angular/vetpro
-          push: true
-          tags: |
-            ${{ secrets.REGISTRY }}/vetpro-frontend:latest
-            ${{ secrets.REGISTRY }}/vetpro-frontend:${{ github.sha }}
-
-      - name: Build and push backend image
-        uses: docker/build-push-action@v4
-        with:
-          context: ./vetpro-backend
-          push: true
-          tags: |
-            ${{ secrets.REGISTRY }}/vetpro-backend:latest
-            ${{ secrets.REGISTRY }}/vetpro-backend:${{ github.sha }}
+          name: playwright-report
+          path: vetpro-angular/vetpro/playwright-report

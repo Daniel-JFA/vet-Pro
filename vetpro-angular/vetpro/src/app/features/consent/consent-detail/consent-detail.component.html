@@ -75,7 +75,7 @@
         <section class="sheet-parties">
           <div class="party-block">
             <span>Clínica Veterinaria</span>
-            <strong>VetPro SAS (NIT: 900.123.456-1)</strong>
+            <strong>{{ clinic()?.name }}{{ clinic()?.nit ? ' (NIT: ' + clinic()?.nit + ')' : '' }}</strong>
           </div>
           <div class="party-block">
             <span>Tutor Responsable</span>

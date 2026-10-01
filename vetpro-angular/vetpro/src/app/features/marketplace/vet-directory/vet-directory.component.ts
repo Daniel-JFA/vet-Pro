@@ -12,6 +12,7 @@ import {
 import { ToastService } from '../../../core/services/toast.service';
 import { buildWompiCheckoutUrl } from '../../../core/utils/wompi-checkout';
 import { WhatsAppWidgetComponent } from '../../../shared/components/whatsapp-widget/whatsapp-widget.component';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-vet-directory',

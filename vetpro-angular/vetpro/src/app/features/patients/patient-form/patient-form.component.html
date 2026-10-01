@@ -6,7 +6,7 @@
   }
 
   @if (!loading()) {
-    <form (ngSubmit)="submit()" class="form-grid">
+    <form [formGroup]="form" (ngSubmit)="submit()" class="form-grid">
       <!-- Cabecera del Formulario -->
       <header class="form-header">
         <div class="header-left">

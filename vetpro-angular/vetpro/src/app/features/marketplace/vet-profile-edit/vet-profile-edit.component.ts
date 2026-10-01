@@ -62,9 +62,10 @@ export class VetProfileEditComponent implements OnInit {
   selectedIdFile: File | null = null;
 
   ngOnInit(): void {
+    // La suscripción se pide después del perfil: /profile/me crea el perfil
+    // la primera vez y, en paralelo, /profile/subscription respondía 404.
     this.loadProfile();
     this.loadEarnings();
-    this.loadSubscription();
   }
 
   loadSubscription(): void {
@@ -93,6 +94,7 @@ export class VetProfileEditComponent implements OnInit {
     this.marketplaceService.getMyProfile().subscribe({
       next: (p) => {
         this.profile.set(p);
+        this.loadSubscription();
         this.professionalCard = p.professionalCard || '';
         this.bio = p.bio || '';
         this.consultationPrice = p.consultationPrice || 50000;

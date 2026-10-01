@@ -70,10 +70,6 @@
           <span class="metric-label">Bitácora IA Clínica</span>
           <span class="metric-value">{{ data.clinic.aiMinutesUsed | number:'1.0-0' }} / {{ data.clinic.aiMinutesLimit }} min</span>
         </div>
-        <div class="metric-item">
-          <span class="metric-label">Inversión Mensual</span>
-          <span class="metric-value price">{{ data.pricing.monthlyPrice | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
-        </div>
       </div>
     </section>
 
@@ -106,19 +102,6 @@
           <div class="plan-header">
             <h3 class="plan-name">{{ plan.name }}</h3>
             <p class="plan-subtitle">{{ plan.subtitle }}</p>
-          </div>
-
-          <div class="plan-pricing">
-            <div class="price-row">
-              <span class="currency-symbol">$</span>
-              <span class="amount">
-                {{ (selectedCycle() === 'annual' ? (plan.annualPrice / 12) : plan.monthlyPrice) | number:'1.0-0' }}
-              </span>
-              <span class="period">COP / mes</span>
-            </div>
-            @if (selectedCycle() === 'annual') {
-              <small class="billed-annually">Facturado anualmente ({{ plan.annualPrice | currency:'COP':'symbol-narrow':'1.0-0' }} / año)</small>
-            }
           </div>
 
           <ul class="features-list">
@@ -166,7 +149,6 @@
                 <th>Referencia</th>
                 <th>Plan</th>
                 <th>Ciclo</th>
-                <th>Monto</th>
                 <th>Método</th>
                 <th>Estado</th>
               </tr>
@@ -178,7 +160,6 @@
                   <td><code>{{ pay.wompiReference }}</code></td>
                   <td class="capitalize"><strong>{{ pay.plan }}</strong></td>
                   <td>{{ pay.billingCycle === 'annual' ? 'Anual' : 'Mensual' }}</td>
-                  <td>{{ (pay.amountInCents / 100) | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
                   <td>{{ pay.paymentMethod || 'Wompi' }}</td>
                   <td>
                     <span class="status-pill" [class.approved]="pay.status === 'APPROVED'" [class.pending]="pay.status === 'PENDING'">
@@ -214,10 +195,6 @@
             <div class="summary-row">
               <span>Modalidad de Cobro:</span>
               <strong>{{ checkout.billingCycle === 'annual' ? 'Facturación Anual (-15% Dcto)' : 'Facturación Mensual' }}</strong>
-            </div>
-            <div class="summary-row total">
-              <span>Total a Pagar:</span>
-              <span class="total-price">{{ checkout.amountInPesos | currency:'COP':'symbol-narrow':'1.0-0' }} COP</span>
             </div>
             <div class="summary-ref">
               <small>Referencia de Pago: <code>{{ checkout.reference }}</code></small>

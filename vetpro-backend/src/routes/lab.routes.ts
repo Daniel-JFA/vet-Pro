@@ -39,11 +39,13 @@ const CreateLabOrderSchema = z.object({
 const SaveResultsSchema = z.object({
   status: z.nativeEnum(LabOrderStatus).default(LabOrderStatus.completed),
   results: z.array(z.object({
-    labTestCatalogId: z.string().uuid().optional(),
+    // La orden guarda unit/interpretation/labTestCatalogId como null y el
+    // frontend los reenvía tal cual: sin .nullable() guardar resultados daba 400
+    labTestCatalogId: z.string().uuid().optional().nullable(),
     testName: z.string().min(1),
     valueMeasured: z.string().min(1),
-    unit: z.string().optional(),
-    interpretation: z.string().optional()
+    unit: z.string().optional().nullable(),
+    interpretation: z.string().optional().nullable()
   })).min(1, 'Debe enviar al menos un resultado')
 });
 

@@ -17,8 +17,9 @@ import {
   ServiceModality
 } from '@prisma/client';
 import { WompiService } from '../services/wompi.service.js';
-import { AntifraudService } from '../services/antifraud.service.js';
-import { MailerService } from '../services/mailer.service.js';
+import { requireOnlinePayments, requirePaymentSimulation } from '../middleware/payments.js';
+import { env } from '../config/env.js';
+import { listVerificationProfiles } from '../services/vet-verification.service.js';
 
 const router = Router();
 
@@ -483,7 +484,7 @@ Quedo atento(a) a su confirmación. ¡Muchas gracias!`;
  * POST /api/v1/marketplace/appointments/:id/checkout
  * Genera la sesión de checkout con firma de integridad para pagar por Wompi
  */
-router.post('/appointments/:id/checkout', async (req: Request, res: Response): Promise<void> => {
+router.post('/appointments/:id/checkout', requireOnlinePayments, async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const checkout = await WompiService.createAppointmentCheckout(id);
@@ -499,7 +500,7 @@ router.post('/appointments/:id/checkout', async (req: Request, res: Response): P
  * POST /api/v1/marketplace/payments/webhook
  * Webhook oficial para recibir actualizaciones de transacciones desde Wompi
  */
-router.post('/payments/webhook', async (req: Request, res: Response): Promise<void> => {
+router.post('/payments/webhook', requireOnlinePayments, async (req: Request, res: Response): Promise<void> => {
   try {
     const payload = req.body;
 
@@ -838,7 +839,7 @@ router.post(
  * POST /api/v1/marketplace/profile/subscription
  * Suscripción mensual a "Pro Vet" ($49.000 COP) para destacar perfil ⭐
  */
-router.post('/profile/subscription', authMiddleware as any, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/profile/subscription', requireOnlinePayments as any, authMiddleware as any, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id;
     const { instantActivate = false } = req.body || {};
@@ -913,169 +914,18 @@ router.get('/profile/subscription', authMiddleware as any, async (req: AuthReque
 
 /**
  * GET /api/v1/marketplace/admin/verifications
- * Panel para auditar solicitudes de veterinarios
+ * Estado de verificación COMVEZCOL de los veterinarios de la clínica (solo
+ * lectura). Aprobar, rechazar y destacar lo hace VetPro desde /platform.
  */
 router.get(
   '/admin/verifications',
   authMiddleware as any,
   roleMiddleware(['admin']),
-  async (_req: AuthRequest, res: Response): Promise<void> => {
-    try {
-      const profiles = await prisma.vetProfile.findMany({
-        orderBy: [{ verificationStatus: 'asc' }, { createdAt: 'desc' }],
-        include: {
-          user: {
-            select: {
-              firstName: true,
-              lastName: true,
-              email: true,
-              phone: true,
-              avatarUrl: true,
-              documentType: true,
-              documentNumber: true
-            }
-          },
-          clinic: {
-            select: {
-              name: true,
-              city: true
-            }
-          }
-        }
-      });
-
-      const enriched = await Promise.all(
-        profiles.map(async (p) => {
-          let hasDuplicate = false;
-          if (p.professionalCard) {
-            const dups = await prisma.vetProfile.count({
-              where: {
-                professionalCard: { equals: p.professionalCard.trim(), mode: 'insensitive' },
-                id: { not: p.id }
-              }
-            });
-            hasDuplicate = dups > 0;
-          }
-
-          const hasValidCard = Boolean(p.professionalCard && p.professionalCard.trim().length >= 3);
-          const hasDocument = Boolean(p.cardDocumentUrl || p.idDocumentUrl);
-          const hasIdNumber = Boolean(p.user.documentNumber);
-
-          let riskLevel: 'low' | 'medium' | 'high' = 'low';
-          if (hasDuplicate || !hasValidCard || !hasIdNumber) {
-            riskLevel = 'high';
-          } else if (!hasDocument) {
-            riskLevel = 'medium';
-          }
-
-          return {
-            ...p,
-            antifraud: {
-              hasDuplicate,
-              hasValidCard,
-              hasDocument,
-              hasIdNumber,
-              riskLevel,
-              comvezcolQueryUrl: 'https://www.comvezcol.org/'
-            }
-          };
-        })
-      );
-
-      res.json(enriched);
-    } catch (err: any) {
-      res.status(500).json({ error: 'Error al consultar solicitudes de verificación' });
-    }
-  }
-);
-
-/**
- * PUT /api/v1/marketplace/admin/verifications/:id
- * Aprobar o rechazar la verificación de un veterinario
- */
-const VerifySchema = z.object({
-  status: z.nativeEnum(VerificationStatus).optional(),
-  notes: z.string().optional(),
-  isFeatured: z.boolean().optional()
-});
-
-router.put(
-  '/admin/verifications/:id',
-  authMiddleware as any,
-  roleMiddleware(['admin']),
   async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const { id } = req.params;
-      const { status, notes, isFeatured } = VerifySchema.parse(req.body);
-
-      const dataToUpdate: any = {};
-      if (status !== undefined) {
-        dataToUpdate.verificationStatus = status;
-        dataToUpdate.verificationNotes = notes || null;
-        dataToUpdate.verifiedAt = status === VerificationStatus.verified ? new Date() : null;
-        dataToUpdate.verifiedBy = req.user!.id;
-        if (status === VerificationStatus.verified) {
-          dataToUpdate.isPublic = true;
-        } else if (status === VerificationStatus.rejected) {
-          dataToUpdate.isPublic = false;
-        }
-      }
-      if (isFeatured !== undefined) {
-        dataToUpdate.isFeatured = isFeatured;
-      }
-
-      const profile = await prisma.vetProfile.update({
-        where: { id },
-        data: dataToUpdate,
-        include: {
-          user: true,
-          clinic: true
-        }
-      });
-
-      if (status === VerificationStatus.verified && profile.user?.email && profile.professionalCard) {
-        MailerService.sendProfessionalCardVerifiedEmail({
-          to: profile.user.email,
-          firstName: profile.user.firstName,
-          lastName: profile.user.lastName,
-          professionalCard: profile.professionalCard,
-          clinicName: profile.clinic?.name,
-          city: profile.city || profile.clinic?.city || undefined
-        }).catch((err: any) => console.error('Error enviando correo de certificación COMVEZCOL:', err));
-      }
-
-      res.json({
-        message: 'Solicitud actualizada con éxito',
-        profile
-      });
+      res.json(await listVerificationProfiles({ clinicId: req.user!.clinicId }));
     } catch (err: any) {
-      if (err instanceof z.ZodError) {
-        res.status(400).json({ error: err.issues[0]?.message });
-        return;
-      }
-      res.status(500).json({ error: 'Error al actualizar estado de verificación' });
-    }
-  }
-);
-
-/**
- * POST /api/v1/marketplace/admin/verifications/auto-verify-all
- * Proceso para certificar automáticamente a todos los veterinarios registrados
- * con matrícula válida y notificarles vía correo electrónico.
- */
-router.post(
-  '/admin/verifications/auto-verify-all',
-  authMiddleware as any,
-  roleMiddleware(['admin']),
-  async (_req: AuthRequest, res: Response): Promise<void> => {
-    try {
-      const summary = await AntifraudService.verifyAllRegisteredVets();
-      res.json({
-        message: 'Proceso de certificación automática COMVEZCOL completado.',
-        summary
-      });
-    } catch (err: any) {
-      res.status(500).json({ error: 'Error durante la verificación automática masiva.' });
+      res.status(500).json({ error: 'Error al consultar solicitudes de verificación' });
     }
   }
 );

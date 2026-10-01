@@ -62,6 +62,10 @@ export class HospitalizationService {
     return this.api.post<Bed>('/hospitalizations/beds', bed);
   }
 
+  setBedStatus(bedId: string, status: 'available' | 'cleaning' | 'maintenance'): Observable<Bed> {
+    return this.api.patch<Bed>(`/hospitalizations/beds/${bedId}/status`, { status });
+  }
+
   getActiveHospitalizations(branchId?: string): Observable<HospitalizedPatient[]> {
     return this.api.get<HospitalizedPatient[]>('/hospitalizations/active', branchId ? { branchId } : undefined);
   }

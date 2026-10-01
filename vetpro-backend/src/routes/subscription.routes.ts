@@ -7,6 +7,7 @@ import { roleMiddleware } from '../middleware/role.js';
 import { paymentSimulationGuard } from '../middleware/paymentSimulation.js';
 import { getClinicAccess, TRIAL_DAYS } from '../services/subscription-access.service.js';
 import { WompiService, wompiConfig } from '../services/wompi.service.js';
+import { requireOnlinePayments, requirePaymentSimulation } from '../middleware/payments.js';
 
 export const SUBSCRIPTION_ROUTES = Router();
 
@@ -136,6 +137,7 @@ const CheckoutSchema = z.object({
 // POST /api/v1/subscriptions/checkout
 SUBSCRIPTION_ROUTES.post(
   '/checkout',
+  requireOnlinePayments as any,
   authMiddleware as any,
   roleMiddleware(['admin']) as any,
   async (req: AuthRequest, res: Response): Promise<void> => {
@@ -208,7 +210,7 @@ SUBSCRIPTION_ROUTES.post(
 // 3. WEBHOOK TRANSACCIONAL DE WOMPI
 // ─────────────────────────────────────────────
 // POST /api/v1/subscriptions/webhook
-SUBSCRIPTION_ROUTES.post('/webhook', async (req, res): Promise<void> => {
+SUBSCRIPTION_ROUTES.post('/webhook', requireOnlinePayments as any, async (req, res): Promise<void> => {
   try {
     const payload = req.body;
     const event = payload?.event;

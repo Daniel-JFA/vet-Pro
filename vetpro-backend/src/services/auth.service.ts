@@ -459,6 +459,7 @@ export class AuthService {
     phone?: string;
     address?: string;
     municipioId?: string;
+    onboarded?: boolean;
   }) {
     let municipioData = {};
     if (data.municipioId) {
@@ -475,6 +476,7 @@ export class AuthService {
         ...(data.nit !== undefined ? { nit: data.nit } : {}),
         ...(data.phone ? { phone: data.phone } : {}),
         ...(data.address ? { address: data.address } : {}),
+        ...(data.onboarded ? { onboardedAt: new Date() } : {}),
         ...municipioData
       },
       include: {

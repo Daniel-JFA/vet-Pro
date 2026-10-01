@@ -610,21 +610,23 @@ export class WalkersListComponent implements OnInit {
 
   loadWalkers() {
     this.loading.set(true);
-    this.api.get<Walker[]>('/v1/walkers').subscribe({
+    this.api.get<Walker[]>('/walkers').subscribe({
       next: (data) => {
         this.walkers.set(data);
         this.loading.set(false);
       },
       error: () => {
-        this.walkers.set(this.demoWalkers());
+        // Antes se mostraban paseadores de demostración como si fueran de la clínica
+        this.walkers.set([]);
         this.loading.set(false);
+        alert('No se pudo cargar el listado de paseadores.');
       },
     });
   }
 
   loadBookings() {
     this.loadingBookings.set(true);
-    this.api.get<WalkBooking[]>('/v1/walkers/bookings').subscribe({
+    this.api.get<WalkBooking[]>('/walkers/bookings').subscribe({
       next: (data) => {
         this.bookings.set(data);
         this.loadingBookings.set(false);
@@ -651,14 +653,17 @@ export class WalkersListComponent implements OnInit {
         .map((z) => z.trim())
         .filter(Boolean),
     };
-    this.api.post<Walker>('/v1/walkers', payload).subscribe({
+    this.api.post<Walker>('/walkers', payload).subscribe({
       next: (w) => {
         this.walkers.update((list) => [w, ...list]);
         this.showNewWalkerForm.set(false);
         this.savingWalker.set(false);
         this.newWalker = { userEmail: '', bio: '', pricePerHour: 25000, maxDogs: 3, zonesRaw: '' };
       },
-      error: () => this.savingWalker.set(false),
+      error: (err) => {
+        this.savingWalker.set(false);
+        alert(err?.error?.error || 'No se pudo registrar el paseador.');
+      },
     });
   }
 
@@ -670,32 +675,4 @@ export class WalkersListComponent implements OnInit {
     return STATUS_COLOR[status] ?? '#6b7280';
   }
 
-  private demoWalkers(): Walker[] {
-    return [
-      {
-        id: 'demo-w1',
-        clinicId: 'dev-clinic',
-        userId: 'dev-walker',
-        user: {
-          id: 'dev-walker',
-          clinicId: 'dev-clinic',
-          branchId: 'dev-branch',
-          firstName: 'Juan',
-          lastName: 'Pérez',
-          email: 'paseador@vetpro.co',
-          role: 'walker',
-          active: true,
-        },
-        bio: 'Apasionado por los animales, 3 años de experiencia en paseos grupales e individuales.',
-        photoUrl: undefined,
-        rating: 4.8,
-        totalWalks: 127,
-        pricePerHour: 25000,
-        maxDogs: 3,
-        coverageZones: ['Laureles', 'El Poblado', 'Envigado'],
-        active: true,
-        createdAt: new Date(),
-      },
-    ];
-  }
 }

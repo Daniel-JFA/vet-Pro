@@ -102,6 +102,7 @@ model Clinic {
   aiMinutesLimit        Float                 @default(60) // Límite en minutos según plan
   // Cierre de cuenta solicitado por su último usuario: se borra todo en esta fecha
   deletionScheduledAt   DateTime?
+  onboardedAt           DateTime? // Onboarding inicial completado (antes solo en localStorage)
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
 

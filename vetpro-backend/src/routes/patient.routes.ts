@@ -43,7 +43,11 @@ const CreatePatientSchema = z.object({
   name: z.string().min(1, 'El nombre de la mascota es obligatorio'),
   species: z.nativeEnum(PatientSpecies),
   breed: z.string().optional().nullable(),
-  birthDate: z.string().datetime().optional().nullable(),
+  // El <input type="date"> del formulario envía 'YYYY-MM-DD', o '' si se deja vacío
+  birthDate: z.preprocess(
+    v => (v === '' ? null : v),
+    z.union([z.string().datetime(), z.string().date()]).optional().nullable()
+  ),
   sex: z.nativeEnum(PatientSex),
   sterilized: z.boolean().default(false),
   weight: z.number().positive().optional().nullable(),
@@ -212,6 +216,37 @@ router.get('/:id', roleMiddleware(P.CLINIC_READ as unknown as string[]) as any, 
   } catch (error: any) {
     console.error('[PatientRoutes] Error al buscar paciente:', error);
     return res.status(500).json({ error: 'Error al obtener ficha de mascota.' });
+  }
+});
+
+// GET /api/v1/patients/:id/vaccines (Esquema de vacunación completo de la mascota)
+router.get('/:id/vaccines', roleMiddleware(P.CLINIC_READ as unknown as string[]) as any, async (req: AuthRequest, res: Response) => {
+  const clinicId = req.user?.clinicId;
+  const { id } = req.params;
+
+  if (!clinicId) {
+    return res.status(401).json({ error: 'No autorizado.' });
+  }
+
+  try {
+    const patient = await prisma.patient.findFirst({
+      where: { id, clinicId, deletedAt: null },
+      select: { id: true }
+    });
+
+    if (!patient) {
+      return res.status(404).json({ error: 'Paciente no encontrado o expediente inaccesible.' });
+    }
+
+    const vaccines = await prisma.vaccine.findMany({
+      where: { patientId: id },
+      orderBy: { appliedAt: 'desc' }
+    });
+
+    return res.json(vaccines);
+  } catch (error: any) {
+    console.error('[PatientRoutes] Error al consultar vacunas:', error);
+    return res.status(500).json({ error: 'Error al consultar el esquema de vacunación.' });
   }
 });
 
