@@ -243,6 +243,26 @@ export class LoginComponent {
     password: ['', Validators.required],
   });
 
+  constructor() {
+    this.prefillLocalCredentials();
+  }
+
+  // Solo en localhost: si existe public/dev-login.json (ignorado por git, nunca
+  // llega a producción) se rellenan el correo y la contraseña de prueba.
+  private async prefillLocalCredentials() {
+    if (!['localhost', '127.0.0.1'].includes(window.location.hostname)) return;
+    try {
+      const res = await fetch('/dev-login.json', { cache: 'no-store' });
+      if (!res.ok || !res.headers.get('content-type')?.includes('json')) return;
+      const { email, password } = await res.json();
+      if (typeof email === 'string' && typeof password === 'string' && !this.form.value.email) {
+        this.form.patchValue({ email, password });
+      }
+    } catch {
+      // Sin archivo local: el formulario queda vacío, como en producción
+    }
+  }
+
   submit() {
     if (this.form.invalid) return;
     this.loading.set(true);

@@ -9,6 +9,7 @@ describe('SaaS Subscriptions & Recurring Billing (Integration Tests)', () => {
   let clinicId: string;
   let adminToken: string;
   let platformAdminToken: string;
+  let platformAdminId: string;
   let generatedReference: string;
 
   beforeAll(async () => {
@@ -56,6 +57,7 @@ describe('SaaS Subscriptions & Recurring Billing (Integration Tests)', () => {
         active: true
       }
     });
+    platformAdminId = platformAdmin.id;
     platformAdminToken = TokenService.signPlatform({
       id: platformAdmin.id,
       email: platformAdmin.email,
@@ -64,6 +66,7 @@ describe('SaaS Subscriptions & Recurring Billing (Integration Tests)', () => {
   });
 
   afterAll(async () => {
+    await prisma.platformAdmin.deleteMany({ where: { id: platformAdminId } });
     await prisma.clinicSubscriptionPayment.deleteMany({ where: { clinicId } });
     await prisma.user.deleteMany({ where: { clinicId } });
     await prisma.clinic.deleteMany({ where: { id: clinicId } });

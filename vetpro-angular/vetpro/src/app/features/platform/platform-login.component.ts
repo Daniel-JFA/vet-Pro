@@ -214,6 +214,27 @@ export class PlatformLoginComponent {
   loading = signal(false);
   errorMsg = signal('');
 
+  constructor() {
+    this.prefillLocalCredentials();
+  }
+
+  // Solo en localhost: toma la sección "platform" de public/dev-login.json
+  // (ignorado por git, nunca llega a producción).
+  private async prefillLocalCredentials() {
+    if (!['localhost', '127.0.0.1'].includes(window.location.hostname)) return;
+    try {
+      const res = await fetch('/dev-login.json', { cache: 'no-store' });
+      if (!res.ok || !res.headers.get('content-type')?.includes('json')) return;
+      const creds = (await res.json())?.platform;
+      if (typeof creds?.email === 'string' && typeof creds?.password === 'string' && !this.email()) {
+        this.email.set(creds.email);
+        this.password.set(creds.password);
+      }
+    } catch {
+      // Sin archivo local: formulario vacío
+    }
+  }
+
   submit() {
     this.loading.set(true);
     this.errorMsg.set('');
